@@ -1,0 +1,26 @@
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using SwipeJobs.Domain.Entities;
+
+namespace SwipeJobs.Infrastructure.Persistence.Configurations;
+
+public class ApplicationConfiguration : IEntityTypeConfiguration<Domain.Entities.Application>
+{
+    public void Configure(EntityTypeBuilder<Domain.Entities.Application> builder)
+    {
+        builder.HasKey(a => a.Id);
+
+        builder.HasOne(a => a.UserProfile)
+            .WithMany(u => u.Applications)
+            .HasForeignKey(a => a.UserProfileId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasOne(a => a.Job)
+            .WithMany(j => j.Applications)
+            .HasForeignKey(a => a.JobId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasIndex(a => new { a.UserProfileId, a.JobId }).IsUnique();
+        builder.HasIndex(a => a.Status);
+    }
+}

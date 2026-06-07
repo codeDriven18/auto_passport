@@ -1,0 +1,110 @@
+.card {
+  padding: 1.25rem;
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  cursor: pointer;
+  transition: border-color var(--transition-base);
+}
+
+.card:hover {
+  border-color: rgba(255, 214, 0, 0.45);
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 0.875rem;
+}
+
+.badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+}
+
+.badge {
+  font-size: 0.6875rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 0.25rem 0.625rem;
+  background: var(--color-accent);
+  color: #000;
+  border-radius: 9999px;
+}
+
+.badgeOutline {
+  composes: badge;
+  background: var(--color-bg);
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
+}
+
+.saveBtn,
+.saved {
+  font-size: 1.25rem;
+  padding: 0.25rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.saved {
+  color: #e53935;
+}
+
+.title {
+  font-size: 1.1875rem;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  line-height: 1.25;
+  margin-bottom: 0.25rem;
+}
+
+.company {
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  margin-bottom: 0.75rem;
+  display: inline-block;
+}
+
+.company:hover {
+  color: var(--color-text);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.salaryRow {
+  margin-bottom: 0.625rem;
+}
+
+.salary {
+  font-size: 1.0625rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.meta {
+  font-size: 0.8125rem;
+  color: var(--color-text-subtle);
+  margin-bottom: 0.75rem;
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+}
+
+.tag {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  padding: 0.2rem 0.55rem;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 9999px;
+  color: var(--color-text-muted);
+}

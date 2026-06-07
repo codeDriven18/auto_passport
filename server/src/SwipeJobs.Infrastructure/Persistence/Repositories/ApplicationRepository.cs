@@ -1,0 +1,48 @@
+using Microsoft.EntityFrameworkCore;
+using SwipeJobs.Application.Common.Interfaces.Repositories;
+using ApplicationEntity = SwipeJobs.Domain.Entities.Application;
+
+namespace SwipeJobs.Infrastructure.Persistence.Repositories;
+
+public class ApplicationRepository : Repository<ApplicationEntity>, IApplicationRepository
+{
+    public ApplicationRepository(AppDbContext context) : base(context)
+    {
+    }
+
+    public async Task<IReadOnlyList<ApplicationEntity>> GetByUserProfileIdAsync(Guid userProfileId, CancellationToken cancellationToken = default)
+        => await DbSet
+            .AsNoTracking()
+            .Include(a => a.Job)
+                .ThenInclude(j => j!.Company)
+            .Where(a => a.UserProfileId == userProfileId)
+            .OrderByDescending(a => a.AppliedAt)
+            .ToListAsync(cancellationToken);
+
+    public async Task<IReadOnlyList<ApplicationEntity>> GetByCompanyIdAsync(
+        Guid companyId, Guid? jobId, CancellationToken cancellationToken = default)
+    {
+        var q = DbSet
+            .AsNoTracking()
+            .Include(a => a.Job)
+            .Include(a => a.UserProfile)
+            .Where(a => a.Job!.CompanyId == companyId);
+
+        if (jobId.HasValue)
+            q = q.Where(a => a.JobId == jobId.Value);
+
+        return await q.OrderByDescending(a => a.AppliedAt).ToListAsync(cancellationToken);
+    }
+
+    public Task<int> CountAsync(CancellationToken cancellationToken = default)
+        => DbSet.CountAsync(cancellationToken);
+
+    public async Task<IReadOnlyList<ApplicationEntity>> GetAllWithDetailsAsync(CancellationToken cancellationToken = default)
+        => await DbSet
+            .AsNoTracking()
+            .Include(a => a.Job)
+                .ThenInclude(j => j!.Company)
+            .Include(a => a.UserProfile)
+            .OrderByDescending(a => a.AppliedAt)
+            .ToListAsync(cancellationToken);
+}

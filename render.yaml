@@ -1,0 +1,29 @@
+services:
+  - type: web
+    name: swipejobs-api
+    runtime: dotnet
+    region: oregon
+    plan: free
+    rootDir: server/src/SwipeJobs.Api
+    buildCommand: dotnet publish -c Release -o out
+    startCommand: dotnet out/SwipeJobs.Api.dll
+    healthCheckPath: /api/health
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: ConnectionStrings__DefaultConnection
+        sync: false
+      - key: Jwt__Key
+        sync: false
+      - key: Jwt__Issuer
+        value: SwipeJobs
+      - key: Jwt__Audience
+        value: SwipeJobsClient
+      - key: Admin__Email
+        sync: false
+      - key: Admin__Password
+        sync: false
+      - key: Cors__AllowedOrigins__0
+        sync: false
+      - key: Seed__DemoData
+        value: "false"

@@ -1,0 +1,146 @@
+.page {
+  min-height: calc(100vh - var(--nav-height) - 2rem);
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding-bottom: 1rem;
+}
+
+.hero {
+  text-align: center;
+  padding-top: 0.5rem;
+}
+
+.logo {
+  width: 3.5rem;
+  height: 3.5rem;
+  background: var(--color-accent);
+  border-radius: var(--radius-lg);
+  margin: 0 auto 1.25rem;
+  box-shadow: var(--shadow-lg);
+}
+
+.title {
+  font-size: 1.75rem;
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  margin-bottom: 0.625rem;
+}
+
+.subtitle {
+  font-size: 1rem;
+  color: var(--color-text-muted);
+  line-height: 1.55;
+  max-width: 20rem;
+  margin: 0 auto;
+}
+
+.card {
+  padding: 1.375rem;
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-md);
+}
+
+.cardTitle {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-text-muted);
+  margin-bottom: 1rem;
+}
+
+.gestures {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.gesture {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.gestureIcon {
+  flex-shrink: 0;
+  width: 2.75rem;
+  height: 2.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md);
+  font-size: 1.25rem;
+  font-weight: 800;
+  border: 2px solid;
+}
+
+.skip {
+  color: var(--color-danger);
+  border-color: rgba(220, 38, 38, 0.35);
+  background: rgba(220, 38, 38, 0.06);
+}
+
+.save {
+  color: var(--color-success);
+  border-color: rgba(22, 163, 74, 0.35);
+  background: rgba(22, 163, 74, 0.06);
+}
+
+.apply {
+  color: var(--color-info);
+  border-color: rgba(37, 99, 235, 0.35);
+  background: rgba(37, 99, 235, 0.06);
+}
+
+.gesture strong {
+  display: block;
+  font-size: 0.9375rem;
+  margin-bottom: 0.2rem;
+}
+
+.gesture p {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  line-height: 1.45;
+}
+
+.tapHint {
+  margin-top: 1.125rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--color-border-subtle);
+  font-size: 0.8125rem;
+  color: var(--color-text-subtle);
+  text-align: center;
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+  margin-top: auto;
+}
+
+.primaryBtn,
+.secondaryBtn {
+  width: 100%;
+  padding: 0.9375rem;
+  border-radius: var(--radius-md);
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+.primaryBtn {
+  background: var(--color-accent);
+  color: #000;
+  box-shadow: var(--shadow-md);
+}
+
+.secondaryBtn {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+}

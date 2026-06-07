@@ -1,0 +1,188 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.back {
+  align-self: flex-start;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  margin-bottom: -0.5rem;
+}
+
+.back:hover {
+  color: var(--color-text);
+}
+
+.hero {
+  padding: 1.5rem 1.25rem;
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-md);
+}
+
+.heroTop {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.logo {
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: var(--radius-md);
+  background: var(--color-accent);
+  color: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  font-weight: 900;
+  flex-shrink: 0;
+}
+
+.heroTitle {
+  font-size: 1.375rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.2;
+  margin-bottom: 0.25rem;
+}
+
+.heroIndustry {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.metaGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.625rem;
+}
+
+.metaItem {
+  padding: 0.75rem;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+}
+
+.metaLabel {
+  display: block;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-subtle);
+  margin-bottom: 0.25rem;
+}
+
+.metaValue {
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.description {
+  padding: 1.25rem;
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+}
+
+.description h2 {
+  font-size: 1rem;
+  font-weight: 800;
+  margin-bottom: 0.625rem;
+}
+
+.description p {
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  color: var(--color-text-muted);
+}
+
+.website {
+  display: inline-block;
+  margin-top: 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-info);
+}
+
+.followBtn,
+.followBtnActive {
+  width: 100%;
+  margin-top: 1rem;
+  padding: 0.75rem;
+  border-radius: var(--radius-md);
+  font-weight: 700;
+  font-size: 0.875rem;
+  transition: transform var(--transition-fast);
+}
+
+.followBtn {
+  background: var(--color-accent);
+  color: #000;
+}
+
+.followBtnActive {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+}
+
+.followBtn:hover:not(:disabled),
+.followBtnActive:hover:not(:disabled) {
+  transform: scale(1.01);
+}
+
+.followBtn:disabled,
+.followBtnActive:disabled {
+  opacity: 0.6;
+}
+
+.jobsSection {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.jobsHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.jobsTitle {
+  font-size: 1.0625rem;
+  font-weight: 800;
+}
+
+.jobsCount {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.jobList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+}
+
+.status {
+  color: var(--color-text-muted);
+  text-align: center;
+  padding: 2rem;
+}
+
+.error {
+  text-align: center;
+  padding: 2rem;
+  color: var(--color-text-muted);
+}

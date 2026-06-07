@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/SwipeJobs.Api/SwipeJobs.Api.csproj" />
+    <Project Path="src/SwipeJobs.Application/SwipeJobs.Application.csproj" />
+    <Project Path="src/SwipeJobs.Domain/SwipeJobs.Domain.csproj" />
+    <Project Path="src/SwipeJobs.Infrastructure/SwipeJobs.Infrastructure.csproj" />
+  </Folder>
+</Solution>

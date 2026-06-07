@@ -1,0 +1,62 @@
+.layout {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  max-width: 480px;
+  margin: 0 auto;
+  background: var(--color-bg);
+}
+
+.header {
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface-overlay);
+  backdrop-filter: blur(8px);
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.logo {
+  width: 2rem;
+  height: 2rem;
+  border-radius: var(--radius-sm);
+  background: var(--color-accent);
+  display: block;
+  box-shadow: var(--shadow-sm);
+}
+
+.title {
+  font-size: 1.25rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+.main {
+  flex: 1;
+  padding: 1.25rem;
+  padding-bottom: calc(var(--nav-height) + 0.5rem);
+}
+
+.mainSwipe {
+  padding-top: 0.875rem;
+}
+
+.mainWelcome {
+  padding-top: 1rem;
+  padding-bottom: calc(var(--nav-height) + 1rem);
+}
+
+.pageContent {
+  min-height: 100%;
+}

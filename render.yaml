@@ -24,6 +24,6 @@ services:
       - key: Admin__Password
         sync: false
       - key: Cors__AllowedOrigins__0
-        sync: false
+        value: https://swipejobss.netlify.app
       - key: Seed__DemoData
         value: "false"

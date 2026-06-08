@@ -109,11 +109,23 @@ if (corsOrigins.Length == 0 && builder.Environment.IsDevelopment())
 if (corsOrigins.Length == 0)
     throw new InvalidOperationException("Cors:AllowedOrigins must be configured for production.");
 
+static bool IsAllowedClientOrigin(string origin, IReadOnlyList<string> configuredOrigins)
+{
+    if (configuredOrigins.Contains(origin, StringComparer.OrdinalIgnoreCase))
+        return true;
+
+    if (!Uri.TryCreate(origin, UriKind.Absolute, out var uri))
+        return false;
+
+    return uri.Host.Equals("swipejobss.netlify.app", StringComparison.OrdinalIgnoreCase)
+        || uri.Host.EndsWith("--swipejobss.netlify.app", StringComparison.OrdinalIgnoreCase);
+}
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("ClientPolicy", policy =>
     {
-        policy.WithOrigins(corsOrigins)
+        policy.SetIsOriginAllowed(origin => IsAllowedClientOrigin(origin, corsOrigins))
             .AllowAnyHeader()
             .AllowAnyMethod()
             .AllowCredentials()
@@ -124,7 +136,9 @@ builder.Services.AddCors(options =>
 var app = builder.Build();
 
 app.Logger.LogInformation("SwipeJobs API starting in {Environment} mode.", app.Environment.EnvironmentName);
-app.Logger.LogInformation("CORS allowed origins: {Origins}", string.Join(", ", corsOrigins));
+app.Logger.LogInformation(
+    "CORS configured origins: {Origins}; Netlify deploy previews for swipejobss.netlify.app are allowed.",
+    string.Join(", ", corsOrigins));
 
 await app.InitializeDatabaseAsync();
 app.Logger.LogInformation("SignalR hub mapped at /hubs/notifications.");

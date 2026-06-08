@@ -1,4 +1,6 @@
-const PRODUCTION_API_URL = 'https://swipejobs.onrender.com/api';
+const AZURE_API_ORIGIN =
+  'https://swipejobs-afexcuape8ecexdk.eastasia-01.azurewebsites.net';
+const PRODUCTION_API_URL = `${AZURE_API_ORIGIN}/api`;
 const DEVELOPMENT_API_URL = 'http://localhost:5123/api';
 
 function normalizeApiBaseUrl(url: string): string {
@@ -6,16 +8,20 @@ function normalizeApiBaseUrl(url: string): string {
   return trimmed.endsWith('/api') ? trimmed : `${trimmed}/api`;
 }
 
+function isInvalidProductionApiUrl(url: string): boolean {
+  return /localhost|127\.0\.0\.1|onrender\.com|netlify\.app/i.test(url);
+}
+
 function resolveApiUrl(): string {
   const fromEnv = import.meta.env.VITE_API_URL?.trim();
 
   if (import.meta.env.PROD) {
-    if (fromEnv && !/localhost|127\.0\.0\.1/i.test(fromEnv)) {
+    if (fromEnv && !isInvalidProductionApiUrl(fromEnv)) {
       return normalizeApiBaseUrl(fromEnv);
     }
     if (fromEnv) {
       console.warn(
-        'Ignoring localhost VITE_API_URL in production; using Render API instead.',
+        'Ignoring invalid VITE_API_URL in production; using Azure API instead.',
         fromEnv,
       );
     }
@@ -25,13 +31,15 @@ function resolveApiUrl(): string {
   return normalizeApiBaseUrl(fromEnv ?? DEVELOPMENT_API_URL);
 }
 
-const finalApiUrl = resolveApiUrl();
+const apiUrl = resolveApiUrl();
 
 export const API_CONFIG = {
-  baseUrl: finalApiUrl,
+  baseUrl: apiUrl,
   timeout: 10_000,
 } as const;
 
-console.log('API URL =', finalApiUrl);
+if (import.meta.env.PROD) {
+  console.log('Production API URL:', apiUrl);
+}
 
 export const APP_ENV = import.meta.env.VITE_APP_ENV ?? import.meta.env.MODE;

@@ -3,7 +3,7 @@
   publish = "dist"
 
 [build.environment]
-  VITE_API_URL = "https://swipejobs.onrender.com/api"
+  VITE_API_URL = "https://swipejobs-afexcuape8ecexdk.eastasia-01.azurewebsites.net"
   VITE_APP_ENV = "production"
 
 [[redirects]]

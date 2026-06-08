@@ -25,7 +25,7 @@ export function AdminSettingsPage() {
         </div>
         <div className={styles.reportCard}>
           <h3>Seeded admin account</h3>
-          <p>In development, admin credentials come from <code>appsettings.Development.json</code>. In production, set <code>Admin__Email</code> and <code>Admin__Password</code> environment variables on Render.</p>
+          <p>In development, admin credentials come from <code>appsettings.Development.json</code>. In production, set <code>Admin__Email</code> and <code>Admin__Password</code> environment variables on Azure App Service.</p>
         </div>
         <div className={styles.reportCard}>
           <h3>Public app</h3>

@@ -18,8 +18,28 @@ public static class DependencyInjection
         var connectionString = configuration.GetConnectionString("DefaultConnection");
         if (string.IsNullOrWhiteSpace(connectionString))
         {
+            var envKeys = new[]
+            {
+                "ConnectionStrings__DefaultConnection",
+                "CUSTOMCONNSTR_DefaultConnection",
+                "POSTGRESQLCONNSTR_DefaultConnection",
+            };
+            foreach (var key in envKeys)
+            {
+                var value = Environment.GetEnvironmentVariable(key);
+                if (!string.IsNullOrWhiteSpace(value))
+                {
+                    connectionString = value;
+                    break;
+                }
+            }
+        }
+
+        if (string.IsNullOrWhiteSpace(connectionString))
+        {
             throw new InvalidOperationException(
-                "ConnectionStrings:DefaultConnection must be configured via environment variables.");
+                "ConnectionStrings:DefaultConnection must be configured via Azure app settings " +
+                "(ConnectionStrings__DefaultConnection) or connection strings (DefaultConnection).");
         }
 
         services.AddDbContext<AppDbContext>(options =>

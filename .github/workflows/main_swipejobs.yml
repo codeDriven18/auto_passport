@@ -180,7 +180,27 @@ jobs:
             az webapp config appsettings set \
               --resource-group "$RG" \
               --name "$APP_NAME" \
-              --settings "@appsettings.json"
+              --settings \
+                "ASPNETCORE_ENVIRONMENT=Production" \
+                "ConnectionStrings__DefaultConnection=$DB_CONNECTION"
+
+          retry_az "Set connection string (CUSTOMCONNSTR fallback)" \
+            az webapp config connection-string set \
+              --resource-group "$RG" \
+              --name "$APP_NAME" \
+              --connection-string-type Custom \
+              --settings "DefaultConnection=$DB_CONNECTION"
+
+          CONN_LEN=$(az webapp config appsettings list \
+            --resource-group "$RG" \
+            --name "$APP_NAME" \
+            --query "[?name=='ConnectionStrings__DefaultConnection'].value | [0]" -o tsv | wc -c | tr -d ' ')
+          echo "ConnectionStrings__DefaultConnection length: $CONN_LEN"
+          if [ "${CONN_LEN:-0}" -lt 30 ]; then
+            echo "::error::ConnectionStrings__DefaultConnection was not persisted on Azure (length $CONN_LEN)."
+            az webapp config appsettings list --resource-group "$RG" --name "$APP_NAME" --query "[].name" -o tsv
+            exit 1
+          fi
 
           echo "Verified app settings present:"
           az webapp config appsettings list \
@@ -234,6 +254,7 @@ jobs:
         env:
           AZURE_RESOURCE_GROUP: ${{ secrets.AZURE_RESOURCE_GROUP }}
         run: |
+          {
           set -uo pipefail
           APP_NAME="${{ env.AZURE_WEBAPP_NAME }}"
           BASE="https://swipejobs-afexcuape8ecexdk.eastasia-01.azurewebsites.net"
@@ -307,6 +328,16 @@ jobs:
 
           echo "=== wwwroot key files ==="
           curl -sS -u "$USER:$PASS" "https://$SCM_HOST/api/vfs/site/wwwroot/" | jq -r '.[] | select(.name|test("SwipeJobs|web.config|hostfxr")) | "\(.name) \(.size)"' 2>/dev/null || true
+
+          } 2>&1 | tee azure-diagnose.log
+
+      - name: Upload Azure diagnose log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: azure-diagnose-log
+          path: azure-diagnose.log
+          if-no-files-found: warn
 
       - name: Verify deployment
         shell: bash

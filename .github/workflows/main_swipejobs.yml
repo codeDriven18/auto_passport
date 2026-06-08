@@ -124,16 +124,15 @@ jobs:
           USE_32=$(az webapp show --resource-group "$RG" --name "$APP_NAME" --query siteConfig.use32BitWorkerProcess -o tsv | tr -d '\r')
           echo "Current use32BitWorkerProcess=$USE_32"
 
-          if [ "$USE_32" = "true" ]; then
-            retry_az "Enable 64-bit IIS worker (fixes HTTP 500.32 ANCM)" \
-              az webapp config set \
-                --resource-group "$RG" \
-                --name "$APP_NAME" \
-                --use-32bit-worker-process false
-            sleep 5
-          else
-            echo "64-bit IIS worker already enabled — skipping config set."
-          fi
+          retry_az "Enable 64-bit IIS worker (fixes HTTP 500.32 ANCM)" \
+            az webapp config set \
+              --resource-group "$RG" \
+              --name "$APP_NAME" \
+              --use-32bit-worker-process false
+
+          USE_32_AFTER=$(az webapp show --resource-group "$RG" --name "$APP_NAME" --query siteConfig.use32BitWorkerProcess -o tsv | tr -d '\r')
+          echo "After config use32BitWorkerProcess=$USE_32_AFTER"
+          sleep 5
 
           echo "Existing app settings (names only):"
           az webapp config appsettings list \
@@ -186,6 +185,22 @@ jobs:
         with:
           app-name: ${{ env.AZURE_WEBAPP_NAME }}
           package: ./publish
+
+      - name: Restart Azure Web App
+        shell: bash
+        env:
+          AZURE_RESOURCE_GROUP: ${{ secrets.AZURE_RESOURCE_GROUP }}
+        run: |
+          set -euo pipefail
+          APP_NAME="${{ env.AZURE_WEBAPP_NAME }}"
+          if [ -n "${AZURE_RESOURCE_GROUP:-}" ]; then
+            RG="$AZURE_RESOURCE_GROUP"
+          else
+            RG=$(az webapp list --query "[?name=='$APP_NAME'] | [0].resourceGroup" -o tsv | tr -d '\r')
+          fi
+          echo "Restarting $APP_NAME in $RG..."
+          az webapp restart --resource-group "$RG" --name "$APP_NAME"
+          sleep 20
 
       - name: Verify deployment
         shell: bash

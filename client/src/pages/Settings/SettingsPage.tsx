@@ -1,4 +1,5 @@
 import { useNavigate, Link } from 'react-router-dom';
+import { AppInstallationSection } from '@/components/pwa/AppInstallationSection';
 import { useTheme } from '@/theme/ThemeProvider';
 import { useAuth } from '@/context/AuthContext';
 import { UserRole } from '@/models/auth';
@@ -58,6 +59,8 @@ export function SettingsPage() {
           Visit marketing site
         </Link>
       </div>
+
+      <AppInstallationSection />
 
       <div className={styles.card}>
         <h2 className={styles.cardTitle}>Onboarding</h2>

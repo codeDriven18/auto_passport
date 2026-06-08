@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { dashboardApi } from '@/api/dashboardApi';
 import { JobCard } from '@/components/jobs/JobCard';
 import { CompanyLink } from '@/components/jobs/CompanyLink';
+import { InstallAppButton } from '@/components/pwa/InstallAppButton';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { useAuth } from '@/context/AuthContext';
@@ -114,7 +115,11 @@ export function DashboardPage() {
   if (!isAuthenticated) {
     return (
       <section className={styles.page}>
-        <PageHeader title="Dashboard" subtitle="Your personalized job search hub." />
+        <PageHeader
+          title="Dashboard"
+          subtitle="Your personalized job search hub."
+          action={<InstallAppButton variant="compact" showFallback={false} />}
+        />
         <p className={styles.greeting}>Browse jobs as a guest, or sign in for your own dashboard.</p>
         <div className={styles.quickLinks}>
           <Link to="/register" className={styles.quickLinkFeatured}>
@@ -145,7 +150,11 @@ export function DashboardPage() {
   return (
     <motion.section className={styles.page} variants={container} initial="hidden" animate="show">
       <motion.div variants={item}>
-        <PageHeader title="Dashboard" subtitle="Your job search at a glance." />
+        <PageHeader
+          title="Dashboard"
+          subtitle="Your job search at a glance."
+          action={<InstallAppButton variant="compact" showFallback={false} />}
+        />
         <p className={styles.greeting}>Welcome back, {firstName}.</p>
       </motion.div>
 

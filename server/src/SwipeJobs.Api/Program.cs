@@ -14,9 +14,7 @@ using SwipeJobs.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
 
-var port = Environment.GetEnvironmentVariable("PORT");
-if (!string.IsNullOrWhiteSpace(port))
-    builder.WebHost.UseUrls($"http://+:{port}");
+builder.ConfigureAzureListening();
 
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
@@ -101,7 +99,7 @@ app.Logger.LogInformation(
     "CORS policy {Policy} allows Netlify production, *.netlify.app previews, and localhost dev origins.",
     CorsExtensions.CorsPolicyName);
 
-await app.InitializeDatabaseAsync();
+app.ScheduleDatabaseInitialization();
 app.Logger.LogInformation("SignalR hub mapped at /hubs/notifications.");
 
 if (!app.Environment.IsDevelopment())
@@ -126,6 +124,7 @@ if (app.Environment.IsDevelopment())
     });
 }
 
+app.UseSwipeJobsEarlyCors();
 app.UseRouting();
 app.UseResponseCompression();
 app.UseCors(CorsExtensions.CorsPolicyName);

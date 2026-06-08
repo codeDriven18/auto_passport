@@ -24,7 +24,9 @@ jobs:
           dotnet-version: '10.0.x'
 
       - name: Publish API
-        run: dotnet publish server/src/SwipeJobs.Api/SwipeJobs.Api.csproj -c Release -r linux-x64 --self-contained true -o "${{ runner.temp }}/publish"
+        run: |
+          dotnet publish server/src/SwipeJobs.Api/SwipeJobs.Api.csproj -c Release -r linux-x64 --self-contained true -o "${{ runner.temp }}/publish"
+          chmod +x "${{ runner.temp }}/publish/SwipeJobs.Api"
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
@@ -52,6 +54,12 @@ jobs:
           client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_576290AC42DC4A16BF27E92F9C0E1637 }}
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_C86F95965C204C3F89FDFA40C1A41A8B }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_1B53392385324F709311D27CB9A0DCD6 }}
+
+      - name: Configure Azure App Service startup
+        run: |
+          RG=$(az webapp show --name swipejobs --query resourceGroup -o tsv)
+          az webapp config set --resource-group "$RG" --name swipejobs --startup-file "./SwipeJobs.Api"
+          az webapp config appsettings set --resource-group "$RG" --name swipejobs --settings ASPNETCORE_ENVIRONMENT=Production WEBSITES_PORT=8080
 
       - name: Deploy to Azure Web App
         id: deploy-to-webapp

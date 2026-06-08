@@ -52,6 +52,24 @@ jobs:
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_C86F95965C204C3F89FDFA40C1A41A8B }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_1B53392385324F709311D27CB9A0DCD6 }}
 
+      - name: Configure Azure application settings
+        shell: bash
+        env:
+          DB_CONNECTION: ${{ secrets.AZURE_DB_CONNECTION_STRING }}
+          JWT_KEY: ${{ secrets.AZURE_JWT_KEY }}
+        run: |
+          RG=$(az webapp list --query "[?name=='swipejobs'].resourceGroup | [0]" -o tsv)
+          echo "Configuring app settings for resource group: $RG"
+          az webapp config appsettings set \
+            --resource-group "$RG" \
+            --name swipejobs \
+            --settings \
+              ASPNETCORE_ENVIRONMENT=Production \
+              ConnectionStrings__DefaultConnection="$DB_CONNECTION" \
+              Jwt__Key="$JWT_KEY" \
+              Jwt__Issuer=SwipeJobs \
+              Jwt__Audience=SwipeJobsClient
+
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
         with:

@@ -96,11 +96,11 @@ var app = builder.Build();
 
 app.Logger.LogInformation("SwipeJobs API starting in {Environment} mode.", app.Environment.EnvironmentName);
 app.Logger.LogInformation(
-    "CORS policy {Policy} allows Netlify production, *.netlify.app previews, and localhost dev origins.",
-    CorsExtensions.CorsPolicyName);
+    "CORS policy {Policy} allows: {Origins}",
+    CorsExtensions.CorsPolicyName,
+    string.Join(", ", CorsExtensions.AllowedOrigins));
 
 app.ScheduleDatabaseInitialization();
-app.Logger.LogInformation("SignalR hub mapped at /hubs/notifications.");
 
 if (!app.Environment.IsDevelopment())
 {
@@ -124,11 +124,9 @@ if (app.Environment.IsDevelopment())
     });
 }
 
-app.UseSwipeJobsEarlyCors();
+app.UseSwipeJobsCorsPreflight();
 app.UseRouting();
-app.UseResponseCompression();
 app.UseCors(CorsExtensions.CorsPolicyName);
-app.UseMiddleware<SecurityHeadersMiddleware>();
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseMiddleware<ExceptionHandlingMiddleware>();

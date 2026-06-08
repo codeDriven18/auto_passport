@@ -1,5 +1,4 @@
 # Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
-# More GitHub Actions for Azure: https://github.com/Azure/actions
 
 name: Build and deploy ASP.Net Core app to Azure Web App - swipejobs
 
@@ -10,14 +9,41 @@ on:
   workflow_dispatch:
 
 jobs:
+  build:
+    runs-on: windows-latest
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Publish API for Azure Windows
+        run: dotnet publish server/src/SwipeJobs.Api/SwipeJobs.Api.csproj -c Release -r win-x64 --self-contained true -o "$env:RUNNER_TEMP/publish"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: .net-app
+          path: ${{ runner.temp }}/publish
+
   deploy:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
+    needs: build
     permissions:
       id-token: write
       contents: read
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: .net-app
+          path: ./publish
 
       - name: Login to Azure
         uses: azure/login@v2
@@ -25,48 +51,6 @@ jobs:
           client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_576290AC42DC4A16BF27E92F9C0E1637 }}
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_C86F95965C204C3F89FDFA40C1A41A8B }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_1B53392385324F709311D27CB9A0DCD6 }}
-
-      - name: Resolve Azure runtime target
-        id: azure
-        run: |
-          RG=$(az webapp show --name swipejobs --query resourceGroup -o tsv)
-          KIND=$(az webapp show --name swipejobs --query kind -o tsv)
-          echo "resource-group=$RG" >> "$GITHUB_OUTPUT"
-          echo "kind=$KIND" >> "$GITHUB_OUTPUT"
-          if echo "$KIND" | grep -qi "linux"; then
-            echo "rid=linux-x64" >> "$GITHUB_OUTPUT"
-            echo "startup=./SwipeJobs.Api" >> "$GITHUB_OUTPUT"
-          else
-            echo "rid=win-x64" >> "$GITHUB_OUTPUT"
-            echo "startup=SwipeJobs.Api.exe" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Set up .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: '10.0.x'
-
-      - name: Publish API
-        run: |
-          dotnet publish server/src/SwipeJobs.Api/SwipeJobs.Api.csproj \
-            -c Release \
-            -r ${{ steps.azure.outputs.rid }} \
-            --self-contained true \
-            -o ./publish
-          if [ "${{ steps.azure.outputs.rid }}" = "linux-x64" ]; then
-            chmod +x ./publish/SwipeJobs.Api
-          fi
-
-      - name: Configure Azure App Service
-        run: |
-          az webapp config set \
-            --resource-group "${{ steps.azure.outputs.resource-group }}" \
-            --name swipejobs \
-            --startup-file "${{ steps.azure.outputs.startup }}"
-          az webapp config appsettings set \
-            --resource-group "${{ steps.azure.outputs.resource-group }}" \
-            --name swipejobs \
-            --settings ASPNETCORE_ENVIRONMENT=Production WEBSITES_PORT=8080
 
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3

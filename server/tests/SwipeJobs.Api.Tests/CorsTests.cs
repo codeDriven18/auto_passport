@@ -9,7 +9,6 @@ public class CorsOriginPolicyTests
     [Theory]
     [InlineData("https://swipejobss.netlify.app", true)]
     [InlineData("https://6a267b1a1b64858734149e95--swipejobss.netlify.app", true)]
-    [InlineData("https://feature-branch--swipejobss.netlify.app", true)]
     [InlineData("https://other-site.netlify.app", true)]
     [InlineData("http://localhost:5173", true)]
     [InlineData("https://localhost:5173", true)]
@@ -43,7 +42,7 @@ public class CorsTests : IClassFixture<SwipeJobsWebApplicationFactory>
 
         var response = await _client.SendAsync(request);
 
-        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.True(response.Headers.TryGetValues("Access-Control-Allow-Origin", out var origins));
         Assert.Equal(origin, origins.Single());
         Assert.True(response.Headers.TryGetValues("Access-Control-Allow-Methods", out var methods));

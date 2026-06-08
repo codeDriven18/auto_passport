@@ -4,43 +4,21 @@ public static class CorsExtensions
 {
     public const string CorsPolicyName = "CorsPolicy";
 
+    public static IReadOnlyList<string> AllowedOrigins { get; private set; } = [];
+
     public static IServiceCollection AddSwipeJobsCors(
         this IServiceCollection services,
         IConfiguration configuration,
         IWebHostEnvironment environment)
     {
-        var configuredOrigins = configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
-            ?? Array.Empty<string>();
-
-        if (configuredOrigins.Length == 0 && environment.IsDevelopment())
-        {
-            configuredOrigins =
-            [
-                "http://localhost:5173",
-                "https://localhost:5173",
-                "http://127.0.0.1:5173",
-                "https://127.0.0.1:5173",
-                "http://localhost:4173",
-                "http://127.0.0.1:4173",
-            ];
-        }
-
-        if (configuredOrigins.Length == 0 && environment.IsProduction())
-        {
-            configuredOrigins =
-            [
-                "https://swipejobss.netlify.app",
-                "http://localhost:5173",
-                "https://localhost:5173",
-            ];
-        }
+        AllowedOrigins = BuildAllowedOrigins(configuration, environment);
 
         services.AddCors(options =>
         {
             options.AddPolicy(CorsPolicyName, policy =>
             {
                 policy
-                    .SetIsOriginAllowed(origin => IsAllowedOrigin(origin, configuredOrigins))
+                    .SetIsOriginAllowed(origin => IsAllowedOrigin(origin, AllowedOrigins))
                     .AllowAnyHeader()
                     .AllowAnyMethod()
                     .AllowCredentials()
@@ -49,6 +27,28 @@ public static class CorsExtensions
         });
 
         return services;
+    }
+
+    public static IApplicationBuilder UseSwipeJobsCorsPreflight(this IApplicationBuilder app)
+    {
+        return app.Use(async (context, next) =>
+        {
+            var origin = context.Request.Headers.Origin.ToString();
+
+            if (HttpMethods.IsOptions(context.Request.Method)
+                && !string.IsNullOrEmpty(origin)
+                && IsAllowedOrigin(origin, AllowedOrigins))
+            {
+                context.Response.Headers["Access-Control-Allow-Origin"] = origin;
+                context.Response.Headers["Access-Control-Allow-Credentials"] = "true";
+                context.Response.Headers["Access-Control-Allow-Headers"] = "Authorization, Content-Type";
+                context.Response.Headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, PATCH, DELETE, OPTIONS";
+                context.Response.StatusCode = StatusCodes.Status200OK;
+                return;
+            }
+
+            await next(context);
+        });
     }
 
     internal static bool IsAllowedOrigin(string origin, IReadOnlyList<string> configuredOrigins)
@@ -68,12 +68,40 @@ public static class CorsExtensions
         if (uri.Host.Equals("swipejobss.netlify.app", StringComparison.OrdinalIgnoreCase))
             return true;
 
-        // Netlify production site + deploy previews such as
-        // https://6a267b1a1b64858734149e95--swipejobss.netlify.app
         if (uri.Host.EndsWith(".netlify.app", StringComparison.OrdinalIgnoreCase))
             return true;
 
         return false;
+    }
+
+    private static string[] BuildAllowedOrigins(IConfiguration configuration, IWebHostEnvironment environment)
+    {
+        var configured = configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
+            ?? Array.Empty<string>();
+
+        if (configured.Length > 0)
+            return configured;
+
+        if (environment.IsDevelopment())
+        {
+            return
+            [
+                "http://localhost:5173",
+                "https://localhost:5173",
+                "http://127.0.0.1:5173",
+                "https://127.0.0.1:5173",
+                "http://localhost:4173",
+                "http://127.0.0.1:4173",
+            ];
+        }
+
+        return
+        [
+            "https://swipejobss.netlify.app",
+            "https://6a267b1a1b64858734149e95--swipejobss.netlify.app",
+            "http://localhost:5173",
+            "https://localhost:5173",
+        ];
     }
 
     private static bool IsLocalDevOrigin(Uri uri)

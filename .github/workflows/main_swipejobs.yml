@@ -57,8 +57,21 @@ jobs:
         env:
           DB_CONNECTION: ${{ secrets.AZURE_DB_CONNECTION_STRING }}
         run: |
+          if [ -z "$DB_CONNECTION" ]; then
+            echo "::error::GitHub secret AZURE_DB_CONNECTION_STRING is not set."
+            echo "Add it at: Repository → Settings → Secrets and variables → Actions"
+            exit 1
+          fi
+
           RG=$(az webapp list --query "[?name=='swipejobs'].resourceGroup | [0]" -o tsv)
           echo "Configuring app settings for resource group: $RG"
+
+          # win-x64 self-contained publish requires a 64-bit IIS worker (fixes HTTP 500.32 ANCM).
+          az webapp config set \
+            --resource-group "$RG" \
+            --name swipejobs \
+            --use-32bit-worker-process false
+
           az webapp config appsettings set \
             --resource-group "$RG" \
             --name swipejobs \

@@ -67,6 +67,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 builder.Services.AddAuthorization();
 builder.Services.AddSignalR();
+builder.Services.AddSwipeJobsCors(builder.Configuration, builder.Environment);
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
@@ -93,52 +94,12 @@ builder.Services.AddSwaggerGen(options =>
     });
 });
 
-var corsOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
-    ?? Array.Empty<string>();
-if (corsOrigins.Length == 0 && builder.Environment.IsDevelopment())
-{
-    corsOrigins =
-    [
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-        "http://localhost:4173",
-        "http://127.0.0.1:4173",
-    ];
-}
-
-if (corsOrigins.Length == 0)
-    throw new InvalidOperationException("Cors:AllowedOrigins must be configured for production.");
-
-static bool IsAllowedClientOrigin(string origin, IReadOnlyList<string> configuredOrigins)
-{
-    if (configuredOrigins.Contains(origin, StringComparer.OrdinalIgnoreCase))
-        return true;
-
-    if (!Uri.TryCreate(origin, UriKind.Absolute, out var uri))
-        return false;
-
-    return uri.Host.Equals("swipejobss.netlify.app", StringComparison.OrdinalIgnoreCase)
-        || uri.Host.EndsWith("--swipejobss.netlify.app", StringComparison.OrdinalIgnoreCase);
-}
-
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy("ClientPolicy", policy =>
-    {
-        policy.SetIsOriginAllowed(origin => IsAllowedClientOrigin(origin, corsOrigins))
-            .AllowAnyHeader()
-            .AllowAnyMethod()
-            .AllowCredentials()
-            .SetPreflightMaxAge(TimeSpan.FromHours(1));
-    });
-});
-
 var app = builder.Build();
 
 app.Logger.LogInformation("SwipeJobs API starting in {Environment} mode.", app.Environment.EnvironmentName);
 app.Logger.LogInformation(
-    "CORS configured origins: {Origins}; Netlify deploy previews for swipejobss.netlify.app are allowed.",
-    string.Join(", ", corsOrigins));
+    "CORS policy {Policy} allows Netlify production, *.netlify.app previews, and localhost dev origins.",
+    CorsExtensions.CorsPolicyName);
 
 await app.InitializeDatabaseAsync();
 app.Logger.LogInformation("SignalR hub mapped at /hubs/notifications.");
@@ -154,7 +115,6 @@ if (!app.Environment.IsDevelopment())
     forwardedHeadersOptions.KnownIPNetworks.Clear();
     forwardedHeadersOptions.KnownProxies.Clear();
     app.UseForwardedHeaders(forwardedHeadersOptions);
-    app.UseHsts();
 }
 
 if (app.Environment.IsDevelopment())
@@ -166,12 +126,9 @@ if (app.Environment.IsDevelopment())
     });
 }
 
+app.UseRouting();
 app.UseResponseCompression();
-app.UseCors("ClientPolicy");
-
-if (!app.Environment.IsDevelopment())
-    app.UseHttpsRedirection();
-
+app.UseCors(CorsExtensions.CorsPolicyName);
 app.UseMiddleware<SecurityHeadersMiddleware>();
 app.UseAuthentication();
 app.UseAuthorization();

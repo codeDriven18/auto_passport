@@ -26,7 +26,16 @@ jobs:
           dotnet-version: '10.0.x'
 
       - name: Publish API for Azure Windows
-        run: dotnet publish server/src/SwipeJobs.Api/SwipeJobs.Api.csproj -c Release -r win-x64 --self-contained true -o "$env:RUNNER_TEMP/publish"
+        run: |
+          dotnet publish server/src/SwipeJobs.Api/SwipeJobs.Api.csproj -c Release -r win-x64 --self-contained true -o "$env:RUNNER_TEMP/publish"
+          Write-Host "=== Publish audit ==="
+          $pub = "$env:RUNNER_TEMP/publish"
+          @("SwipeJobs.Api.exe", "SwipeJobs.Api.dll", "hostfxr.dll", "web.config", "appsettings.Production.json") | ForEach-Object {
+            $p = Join-Path $pub $_
+            if (Test-Path $p) { Write-Host "OK $_ ($((Get-Item $p).Length) bytes)" } else { Write-Host "MISSING $_"; exit 1 }
+          }
+          Write-Host "Total files:" (Get-ChildItem $pub -Recurse -File).Count
+          Select-String -Path (Join-Path $pub "web.config") -Pattern "stdoutLogEnabled|hostingModel|processPath"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -180,6 +189,23 @@ jobs:
             --query "[?name=='ASPNETCORE_ENVIRONMENT' || name=='ConnectionStrings__DefaultConnection'].name" \
             -o tsv
 
+          echo "=== App Service platform / runtime ==="
+          az webapp show --resource-group "$RG" --name "$APP_NAME" --query "{
+            kind:kind,
+            state:state,
+            use32BitWorkerProcess:siteConfig.use32BitWorkerProcess,
+            netFrameworkVersion:siteConfig.netFrameworkVersion,
+            windowsFxVersion:siteConfig.windowsFxVersion,
+            linuxFxVersion:siteConfig.linuxFxVersion,
+            appCommandLine:siteConfig.appCommandLine,
+            alwaysOn:siteConfig.alwaysOn
+          }" -o json
+
+          az webapp config appsettings list --resource-group "$RG" --name "$APP_NAME" --query "[].name" -o tsv | sort
+
+          echo "$RG" > azure_rg.txt
+          echo "$HOST" > azure_host.txt
+
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
         with:
@@ -201,6 +227,86 @@ jobs:
           echo "Restarting $APP_NAME in $RG..."
           az webapp restart --resource-group "$RG" --name "$APP_NAME"
           sleep 20
+
+      - name: Diagnose Azure ANCM startup
+        if: always()
+        shell: bash
+        env:
+          AZURE_RESOURCE_GROUP: ${{ secrets.AZURE_RESOURCE_GROUP }}
+        run: |
+          set -uo pipefail
+          APP_NAME="${{ env.AZURE_WEBAPP_NAME }}"
+          BASE="https://swipejobs-afexcuape8ecexdk.eastasia-01.azurewebsites.net"
+
+          if [ -f azure_rg.txt ]; then
+            RG=$(tr -d '\r' < azure_rg.txt)
+          elif [ -n "${AZURE_RESOURCE_GROUP:-}" ]; then
+            RG="$AZURE_RESOURCE_GROUP"
+          else
+            RG=$(az webapp list --query "[?name=='$APP_NAME'] | [0].resourceGroup" -o tsv | tr -d '\r')
+          fi
+
+          if [ -f azure_host.txt ]; then
+            HOST=$(tr -d '\r' < azure_host.txt)
+          else
+            HOST=$(az webapp show --resource-group "$RG" --name "$APP_NAME" --query defaultHostName -o tsv | tr -d '\r')
+          fi
+
+          SCM_HOST="${HOST/.eastasia-01.azurewebsites.net/.scm.eastasia-01.azurewebsites.net}"
+          echo "Diagnosing app=$APP_NAME rg=$RG host=$HOST scm=$SCM_HOST"
+
+          az webapp log config \
+            --resource-group "$RG" \
+            --name "$APP_NAME" \
+            --application-logging filesystem \
+            --level information \
+            --web-server-logging filesystem \
+            --detailed-error-messages true \
+            --failed-request-tracing true \
+            --output none || true
+
+          echo "Triggering startup via health request..."
+          curl -sS -o /tmp/trigger.html -w "health HTTP:%{http_code}\n" "$BASE/api/health" || true
+          sleep 20
+
+          CREDS=$(az webapp deployment list-publishing-credentials --resource-group "$RG" --name "$APP_NAME" -o json)
+          USER=$(echo "$CREDS" | jq -r .publishingUserName)
+          PASS=$(echo "$CREDS" | jq -r .publishingPassword)
+
+          echo "=== Kudu LogFiles listing ==="
+          curl -sS -u "$USER:$PASS" "https://$SCM_HOST/api/vfs/LogFiles/" | jq -r '.[].name' 2>/dev/null || \
+            curl -sS -u "$USER:$PASS" "https://$SCM_HOST/api/vfs/LogFiles/"
+
+          echo "=== Kudu recent application logs ==="
+          curl -sS -u "$USER:$PASS" "https://$SCM_HOST/api/logs/recent?top=100" | jq -r '.[] | "\(.time) [\(.level)] \(.message)"' 2>/dev/null || \
+            curl -sS -u "$USER:$PASS" "https://$SCM_HOST/api/logs/recent?top=100"
+
+          echo "=== stdout log files ==="
+          STDOUT_FILES=$(curl -sS -u "$USER:$PASS" "https://$SCM_HOST/api/vfs/LogFiles/" | jq -r '.[].name' | grep -i stdout || true)
+          for f in $STDOUT_FILES; do
+            echo "--- $f ---"
+            curl -sS -u "$USER:$PASS" "https://$SCM_HOST/api/vfs/LogFiles/$f/" | jq -r '.[].name' 2>/dev/null | tail -n 3 | while read -r logfile; do
+              echo ">>> LogFiles/$f/$logfile"
+              curl -sS -u "$USER:$PASS" "https://$SCM_HOST/api/vfs/LogFiles/$f/$logfile" | tail -c 12000
+            done
+          done
+
+          echo "=== Kudu: run SwipeJobs.Api.exe (10s startup capture) ==="
+          KUDU_CMD=$(curl -sS -X POST "https://$SCM_HOST/api/command" \
+            -u "$USER:$PASS" \
+            -H "Content-Type: application/json" \
+            -d '{"command":"cmd /c D:\\home\\site\\wwwroot\\SwipeJobs.Api.exe","dir":"D:\\home\\site\\wwwroot"}' || true)
+          echo "$KUDU_CMD" | jq -r '.Output, .Error' 2>/dev/null || echo "$KUDU_CMD"
+
+          echo "=== az webapp log download ==="
+          az webapp log download --resource-group "$RG" --name "$APP_NAME" --log-file azure-logs.zip || true
+          if [ -f azure-logs.zip ]; then
+            unzip -l azure-logs.zip | head -n 40 || true
+            unzip -p azure-logs.zip 2>/dev/null | strings | grep -iE "fail|exception|error|ANCM|SwipeJobs" | tail -n 80 || true
+          fi
+
+          echo "=== wwwroot key files ==="
+          curl -sS -u "$USER:$PASS" "https://$SCM_HOST/api/vfs/site/wwwroot/" | jq -r '.[] | select(.name|test("SwipeJobs|web.config|hostfxr")) | "\(.name) \(.size)"' 2>/dev/null || true
 
       - name: Verify deployment
         shell: bash

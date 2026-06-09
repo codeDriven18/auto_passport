@@ -31,7 +31,17 @@ public class PostgresConnectionStringNormalizerTests
     }
 
     [Fact]
-    public void DescribeForLogs_DoesNotIncludePassword()
+    public void Normalize_InternalRenderHost_UsesExternalHostname()
+    {
+        var raw = "postgresql://user:pass@dpg-example-a/swipejobsdb";
+
+        var normalized = PostgresConnectionStringNormalizer.Normalize(raw);
+
+        Assert.Contains("Host=dpg-example-a.oregon-postgres.render.com", normalized);
+    }
+
+    [Fact]
+    public void DescribeRuntime_DoesNotIncludePassword()
     {
         var raw = $"Host={RenderHost};Port=5432;Database=swipejobsdb;Username=nico;Password=secret";
 
@@ -40,5 +50,19 @@ public class PostgresConnectionStringNormalizerTests
         Assert.Contains(RenderHost, description);
         Assert.DoesNotContain("secret", description);
         Assert.DoesNotContain("Password=", description);
+    }
+
+    [Fact]
+    public void DescribeRuntime_ReportsSafeFields()
+    {
+        var raw = $"Host={RenderHost};Port=5432;Database=swipejobsdb;Username=nico;Password=secret";
+
+        var runtime = PostgresConnectionStringNormalizer.DescribeRuntime(raw, "test");
+
+        Assert.Equal(RenderHost, runtime.Host);
+        Assert.Equal("swipejobsdb", runtime.Database);
+        Assert.Equal("nico", runtime.Username);
+        Assert.Equal(6, runtime.PasswordLength);
+        Assert.Equal("test", runtime.Source);
     }
 }

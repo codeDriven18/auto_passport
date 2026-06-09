@@ -24,11 +24,39 @@ public static class PostgresConnectionStringNormalizer
 
         if (IsRenderHost(builder.Host))
         {
+            builder.Host = ExternalizeRenderHost(builder.Host!);
             builder.SslMode = SslMode.Require;
             builder.TrustServerCertificate = true;
         }
 
         return builder.ConnectionString;
+    }
+
+    public static PostgresConnectionRuntimeInfo DescribeRuntime(string? connectionString, string source = "unknown")
+    {
+        if (string.IsNullOrWhiteSpace(connectionString))
+        {
+            return new PostgresConnectionRuntimeInfo { Source = source };
+        }
+
+        try
+        {
+            var normalized = Normalize(connectionString);
+            var builder = new NpgsqlConnectionStringBuilder(normalized);
+            return new PostgresConnectionRuntimeInfo
+            {
+                Source = source,
+                Host = builder.Host ?? string.Empty,
+                Database = builder.Database ?? string.Empty,
+                Username = builder.Username ?? string.Empty,
+                SslMode = builder.SslMode.ToString(),
+                PasswordLength = builder.Password?.Length ?? 0,
+            };
+        }
+        catch
+        {
+            return new PostgresConnectionRuntimeInfo { Source = source };
+        }
     }
 
     public static string DescribeForLogs(string? connectionString)
@@ -91,5 +119,20 @@ public static class PostgresConnectionStringNormalizer
 
     private static bool IsRenderHost(string? host)
         => !string.IsNullOrWhiteSpace(host)
-           && host.Contains("render.com", StringComparison.OrdinalIgnoreCase);
+           && (host.Contains("render.com", StringComparison.OrdinalIgnoreCase)
+               || host.StartsWith("dpg-", StringComparison.OrdinalIgnoreCase));
+
+    private static string ExternalizeRenderHost(string host)
+    {
+        if (host.Contains('.', StringComparison.Ordinal))
+            return host;
+
+        if (host.StartsWith("dpg-", StringComparison.OrdinalIgnoreCase)
+            && host.EndsWith("-a", StringComparison.OrdinalIgnoreCase))
+        {
+            return host + ".oregon-postgres.render.com";
+        }
+
+        return host;
+    }
 }

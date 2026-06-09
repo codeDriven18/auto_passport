@@ -15,30 +15,27 @@ public class AuthController : ControllerBase
     private readonly IAuthService _authService;
     private readonly IUserRepository _userRepository;
     private readonly ICurrentUserService _currentUser;
+    private readonly ILogger<AuthController> _logger;
 
     public AuthController(
         IAuthService authService,
         IUserRepository userRepository,
-        ICurrentUserService currentUser)
+        ICurrentUserService currentUser,
+        ILogger<AuthController> logger)
     {
         _authService = authService;
         _userRepository = userRepository;
         _currentUser = currentUser;
+        _logger = logger;
     }
 
     [AllowAnonymous]
     [HttpPost("register")]
     public async Task<IActionResult> Register([FromBody] RegisterDto dto, CancellationToken cancellationToken)
     {
-        try
-        {
-            var result = await _authService.RegisterAsync(dto, cancellationToken);
-            return Ok(result);
-        }
-        catch (InvalidOperationException ex)
-        {
-            return BadRequest(new { error = ex.Message });
-        }
+        _logger.LogInformation("Register request for {Email} as {AccountType}", dto.Email, dto.AccountType);
+        var result = await _authService.RegisterAsync(dto, cancellationToken);
+        return Ok(result);
     }
 
     [AllowAnonymous]

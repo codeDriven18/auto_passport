@@ -12,11 +12,16 @@ namespace SwipeJobs.Api.Controllers;
 public class HealthController : ControllerBase
 {
     private readonly AppDbContext _dbContext;
+    private readonly PostgresConnectionRuntimeInfo _connectionInfo;
     private readonly ILogger<HealthController> _logger;
 
-    public HealthController(AppDbContext dbContext, ILogger<HealthController> logger)
+    public HealthController(
+        AppDbContext dbContext,
+        PostgresConnectionRuntimeInfo connectionInfo,
+        ILogger<HealthController> logger)
     {
         _dbContext = dbContext;
+        _connectionInfo = connectionInfo;
         _logger = logger;
     }
 
@@ -25,29 +30,55 @@ public class HealthController : ControllerBase
     {
         var version = Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "1.0.0";
         var dbStatus = "healthy";
+        string? databaseError = null;
 
         try
         {
             if (!await _dbContext.Database.CanConnectAsync(cancellationToken))
             {
                 dbStatus = "unhealthy";
+                databaseError = "CanConnectAsync returned false.";
                 _logger.LogError("Database CanConnectAsync returned false.");
             }
         }
         catch (Exception ex)
         {
             dbStatus = "unhealthy";
+            databaseError = GetDatabaseErrorMessage(ex);
             LogDatabaseException(ex);
         }
 
         var apiStatus = dbStatus == "healthy" ? "healthy" : "degraded";
+        var includeDiagnostics = dbStatus != "healthy";
 
         return Ok(new HealthResponse(
             apiStatus,
             "SwipeJobs API",
             version,
             dbStatus,
-            DateTime.UtcNow));
+            DateTime.UtcNow,
+            includeDiagnostics ? _connectionInfo.Host : null,
+            includeDiagnostics ? _connectionInfo.Database : null,
+            includeDiagnostics ? _connectionInfo.Username : null,
+            includeDiagnostics ? _connectionInfo.SslMode : null,
+            includeDiagnostics ? databaseError : null));
+    }
+
+    private static string GetDatabaseErrorMessage(Exception ex)
+    {
+        for (var current = ex; current is not null; current = current.InnerException)
+        {
+            if (current is PostgresException pg)
+                return pg.MessageText;
+            if (current is NpgsqlException npgsql)
+                return npgsql.Message;
+            if (current is System.Net.Sockets.SocketException socket)
+                return $"{socket.SocketErrorCode}: {socket.Message}";
+            if (current is TimeoutException timeout)
+                return timeout.Message;
+        }
+
+        return ex.Message;
     }
 
     private void LogDatabaseException(Exception ex)

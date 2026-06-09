@@ -98,6 +98,16 @@ try
         CorsExtensions.CorsPolicyName,
         string.Join(", ", CorsExtensions.AllowedOrigins));
 
+    var dbRuntime = app.Services.GetRequiredService<SwipeJobs.Infrastructure.Persistence.PostgresConnectionRuntimeInfo>();
+    app.Logger.LogInformation(
+        "Database runtime config ({Source}): Host={Host};Database={Database};Username={Username};SSL Mode={SslMode};PasswordLength={PasswordLength}",
+        dbRuntime.Source,
+        dbRuntime.Host,
+        dbRuntime.Database,
+        dbRuntime.Username,
+        dbRuntime.SslMode,
+        dbRuntime.PasswordLength);
+
     app.ScheduleDatabaseInitialization();
 
     if (!app.Environment.IsDevelopment())

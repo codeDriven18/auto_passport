@@ -80,6 +80,15 @@ jobs:
           fi
 
           echo "AZURE_DB_CONNECTION_STRING length: ${#DB_CONNECTION}"
+          DB_CONNECTION=$(printf '%s' "$DB_CONNECTION" | python server/scripts/parse_pg_connection.py normalize)
+          echo "Normalized AZURE_DB_CONNECTION_STRING length: ${#DB_CONNECTION}"
+          echo "GitHub secret connection metadata:"
+          printf '%s' "$DB_CONNECTION" | python server/scripts/parse_pg_connection.py describe
+          PASSWORD_LEN=$(printf '%s' "$DB_CONNECTION" | python server/scripts/parse_pg_connection.py describe | awk -F= '/^password_length=/{print $2}')
+          if [ "${PASSWORD_LEN:-0}" -lt 8 ]; then
+            echo "::error::Database password length in secret is ${PASSWORD_LEN:-0} (expected >= 8)."
+            exit 1
+          fi
           if echo "$DB_CONNECTION" | grep -qiE '^postgres(ql)?://'; then
             echo "Connection string format: postgresql URI (normalized to Npgsql at startup)"
           elif echo "$DB_CONNECTION" | grep -qi 'Host='; then
@@ -223,6 +232,26 @@ jobs:
             --query "[?name=='ASPNETCORE_ENVIRONMENT' || name=='ConnectionStrings__DefaultConnection'].name" \
             -o tsv
 
+          AZ_CONN_VERIFY=$(az webapp config appsettings list \
+            --resource-group "$RG" \
+            --name "$APP_NAME" \
+            --query "[?name=='ConnectionStrings__DefaultConnection'].value | [0]" -o tsv | tr -d '\r')
+          echo "Azure persisted connection metadata:"
+          printf '%s' "$AZ_CONN_VERIFY" | python server/scripts/parse_pg_connection.py describe || true
+          AZ_USER=$(printf '%s' "$AZ_CONN_VERIFY" | python server/scripts/parse_pg_connection.py describe | awk -F= '/^username=/{print $2}')
+          AZ_HOST=$(printf '%s' "$AZ_CONN_VERIFY" | python server/scripts/parse_pg_connection.py describe | awk -F= '/^host=/{print $2}')
+          AZ_DB=$(printf '%s' "$AZ_CONN_VERIFY" | python server/scripts/parse_pg_connection.py describe | awk -F= '/^database=/{print $2}')
+          SECRET_USER=$(printf '%s' "$DB_CONNECTION" | python server/scripts/parse_pg_connection.py describe | awk -F= '/^username=/{print $2}')
+          SECRET_HOST=$(printf '%s' "$DB_CONNECTION" | python server/scripts/parse_pg_connection.py describe | awk -F= '/^host=/{print $2}')
+          SECRET_DB=$(printf '%s' "$DB_CONNECTION" | python server/scripts/parse_pg_connection.py describe | awk -F= '/^database=/{print $2}')
+          if [ "$AZ_USER" != "$SECRET_USER" ] || [ "$AZ_HOST" != "$SECRET_HOST" ] || [ "$AZ_DB" != "$SECRET_DB" ]; then
+            echo "::error::Azure connection string metadata mismatch (host/user/db). Re-check AZURE_DB_CONNECTION_STRING secret."
+            exit 1
+          fi
+          if [ "$AZ_HOST" != "dpg-d8ipucrtqb8s73beo60g-a.oregon-postgres.render.com" ]; then
+            echo "::warning::Azure PostgreSQL host is '$AZ_HOST' (expected external Render host ending in oregon-postgres.render.com)"
+          fi
+
           echo "=== App Service platform / runtime ==="
           az webapp show --resource-group "$RG" --name "$APP_NAME" --query "{
             kind:kind,
@@ -331,21 +360,11 @@ jobs:
           AZ_JWT=$(az webapp config appsettings list --resource-group "$RG" --name "$APP_NAME" --query "[?name=='Jwt__Key'].value | [0]" -o tsv | tr -d '\r')
           echo "Azure ConnectionStrings__DefaultConnection length: ${#AZ_CONN}"
           echo "Azure Jwt__Key length: ${#AZ_JWT}"
+          echo "Azure connection metadata:"
+          printf '%s' "$AZ_CONN" | python server/scripts/parse_pg_connection.py describe || true
           export AZ_CONN AZ_JWT
 
-          PG_HOST=$(python - <<'PY'
-import os, re, urllib.parse
-cs = os.environ.get("AZ_CONN", "").strip()
-if cs.lower().startswith(("postgres://", "postgresql://")):
-    u = urllib.parse.urlparse(cs)
-    print(u.hostname or "")
-elif "Host=" in cs or "host=" in cs:
-    m = re.search(r"(?i)Host=([^;]+)", cs)
-    print(m.group(1) if m else "")
-else:
-    print("")
-PY
-)
+          PG_HOST=$(printf '%s' "$AZ_CONN" | python server/scripts/parse_pg_connection.py describe | awk -F= '/^host=/{print $2}')
           if [ -n "$PG_HOST" ]; then
             echo "PostgreSQL host (from connection string): $PG_HOST"
             export PG_HOST
@@ -421,6 +440,16 @@ PY
           if ! grep -q '"database":"healthy"' /tmp/health.json; then
             echo "::error::Database health check failed:"
             cat /tmp/health.json
+            exit 1
+          fi
+
+          REGISTER_CODE=$(curl -sS -o /tmp/register.json -w "%{http_code}" -X POST "$BASE/api/auth/register" \
+            -H "Content-Type: application/json" \
+            -d "{\"email\":\"ci-$(date +%s)@example.com\",\"password\":\"Test1234!\",\"accountType\":\"jobseeker\",\"firstName\":\"CI\",\"lastName\":\"Test\"}" || true)
+          echo "POST /api/auth/register -> $REGISTER_CODE"
+          cat /tmp/register.json || true
+          if [ "$REGISTER_CODE" != "200" ]; then
+            echo "::error::Registration failed during verify (expected 200, got $REGISTER_CODE)"
             exit 1
           fi
 

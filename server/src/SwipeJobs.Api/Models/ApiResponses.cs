@@ -9,4 +9,9 @@ public record HealthResponse(
     string Service,
     string Version,
     string Database,
-    DateTime CheckedAt);
+    DateTime CheckedAt,
+    string? DatabaseHost = null,
+    string? DatabaseName = null,
+    string? DatabaseUser = null,
+    string? SslMode = null,
+    string? DatabaseError = null);

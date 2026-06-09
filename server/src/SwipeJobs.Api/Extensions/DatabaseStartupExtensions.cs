@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using SwipeJobs.Infrastructure.Persistence;
 using SwipeJobs.Infrastructure.Persistence.Seeding;
 
@@ -40,6 +41,38 @@ public static class DatabaseStartupExtensions
         catch (Exception ex)
         {
             logger.LogError(ex, "Database initialization failed.");
+            LogDatabaseException(logger, ex);
+        }
+    }
+
+    private static void LogDatabaseException(ILogger logger, Exception ex)
+    {
+        for (var current = ex; current is not null; current = current.InnerException)
+        {
+            switch (current)
+            {
+                case PostgresException pg:
+                    logger.LogError(
+                        "PostgreSQL error. SqlState={SqlState} Severity={Severity} Message={Message}",
+                        pg.SqlState,
+                        pg.Severity,
+                        pg.MessageText);
+                    return;
+                case NpgsqlException npgsql:
+                    logger.LogError(
+                        "Npgsql error. Message={Message}",
+                        npgsql.Message);
+                    return;
+                case System.Net.Sockets.SocketException socket:
+                    logger.LogError(
+                        "Network error. SocketError={SocketError} Message={Message}",
+                        socket.SocketErrorCode,
+                        socket.Message);
+                    return;
+                case TimeoutException timeout:
+                    logger.LogError("Connection timeout. Message={Message}", timeout.Message);
+                    return;
+            }
         }
     }
 }

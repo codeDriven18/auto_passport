@@ -79,6 +79,19 @@ jobs:
             exit 1
           fi
 
+          echo "AZURE_DB_CONNECTION_STRING length: ${#DB_CONNECTION}"
+          if echo "$DB_CONNECTION" | grep -qiE '^postgres(ql)?://'; then
+            echo "Connection string format: postgresql URI (normalized to Npgsql at startup)"
+          elif echo "$DB_CONNECTION" | grep -qi 'Host='; then
+            echo "Connection string format: Npgsql key-value"
+          else
+            echo "::warning::Unrecognized connection string format (expected Host=... or postgresql://)"
+          fi
+
+          if echo "$DB_CONNECTION" | grep -qi 'render.com' && ! echo "$DB_CONNECTION" | grep -qiE 'SSL Mode=Require|sslmode=require'; then
+            echo "Render host detected — app will enforce SSL Mode=Require and Trust Server Certificate=true"
+          fi
+
           retry_az() {
             local description="$1"
             shift
@@ -319,6 +332,33 @@ jobs:
           echo "Azure ConnectionStrings__DefaultConnection length: ${#AZ_CONN}"
           echo "Azure Jwt__Key length: ${#AZ_JWT}"
           export AZ_CONN AZ_JWT
+
+          PG_HOST=$(python - <<'PY'
+import os, re, urllib.parse
+cs = os.environ.get("AZ_CONN", "").strip()
+if cs.lower().startswith(("postgres://", "postgresql://")):
+    u = urllib.parse.urlparse(cs)
+    print(u.hostname or "")
+elif "Host=" in cs or "host=" in cs:
+    m = re.search(r"(?i)Host=([^;]+)", cs)
+    print(m.group(1) if m else "")
+else:
+    print("")
+PY
+)
+          if [ -n "$PG_HOST" ]; then
+            echo "PostgreSQL host (from connection string): $PG_HOST"
+            export PG_HOST
+            KUDU_TCP=$(python -c "import json, os; host=os.environ['PG_HOST']; cmd='powershell -NoProfile -Command \"Test-NetConnection -ComputerName ' + host + ' -Port 5432 | Select-Object ComputerName,RemotePort,TcpTestSucceeded | Format-List\"'; print(json.dumps({'command': cmd, 'dir': 'D:\\\\home\\\\site\\\\wwwroot'}))")
+            echo "=== Kudu: TCP test to PostgreSQL host:5432 ==="
+            curl -sS -X POST "https://$SCM_HOST/api/command" \
+              -u "$USER:$PASS" \
+              -H "Content-Type: application/json" \
+              -d "$KUDU_TCP" | jq -r '.Output, .Error, .ExitCode' 2>/dev/null || true
+          else
+            echo "::warning::Could not parse PostgreSQL host from Azure connection string"
+          fi
+
           KUDU_PAYLOAD=$(python -c "import json, os; cmd='set ConnectionStrings__DefaultConnection=' + os.environ['AZ_CONN'] + '&& set Jwt__Key=' + os.environ.get('AZ_JWT','') + '&& set ASPNETCORE_ENVIRONMENT=Production&& D:\\\\home\\\\site\\\\wwwroot\\\\SwipeJobs.Api.exe'; print(json.dumps({'command': cmd, 'dir': 'D:\\\\home\\\\site\\\\wwwroot'}))")
           KUDU_CMD=$(curl -sS -X POST "https://$SCM_HOST/api/command" \
             -u "$USER:$PASS" \
@@ -364,13 +404,23 @@ jobs:
             echo "GET /api/health -> $HEALTH_CODE"
             if [ "$HEALTH_CODE" = "200" ]; then
               cat /tmp/health.json
-              break
+              if grep -q '"database":"healthy"' /tmp/health.json && grep -q '"status":"healthy"' /tmp/health.json; then
+                echo "Health check passed (API and database healthy)."
+                break
+              fi
+              echo "Health returned 200 but database not healthy yet — retrying..."
             fi
             sleep 15
           done
 
           if [ "$HEALTH_CODE" != "200" ]; then
             echo "::error::Health check did not return 200 (last code: $HEALTH_CODE)"
+            exit 1
+          fi
+
+          if ! grep -q '"database":"healthy"' /tmp/health.json; then
+            echo "::error::Database health check failed:"
+            cat /tmp/health.json
             exit 1
           fi
 

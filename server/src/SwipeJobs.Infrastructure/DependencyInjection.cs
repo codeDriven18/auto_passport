@@ -44,6 +44,11 @@ public static class DependencyInjection
             throw new InvalidOperationException(message);
         }
 
+        connectionString = PostgresConnectionStringNormalizer.Normalize(connectionString);
+        Console.Error.WriteLine(
+            "Using PostgreSQL: {0}",
+            PostgresConnectionStringNormalizer.DescribeForLogs(connectionString));
+
         services.AddDbContext<AppDbContext>(options =>
             options.UseNpgsql(connectionString, npgsql =>
             {

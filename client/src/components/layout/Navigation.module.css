@@ -72,3 +72,10 @@
 .label {
   letter-spacing: 0.02em;
 }
+
+.installLink {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+}

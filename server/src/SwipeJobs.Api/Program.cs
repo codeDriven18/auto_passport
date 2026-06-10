@@ -59,11 +59,45 @@ try
                         context.Token = accessToken;
                     return Task.CompletedTask;
                 },
+                OnAuthenticationFailed = context =>
+                {
+                    if (context.HttpContext.Request.Path.StartsWithSegments("/hubs"))
+                    {
+                        var logger = context.HttpContext.RequestServices
+                            .GetRequiredService<ILoggerFactory>()
+                            .CreateLogger("JwtBearer.SignalR");
+                        logger.LogWarning(
+                            context.Exception,
+                            "SignalR JWT authentication failed for {Method} {Path}",
+                            context.HttpContext.Request.Method,
+                            context.HttpContext.Request.Path);
+                    }
+                    return Task.CompletedTask;
+                },
+                OnChallenge = context =>
+                {
+                    if (context.HttpContext.Request.Path.StartsWithSegments("/hubs"))
+                    {
+                        var logger = context.HttpContext.RequestServices
+                            .GetRequiredService<ILoggerFactory>()
+                            .CreateLogger("JwtBearer.SignalR");
+                        logger.LogWarning(
+                            "SignalR JWT challenge for {Method} {Path}: {Error} {Description}",
+                            context.HttpContext.Request.Method,
+                            context.HttpContext.Request.Path,
+                            context.Error,
+                            context.ErrorDescription);
+                    }
+                    return Task.CompletedTask;
+                },
             };
         });
 
     builder.Services.AddAuthorization();
-    builder.Services.AddSignalR();
+    builder.Services.AddSignalR(options =>
+    {
+        options.EnableDetailedErrors = builder.Environment.IsDevelopment();
+    });
     builder.Services.AddSwipeJobsCors(builder.Configuration, builder.Environment);
 
     builder.Services.AddControllers(options =>
@@ -141,6 +175,7 @@ try
 
     app.UseRouting();
     app.UseCors(CorsExtensions.CorsPolicyName);
+    app.UseMiddleware<SignalRDiagnosticsMiddleware>();
     app.UseAuthentication();
     app.UseAuthorization();
 

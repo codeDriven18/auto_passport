@@ -1,4 +1,13 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -8,6 +17,17 @@ interface BeforeInstallPromptEvent extends Event {
   }>;
 }
 
+interface PwaInstallContextValue {
+  canInstall: boolean;
+  isInstalled: boolean;
+  isIos: boolean;
+  installStatus: string;
+  fallbackMessage: string;
+  promptInstall: () => Promise<boolean>;
+}
+
+const PwaInstallContext = createContext<PwaInstallContextValue | null>(null);
+
 function isStandaloneDisplayMode(): boolean {
   if (typeof window === 'undefined') return false;
 
@@ -15,7 +35,7 @@ function isStandaloneDisplayMode(): boolean {
   return window.matchMedia('(display-mode: standalone)').matches || standaloneNavigator.standalone === true;
 }
 
-export function usePwaInstallPrompt() {
+export function PwaInstallProvider({ children }: { children: ReactNode }) {
   const deferredPrompt = useRef<BeforeInstallPromptEvent | null>(null);
   const [canInstall, setCanInstall] = useState(false);
   const [isInstalled, setIsInstalled] = useState(() => isStandaloneDisplayMode());
@@ -27,12 +47,14 @@ export function usePwaInstallPrompt() {
       event.preventDefault();
       deferredPrompt.current = event as BeforeInstallPromptEvent;
       setCanInstall(true);
+      console.info('[PWA] Install prompt captured — use Install App button to show banner.');
     };
 
     const handleAppInstalled = () => {
       deferredPrompt.current = null;
       setCanInstall(false);
       setIsInstalled(true);
+      console.info('[PWA] App installed.');
     };
 
     const mediaQuery = window.matchMedia('(display-mode: standalone)');
@@ -43,7 +65,7 @@ export function usePwaInstallPrompt() {
     };
 
     if (isStandaloneDisplayMode()) {
-      handleAppInstalled();
+      setIsInstalled(true);
     }
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
@@ -59,7 +81,10 @@ export function usePwaInstallPrompt() {
 
   const promptInstall = useCallback(async (): Promise<boolean> => {
     const event = deferredPrompt.current;
-    if (!event) return false;
+    if (!event) {
+      console.warn('[PWA] Install prompt unavailable.');
+      return false;
+    }
 
     await event.prompt();
     const choice = await event.userChoice;
@@ -68,23 +93,40 @@ export function usePwaInstallPrompt() {
 
     if (choice.outcome === 'accepted') {
       setIsInstalled(true);
+      console.info('[PWA] User accepted install prompt.');
       return true;
     }
 
+    console.info('[PWA] User dismissed install prompt.');
     return false;
   }, []);
 
-  const isAvailable = canInstall && !isInstalled;
-  const isIos = typeof navigator !== 'undefined'
+  const isIos =
+    typeof navigator !== 'undefined'
     && /iphone|ipad|ipod/i.test(navigator.userAgent)
     && !isStandaloneDisplayMode();
 
-  return {
-    canInstall: isAvailable,
-    isInstalled,
-    isIos,
-    promptInstall,
-    installStatus: isInstalled ? 'Installed' : 'Not Installed',
-    fallbackMessage: "Open browser menu and choose 'Install App' or 'Add to Home Screen'.",
-  } as const;
+  const value = useMemo<PwaInstallContextValue>(
+    () => ({
+      canInstall: canInstall && !isInstalled,
+      isInstalled,
+      isIos,
+      installStatus: isInstalled ? 'Installed' : canInstall ? 'Available' : 'Not Installed',
+      fallbackMessage: isIos
+        ? "Tap Share, then 'Add to Home Screen' to install SwipeJobs."
+        : "Use the browser menu and choose 'Install app' or 'Install SwipeJobs'.",
+      promptInstall,
+    }),
+    [canInstall, isInstalled, isIos, promptInstall],
+  );
+
+  return <PwaInstallContext.Provider value={value}>{children}</PwaInstallContext.Provider>;
+}
+
+export function usePwaInstallPrompt(): PwaInstallContextValue {
+  const context = useContext(PwaInstallContext);
+  if (!context) {
+    throw new Error('usePwaInstallPrompt must be used within PwaInstallProvider');
+  }
+  return context;
 }

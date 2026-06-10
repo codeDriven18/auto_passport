@@ -1,5 +1,6 @@
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
+import { usePwaInstallPrompt } from '@/context/PwaInstallContext';
 import { UserRole } from '@/models/auth';
 import styles from './Navigation.module.css';
 
@@ -20,6 +21,7 @@ const authBaseItems = [
 
 export function Navigation() {
   const { isAuthenticated, isLoading, user } = useAuth();
+  const { canInstall, promptInstall } = usePwaInstallPrompt();
 
   if (isLoading) return null;
 
@@ -48,6 +50,16 @@ export function Navigation() {
           <span className={styles.label}>{item.label}</span>
         </NavLink>
       ))}
+      {canInstall && (
+        <button
+          type="button"
+          className={`${styles.link} ${styles.installLink}`}
+          onClick={() => void promptInstall()}
+        >
+          <span className={styles.icon}>📱</span>
+          <span className={styles.label}>Install</span>
+        </button>
+      )}
     </nav>
   );
 }

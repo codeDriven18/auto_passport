@@ -2,6 +2,7 @@ import { Outlet, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Navigation } from './Navigation';
 import { NotificationBell } from './NotificationBell';
+import { InstallAppButton } from '@/components/pwa/InstallAppButton';
 import { useAuth } from '@/context/AuthContext';
 import styles from './AppLayout.module.css';
 
@@ -24,7 +25,10 @@ export function AppLayout() {
             <span className={styles.logo} />
             <span className={styles.title}>SwipeJobs</span>
           </div>
-          {isAuthenticated && <NotificationBell />}
+          <div className={styles.headerActions}>
+            <InstallAppButton variant="compact" showFallback={false} className={styles.installBtn} />
+            {isAuthenticated && <NotificationBell />}
+          </div>
         </header>
       )}
 

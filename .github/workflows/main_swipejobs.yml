@@ -217,6 +217,26 @@ jobs:
               --name "$APP_NAME" \
               --use-32bit-worker-process false
 
+          retry_az "Enable WebSockets for SignalR" \
+            az webapp config set \
+              --resource-group "$RG" \
+              --name "$APP_NAME" \
+              --web-sockets-enabled true
+
+          echo "Clearing Azure portal CORS (application middleware owns CORS)..."
+          CORS_ORIGINS=$(az webapp cors show --resource-group "$RG" --name "$APP_NAME" --query allowedOrigins -o tsv 2>/dev/null | tr -d '\r' || true)
+          if [ -n "${CORS_ORIGINS:-}" ]; then
+            for origin in $CORS_ORIGINS; do
+              retry_az "Remove Azure portal CORS origin $origin" \
+                az webapp cors remove \
+                  --resource-group "$RG" \
+                  --name "$APP_NAME" \
+                  --allowed-origins "$origin"
+            done
+          else
+            echo "No Azure portal CORS origins configured."
+          fi
+
           USE_32_AFTER=$(az webapp show --resource-group "$RG" --name "$APP_NAME" --query siteConfig.use32BitWorkerProcess -o tsv | tr -d '\r')
           echo "After config use32BitWorkerProcess=$USE_32_AFTER"
           sleep 5
@@ -522,6 +542,22 @@ jobs:
           echo "$CORS_HEADERS"
           echo "$CORS_HEADERS" | grep -qi "access-control-allow-origin: $ORIGIN" || {
             echo "::warning::CORS preflight missing Access-Control-Allow-Origin for $ORIGIN"
+          }
+
+          PREVIEW_ORIGIN="https://6a267b1a1b64858734149e95--swipejobss.netlify.app"
+          SIGNALR_CORS=$(curl -sS -D - -o /dev/null -X OPTIONS "$BASE/hubs/notifications/negotiate" \
+            -H "Origin: $PREVIEW_ORIGIN" \
+            -H "Access-Control-Request-Method: POST" \
+            -H "Access-Control-Request-Headers: authorization,content-type,x-requested-with,x-signalr-user-agent" || true)
+          echo "=== SignalR negotiate preflight ==="
+          echo "$SIGNALR_CORS"
+          echo "$SIGNALR_CORS" | grep -qi "access-control-allow-origin: $PREVIEW_ORIGIN" || {
+            echo "::error::SignalR preflight missing Access-Control-Allow-Origin for $PREVIEW_ORIGIN"
+            exit 1
+          }
+          echo "$SIGNALR_CORS" | grep -qi "x-requested-with" || {
+            echo "::error::SignalR preflight missing x-requested-with in Access-Control-Allow-Headers (old CORS middleware or Azure portal CORS may still be active)"
+            exit 1
           }
 
           LOGIN_CODE=$(curl -sS -o /tmp/login.json -w "%{http_code}" -X POST "$BASE/api/auth/login" \

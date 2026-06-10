@@ -1,4 +1,4 @@
-import { usePwaInstallPrompt } from '@/hooks/usePwaInstallPrompt';
+import { usePwaInstallPrompt } from '@/context/PwaInstallContext';
 import styles from './PwaInstall.module.css';
 
 interface InstallAppButtonProps {

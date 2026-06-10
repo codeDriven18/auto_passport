@@ -1,9 +1,9 @@
-import { usePwaInstallPrompt } from '@/hooks/usePwaInstallPrompt';
+import { usePwaInstallPrompt } from '@/context/PwaInstallContext';
 import styles from './PwaInstall.module.css';
 import { InstallAppButton } from './InstallAppButton';
 
 export function AppInstallationSection() {
-  const { canInstall, isInstalled, fallbackMessage, installStatus } = usePwaInstallPrompt();
+  const { canInstall, isInstalled, isIos, fallbackMessage, installStatus } = usePwaInstallPrompt();
 
   return (
     <div className={styles.card}>
@@ -24,7 +24,7 @@ export function AppInstallationSection() {
           <InstallAppButton variant="full" showFallback={false} />
         </div>
       ) : isInstalled ? null : (
-        <div className={styles.fallbackCard}>{fallbackMessage}</div>
+        <div className={styles.fallbackCard}>{isIos ? fallbackMessage : fallbackMessage}</div>
       )}
     </div>
   );

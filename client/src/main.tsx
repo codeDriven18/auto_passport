@@ -1,18 +1,34 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
+import { registerSW } from 'virtual:pwa-register';
 import { BrowserRouter } from 'react-router-dom';
 import { ThemeProvider } from '@/theme/ThemeProvider';
 import { AuthProvider } from '@/context/AuthContext';
+import { PwaInstallProvider } from '@/context/PwaInstallContext';
 import App from '@/App';
 import '@/styles/global.css';
+
+if (import.meta.env.PROD) {
+  registerSW({
+    immediate: true,
+    onRegistered() {
+      console.info('[PWA] Service worker registered.');
+    },
+    onRegisterError(error) {
+      console.error('[PWA] Service worker registration failed:', error);
+    },
+  });
+}
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter>
       <ThemeProvider>
-        <AuthProvider>
-          <App />
-        </AuthProvider>
+        <PwaInstallProvider>
+          <AuthProvider>
+            <App />
+          </AuthProvider>
+        </PwaInstallProvider>
       </ThemeProvider>
     </BrowserRouter>
   </StrictMode>,

@@ -12,11 +12,16 @@ public class ProfilesController : ControllerBase
 {
     private readonly IUserProfileService _profileService;
     private readonly ICurrentUserService _currentUser;
+    private readonly ILogger<ProfilesController> _logger;
 
-    public ProfilesController(IUserProfileService profileService, ICurrentUserService currentUser)
+    public ProfilesController(
+        IUserProfileService profileService,
+        ICurrentUserService currentUser,
+        ILogger<ProfilesController> logger)
     {
         _profileService = profileService;
         _currentUser = currentUser;
+        _logger = logger;
     }
 
     [Authorize]
@@ -32,6 +37,16 @@ public class ProfilesController : ControllerBase
     public async Task<IActionResult> UpdateMe([FromBody] UpdateUserProfileDto dto, CancellationToken cancellationToken)
     {
         var userId = _currentUser.GetRequiredUserId();
+        var profileId = _currentUser.ProfileId;
+
+        _logger.LogWarning(
+            "PUT /api/profiles/me userId={UserId} jwtProfileId={ProfileId} educations={EducationCount} skills={SkillCount} experiences={ExperienceCount}",
+            userId,
+            profileId?.ToString() ?? "(none)",
+            dto.Educations?.Count ?? -1,
+            dto.Skills?.Count ?? -1,
+            dto.Experiences?.Count ?? -1);
+
         var profile = await _profileService.UpdateForCurrentUserAsync(userId, dto, cancellationToken);
         return profile is null ? NotFound() : Ok(profile);
     }

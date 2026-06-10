@@ -55,4 +55,26 @@ public static class ProfileCompletenessChecker
     {
         profile.IsProfileComplete = IsComplete(profile);
     }
+
+    public static void UpdateFlag(
+        UserProfile profile,
+        int? educationCount,
+        int? skillCount,
+        int? experienceCount)
+    {
+        if (string.IsNullOrWhiteSpace(profile.FirstName)
+            || string.IsNullOrWhiteSpace(profile.LastName)
+            || string.IsNullOrWhiteSpace(profile.Email)
+            || string.IsNullOrWhiteSpace(profile.Phone))
+        {
+            profile.IsProfileComplete = false;
+            return;
+        }
+
+        var eduCount = educationCount ?? profile.Educations.Count;
+        var skillCountResolved = skillCount ?? profile.Skills.Count;
+        var experienceCountResolved = experienceCount ?? profile.Experiences.Count;
+
+        profile.IsProfileComplete = eduCount > 0 || skillCountResolved > 0 || experienceCountResolved > 0;
+    }
 }

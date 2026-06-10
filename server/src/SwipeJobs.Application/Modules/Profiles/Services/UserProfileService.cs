@@ -58,7 +58,7 @@ public class UserProfileService : IUserProfileService
         };
 
         ApplyCollections(profile, dto.Educations, dto.Skills, dto.Experiences);
-        ProfileCompletenessChecker.UpdateFlag(profile);
+        ProfileCompletenessChecker.UpdateFlag(profile, dto.Educations?.Count, dto.Skills?.Count, dto.Experiences?.Count);
 
         await _profileRepository.AddAsync(profile, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
@@ -72,7 +72,7 @@ public class UserProfileService : IUserProfileService
         UpdateUserProfileDto dto,
         CancellationToken cancellationToken = default)
     {
-        var profile = await _profileRepository.GetByUserIdAsync(userId, cancellationToken);
+        var profile = await _profileRepository.GetByUserIdForUpdateAsync(userId, cancellationToken);
         if (profile is null) return null;
 
         return await ApplyUpdateAsync(profile, dto, cancellationToken);
@@ -80,7 +80,7 @@ public class UserProfileService : IUserProfileService
 
     public async Task<UserProfileDto?> UpdateAsync(Guid id, UpdateUserProfileDto dto, CancellationToken cancellationToken = default)
     {
-        var profile = await _profileRepository.GetByIdWithDetailsAsync(id, cancellationToken);
+        var profile = await _profileRepository.GetByIdForUpdateAsync(id, cancellationToken);
         if (profile is null) return null;
 
         return await ApplyUpdateAsync(profile, dto, cancellationToken);
@@ -116,20 +116,75 @@ public class UserProfileService : IUserProfileService
         profile.ResumeUrl = dto.ResumeUrl;
         profile.Location = dto.Location;
 
-        profile.Educations.Clear();
-        profile.Skills.Clear();
-        profile.Experiences.Clear();
-        ApplyCollections(profile, dto.Educations, dto.Skills, dto.Experiences);
-        ProfileCompletenessChecker.UpdateFlag(profile);
+        if (dto.Educations is not null)
+        {
+            await _profileRepository.ReplaceEducationsAsync(
+                profile.Id,
+                BuildEducations(dto.Educations, profile.Id),
+                cancellationToken);
+        }
+
+        if (dto.Skills is not null)
+        {
+            await _profileRepository.ReplaceSkillsAsync(
+                profile.Id,
+                BuildSkills(dto.Skills, profile.Id),
+                cancellationToken);
+        }
+
+        if (dto.Experiences is not null)
+        {
+            await _profileRepository.ReplaceExperiencesAsync(
+                profile.Id,
+                BuildExperiences(dto.Experiences, profile.Id),
+                cancellationToken);
+        }
+
+        ProfileCompletenessChecker.UpdateFlag(
+            profile,
+            dto.Educations?.Count,
+            dto.Skills?.Count,
+            dto.Experiences?.Count);
 
         _unitOfWork.LogPendingChanges($"profile-update profileId={profile.Id} userId={profile.UserId}");
 
-        // Entity is already tracked from the repository query; do not call DbSet.Update().
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         var updated = await _profileRepository.GetByIdWithDetailsAsync(profile.Id, cancellationToken);
         return ProfileMapper.ToDto(updated!);
     }
+
+    private static List<Education> BuildEducations(IReadOnlyList<CreateEducationDto> educations, Guid profileId)
+        => educations.Select(e => new Education
+        {
+            UserProfileId = profileId,
+            Institution = e.Institution,
+            Degree = e.Degree,
+            FieldOfStudy = e.FieldOfStudy,
+            StartDate = e.StartDate,
+            EndDate = e.EndDate,
+            IsCurrent = e.IsCurrent,
+        }).ToList();
+
+    private static List<Skill> BuildSkills(IReadOnlyList<CreateSkillDto> skills, Guid profileId)
+        => skills.Select(s => new Skill
+        {
+            UserProfileId = profileId,
+            Name = s.Name,
+            Level = s.Level,
+        }).ToList();
+
+    private static List<Experience> BuildExperiences(IReadOnlyList<CreateExperienceDto> experiences, Guid profileId)
+        => experiences.Select(e => new Experience
+        {
+            UserProfileId = profileId,
+            Company = e.Company,
+            Title = e.Title,
+            Description = e.Description,
+            StartDate = e.StartDate,
+            EndDate = e.EndDate,
+            IsCurrent = e.IsCurrent,
+        }).ToList();
 
     private static void ApplyCollections(
         UserProfile profile,
@@ -143,6 +198,7 @@ public class UserProfileService : IUserProfileService
             {
                 profile.Educations.Add(new Education
                 {
+                    UserProfileId = profile.Id,
                     Institution = e.Institution,
                     Degree = e.Degree,
                     FieldOfStudy = e.FieldOfStudy,
@@ -157,7 +213,12 @@ public class UserProfileService : IUserProfileService
         {
             foreach (var s in skills)
             {
-                profile.Skills.Add(new Skill { Name = s.Name, Level = s.Level });
+                profile.Skills.Add(new Skill
+                {
+                    UserProfileId = profile.Id,
+                    Name = s.Name,
+                    Level = s.Level,
+                });
             }
         }
 
@@ -167,6 +228,7 @@ public class UserProfileService : IUserProfileService
             {
                 profile.Experiences.Add(new Experience
                 {
+                    UserProfileId = profile.Id,
                     Company = e.Company,
                     Title = e.Title,
                     Description = e.Description,

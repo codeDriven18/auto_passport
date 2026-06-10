@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { ApiError } from '@/api/client';
 import { authApi } from '@/api/authApi';
 import { useAuth } from '@/context/AuthContext';
+import { useProfile } from '@/hooks/useProfile';
+import { UserRole } from '@/models/auth';
 import { PasswordField } from '@/components/forms/PasswordField';
 import { PageHeader } from '@/components/ui/PageHeader';
 import styles from '../Settings/SettingsPage.module.css';
@@ -18,7 +20,18 @@ function getErrorMessage(error: unknown): string {
 
 export function AccountSettingsPage() {
   const { user, logout } = useAuth();
+  const { profile, loading: profileLoading } = useProfile();
   const navigate = useNavigate();
+
+  const displayName = (() => {
+    if (user?.role === UserRole.Company) {
+      return user.companyName?.trim() || null;
+    }
+    const first = profile?.firstName?.trim() ?? '';
+    const last = profile?.lastName?.trim() ?? '';
+    const full = `${first} ${last}`.trim();
+    return full || null;
+  })();
 
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -64,7 +77,19 @@ export function AccountSettingsPage() {
 
       <div className={styles.card}>
         <h2 className={styles.cardTitle}>Signed in as</h2>
-        <p className={styles.cardDesc}>{user?.email}</p>
+        {profileLoading ? (
+          <p className={styles.cardDesc}>Loading account details...</p>
+        ) : (
+          <>
+            {displayName && <p className={styles.cardDesc}>{displayName}</p>}
+            <p className={styles.cardDesc}>{user?.email}</p>
+            {user?.role === UserRole.JobSeeker && (
+              <Link to="/profile" className={styles.btn} style={{ display: 'inline-block', textAlign: 'center', marginTop: '0.5rem' }}>
+                Edit profile
+              </Link>
+            )}
+          </>
+        )}
         <button type="button" className={styles.btnAccent} onClick={() => void handleLogout()}>
           Sign out
         </button>

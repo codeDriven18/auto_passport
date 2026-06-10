@@ -66,6 +66,21 @@ jobs:
         with:
           dotnet-version: '10.0.x'
 
+      - name: Restore .NET projects for EF migrations
+        shell: bash
+        run: |
+          set -euo pipefail
+          dotnet restore server/src/SwipeJobs.Api/SwipeJobs.Api.csproj
+          for assets in \
+            server/src/SwipeJobs.Api/obj/project.assets.json \
+            server/src/SwipeJobs.Infrastructure/obj/project.assets.json; do
+            if [ ! -f "$assets" ]; then
+              echo "::error::Missing $assets after restore."
+              exit 1
+            fi
+            echo "OK $assets"
+          done
+
       - name: Apply EF Core migrations to PostgreSQL
         shell: bash
         env:
@@ -74,6 +89,10 @@ jobs:
           set -euo pipefail
           if [ -z "${DB_CONNECTION:-}" ]; then
             echo "::error::GitHub secret AZURE_DB_CONNECTION_STRING is not set."
+            exit 1
+          fi
+          if [ ! -f server/src/SwipeJobs.Infrastructure/obj/project.assets.json ]; then
+            echo "::error::project.assets.json missing — run restore before dotnet ef."
             exit 1
           fi
           DB_CONNECTION=$(printf '%s' "$DB_CONNECTION" | python server/scripts/parse_pg_connection.py normalize)

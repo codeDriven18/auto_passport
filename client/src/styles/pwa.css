@@ -1,0 +1,46 @@
+/* Native PWA shell — standalone / installed app behavior */
+
+html.pwa-standalone {
+  overscroll-behavior-y: none;
+}
+
+html.pwa-standalone body {
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+html.pwa-standalone #root {
+  min-height: 100dvh;
+}
+
+.pwa-standalone .layout {
+  min-height: 100dvh;
+}
+
+.pwa-standalone .header {
+  padding-top: max(1rem, env(safe-area-inset-top));
+  background: var(--color-surface);
+  border-bottom-color: var(--color-border-subtle);
+}
+
+.pwa-standalone .nav {
+  padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+  background: var(--color-surface);
+}
+
+.pwa-standalone .main {
+  padding-bottom: calc(var(--nav-height) + env(safe-area-inset-bottom) + 0.5rem);
+}
+
+/* Reduce browser-like chrome in installed mode */
+.pwa-standalone .installBtn,
+.pwa-standalone .installLink {
+  display: none !important;
+}
+
+@media (display-mode: standalone) {
+  html {
+    overscroll-behavior-y: none;
+  }
+}

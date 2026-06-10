@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1284 2778" fill="none">
+  <rect width="1284" height="2778" fill="#FAFAFA"/>
+  <g transform="translate(642 1280)">
+    <rect x="-120" y="-120" width="240" height="240" rx="52" fill="#FFD600"/>
+    <g transform="translate(0 -8)">
+      <path d="M-46 0a46 46 0 1 1 92 0 46 46 0 0 1-92 0" stroke="#0A0A0A" stroke-width="14" stroke-linecap="round"/>
+      <path d="M0-46V0l32 19" stroke="#0A0A0A" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+      <circle r="10" fill="#0A0A0A"/>
+    </g>
+    <text y="180" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-size="56" font-weight="800" fill="#0A0A0A" letter-spacing="-1">SwipeJobs</text>
+    <text y="230" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-size="28" font-weight="500" fill="#6B7280">Swipe your way to your next job</text>
+  </g>
+</svg>

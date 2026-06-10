@@ -21,7 +21,7 @@ const authBaseItems = [
 
 export function Navigation() {
   const { isAuthenticated, isLoading, user } = useAuth();
-  const { canInstall, promptInstall } = usePwaInstallPrompt();
+  const { canInstall, isStandalone, promptInstall } = usePwaInstallPrompt();
 
   if (isLoading) return null;
 
@@ -50,7 +50,7 @@ export function Navigation() {
           <span className={styles.label}>{item.label}</span>
         </NavLink>
       ))}
-      {canInstall && (
+      {canInstall && !isStandalone && (
         <button
           type="button"
           className={`${styles.link} ${styles.installLink}`}

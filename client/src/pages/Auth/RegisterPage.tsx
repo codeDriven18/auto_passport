@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { ApiError } from '@/api/client';
 import { useAuth } from '@/context/AuthContext';
 import { PasswordField } from '@/components/forms/PasswordField';
+import { AppIcon } from '@/components/brand/AppIcon';
 import type { AccountType } from '@/models/auth';
 import styles from './AuthPage.module.css';
 
@@ -51,7 +52,7 @@ export function RegisterPage() {
   return (
     <section className={styles.page}>
       <div className={styles.hero}>
-        <div className={styles.logo} />
+        <AppIcon size="lg" className={styles.logoIcon} />
         <h1 className={styles.title}>Create account</h1>
         <p className={styles.subtitle}>
           {accountType === 'company'

@@ -15,6 +15,7 @@ import {
   clearLocalResumeName,
 } from '@/lib/userStorage';
 import type { Education, Experience, Skill } from '@/models/userProfile';
+import { ProfileSkeleton } from '@/components/ui/Skeleton';
 import styles from './ProfilePage.module.css';
 
 const emptyEducation = (): Education => ({
@@ -113,7 +114,13 @@ export function ProfilePage() {
     }
   };
 
-  if (loading) return <p className={styles.status}>Loading profile...</p>;
+  if (loading) {
+    return (
+      <section className={styles.page}>
+        <ProfileSkeleton />
+      </section>
+    );
+  }
 
   return (
     <section className={styles.page}>

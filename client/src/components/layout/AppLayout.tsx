@@ -3,7 +3,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Navigation } from './Navigation';
 import { NotificationBell } from './NotificationBell';
 import { InstallAppButton } from '@/components/pwa/InstallAppButton';
+import { AppIcon } from '@/components/brand/AppIcon';
 import { useAuth } from '@/context/AuthContext';
+import { usePwaInstallPrompt } from '@/context/PwaInstallContext';
 import styles from './AppLayout.module.css';
 
 const AUTH_PATHS = new Set(['/login', '/register', '/forgot-password']);
@@ -11,6 +13,7 @@ const AUTH_PATHS = new Set(['/login', '/register', '/forgot-password']);
 export function AppLayout() {
   const location = useLocation();
   const { isAuthenticated } = useAuth();
+  const { isStandalone } = usePwaInstallPrompt();
   const isSwipe = location.pathname === '/swipe';
   const isWelcome = location.pathname === '/welcome';
   const isAuthPage = AUTH_PATHS.has(location.pathname);
@@ -22,11 +25,13 @@ export function AppLayout() {
       {!hideHeader && (
         <header className={styles.header}>
           <div className={styles.brand}>
-            <span className={styles.logo} />
+            <AppIcon size="sm" />
             <span className={styles.title}>SwipeJobs</span>
           </div>
           <div className={styles.headerActions}>
-            <InstallAppButton variant="compact" showFallback={false} className={styles.installBtn} />
+            {!isStandalone && (
+              <InstallAppButton variant="compact" showFallback={false} className={styles.installBtn} />
+            )}
             {isAuthenticated && <NotificationBell />}
           </div>
         </header>

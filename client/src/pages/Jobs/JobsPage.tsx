@@ -6,6 +6,7 @@ import { savedJobsApi } from '@/api/savedJobsApi';
 import { tagsApi } from '@/api/tagsApi';
 import { JobCard } from '@/components/jobs/JobCard';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { JobCardSkeletonList } from '@/components/ui/Skeleton';
 import { FilterDrawer } from '@/components/ui/FilterDrawer';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { useJobFilters } from '@/hooks/useJobFilters';
@@ -101,7 +102,7 @@ export function JobsPage() {
       </div>
 
       {loading ? (
-        <p className={styles.status}>Loading jobs...</p>
+        <JobCardSkeletonList count={4} />
       ) : jobs.length === 0 ? (
         <EmptyState
           icon="🔍"

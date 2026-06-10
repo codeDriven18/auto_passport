@@ -20,6 +20,7 @@ interface BeforeInstallPromptEvent extends Event {
 interface PwaInstallContextValue {
   canInstall: boolean;
   isInstalled: boolean;
+  isStandalone: boolean;
   isIos: boolean;
   installStatus: string;
   fallbackMessage: string;
@@ -28,7 +29,7 @@ interface PwaInstallContextValue {
 
 const PwaInstallContext = createContext<PwaInstallContextValue | null>(null);
 
-function isStandaloneDisplayMode(): boolean {
+export function isStandaloneDisplayMode(): boolean {
   if (typeof window === 'undefined') return false;
 
   const standaloneNavigator = navigator as Navigator & { standalone?: boolean };
@@ -110,6 +111,7 @@ export function PwaInstallProvider({ children }: { children: ReactNode }) {
     () => ({
       canInstall: canInstall && !isInstalled,
       isInstalled,
+      isStandalone: isInstalled || isStandaloneDisplayMode(),
       isIos,
       installStatus: isInstalled ? 'Installed' : canInstall ? 'Available' : 'Not Installed',
       fallbackMessage: isIos

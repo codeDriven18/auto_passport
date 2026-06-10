@@ -1,0 +1,26 @@
+.pwaShell {
+  min-height: 100%;
+}
+
+.offlineBanner {
+  position: fixed;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 480px;
+  z-index: 100;
+  padding: 0.625rem 1rem;
+  padding-top: max(0.625rem, env(safe-area-inset-top));
+  background: #0a0a0a;
+  color: #fafafa;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-align: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.offlineBanner[data-theme='dark'] {
+  background: #ffd600;
+  color: #0a0a0a;
+}

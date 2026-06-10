@@ -12,6 +12,11 @@
   text-align: center;
 }
 
+.logoIcon {
+  margin: 0 auto 1rem;
+  display: flex;
+}
+
 .logo {
   width: 3rem;
   height: 3rem;

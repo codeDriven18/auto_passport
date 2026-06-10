@@ -5,8 +5,10 @@ import { BrowserRouter } from 'react-router-dom';
 import { ThemeProvider } from '@/theme/ThemeProvider';
 import { AuthProvider } from '@/context/AuthContext';
 import { PwaInstallProvider } from '@/context/PwaInstallContext';
+import { PwaShell } from '@/components/pwa/PwaShell';
 import App from '@/App';
 import '@/styles/global.css';
+import '@/styles/pwa.css';
 
 if (import.meta.env.PROD) {
   registerSW({
@@ -26,7 +28,9 @@ createRoot(document.getElementById('root')!).render(
       <ThemeProvider>
         <PwaInstallProvider>
           <AuthProvider>
-            <App />
+            <PwaShell>
+              <App />
+            </PwaShell>
           </AuthProvider>
         </PwaInstallProvider>
       </ThemeProvider>

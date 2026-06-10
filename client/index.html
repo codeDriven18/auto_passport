@@ -2,16 +2,74 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/png" href="/icons/icon-192.png" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#ffd600" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="description" content="Discover jobs, swipe to match, and apply in seconds with SwipeJobs." />
+    <meta name="theme-color" content="#FFD600" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="SwipeJobs" />
+    <meta name="application-name" content="SwipeJobs" />
+    <meta name="format-detection" content="telephone=no" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />
     <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+    <link rel="apple-touch-icon" sizes="152x152" href="/icons/icon-152.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/icons/icon-192.png" />
+    <link rel="apple-touch-startup-image" href="/splash/apple-splash-1170x2532.png" media="(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" />
+    <link rel="apple-touch-startup-image" href="/splash/apple-splash-1284x2778.png" media="(device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" />
+    <link rel="apple-touch-startup-image" href="/splash/apple-splash-750x1334.png" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" />
+    <link rel="apple-touch-startup-image" href="/splash/apple-splash-2048x2732.png" media="(device-width: 1024px) and (device-height: 1366px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" />
     <title>SwipeJobs</title>
+    <style>
+      #pwa-splash {
+        position: fixed;
+        inset: 0;
+        z-index: 9999;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 1rem;
+        background: #fafafa;
+        color: #0a0a0a;
+        transition: opacity 0.25s ease, visibility 0.25s ease;
+      }
+      #pwa-splash.hidden {
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+      }
+      #pwa-splash img {
+        width: 5.5rem;
+        height: 5.5rem;
+        border-radius: 1.25rem;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+      }
+      #pwa-splash strong {
+        font: 800 1.375rem/1.2 system-ui, -apple-system, sans-serif;
+        letter-spacing: -0.03em;
+      }
+      #pwa-splash span {
+        font: 500 0.875rem/1.4 system-ui, -apple-system, sans-serif;
+        color: #6b7280;
+      }
+      @media (prefers-color-scheme: dark) {
+        #pwa-splash {
+          background: #0a0a0a;
+          color: #f5f5f5;
+        }
+        #pwa-splash span { color: #a3a3a3; }
+      }
+    </style>
   </head>
   <body>
+    <div id="pwa-splash" aria-hidden="true">
+      <img src="/icons/icon-192.png" width="88" height="88" alt="" />
+      <strong>SwipeJobs</strong>
+      <span>Loading your job matches…</span>
+    </div>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

@@ -4,6 +4,7 @@ import { savedJobsApi } from '@/api/savedJobsApi';
 import { JobCard } from '@/components/jobs/JobCard';
 import { useAuth } from '@/context/AuthContext';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { JobCardSkeletonList } from '@/components/ui/Skeleton';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { useProfile } from '@/hooks/useProfile';
 import type { SavedJob } from '@/models/savedJob';
@@ -23,7 +24,12 @@ export function SavedPage() {
   }, [isAuthenticated, profileLoading]);
 
   if (profileLoading || loading) {
-    return <p className={styles.status}>Loading saved jobs...</p>;
+    return (
+      <section className={styles.page}>
+        <PageHeader title="Saved" subtitle="Jobs you've bookmarked." />
+        <JobCardSkeletonList count={3} />
+      </section>
+    );
   }
 
   if (!isAuthenticated) {

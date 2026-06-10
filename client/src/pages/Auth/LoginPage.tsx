@@ -4,6 +4,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { ApiError } from '@/api/client';
 import { useAuth } from '@/context/AuthContext';
 import { PasswordField } from '@/components/forms/PasswordField';
+import { AppIcon } from '@/components/brand/AppIcon';
 import styles from './AuthPage.module.css';
 
 function getErrorMessage(error: unknown): string {
@@ -41,7 +42,7 @@ export function LoginPage() {
   return (
     <section className={styles.page}>
       <div className={styles.hero}>
-        <div className={styles.logo} />
+        <AppIcon size="lg" className={styles.logoIcon} />
         <h1 className={styles.title}>Welcome back</h1>
         <p className={styles.subtitle}>Sign in to access your saved jobs, applications, and dashboard.</p>
       </div>

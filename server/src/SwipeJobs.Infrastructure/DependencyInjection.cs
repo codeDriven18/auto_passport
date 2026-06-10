@@ -8,6 +8,7 @@ using SwipeJobs.Application.Modules.Auth.Interfaces;
 using SwipeJobs.Application.Common.Interfaces.Repositories;
 using SwipeJobs.Infrastructure.Auth;
 using SwipeJobs.Infrastructure.Persistence;
+using SwipeJobs.Infrastructure.Persistence.Interceptors;
 using SwipeJobs.Infrastructure.Persistence.Repositories;
 using SwipeJobs.Infrastructure.Persistence.Seeding;
 
@@ -53,6 +54,8 @@ public static class DependencyInjection
                 npgsql.CommandTimeout(30);
                 npgsql.MigrationsAssembly(typeof(AppDbContext).Assembly.GetName().Name);
             })
+            .AddInterceptors(new EfCommandFailureLoggingInterceptor())
+            .EnableDetailedErrors()
             .LogTo(
                 message => Console.Error.WriteLine($"[EF SQL] {message}"),
                 [DbLoggerCategory.Database.Command.Name],

@@ -52,10 +52,7 @@ public static class DatabaseMigrationRunner
         catch (Exception ex)
         {
             LogError(logger, "Database.MigrateAsync() failed — startup aborted.", ex);
-            if (ex is PostgresException pg)
-            {
-                Log(logger, $"Failed PostgreSQL statement context: SqlState={pg.SqlState}; Message={pg.MessageText}; Position={pg.Position}");
-            }
+            LogPostgresFailureContext(ex);
             throw;
         }
 
@@ -148,6 +145,23 @@ public static class DatabaseMigrationRunner
     {
         logger.LogWarning("[DatabaseMigration] {Message}", message);
         Console.Error.WriteLine($"[DatabaseMigration] {message}");
+    }
+
+    private static void LogPostgresFailureContext(Exception ex)
+    {
+        for (var current = ex; current is not null; current = current.InnerException)
+        {
+            if (current is not PostgresException pg)
+            {
+                continue;
+            }
+
+            var message =
+                $"PostgreSQL error during migration: SqlState={pg.SqlState}; " +
+                $"Message={pg.MessageText}; Position={pg.Position}. " +
+                "See [EF SQL FAILED] Full CommandText above for the complete rejected statement.";
+            Console.Error.WriteLine($"[DatabaseMigration] {message}");
+        }
     }
 
     private static void LogError(ILogger logger, string message, Exception ex)

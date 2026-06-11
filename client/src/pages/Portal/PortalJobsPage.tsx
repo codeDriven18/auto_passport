@@ -1,6 +1,9 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { portalApi } from '@/api/portalApi';
+import { ApiError } from '@/api/client';
+import { useToast } from '@/context/ToastContext';
 import { JobCategory, JobLevel } from '@/models/enums';
+import { CompanyStatus, CompanyStatusLabels } from '@/models/operations';
 import type { PortalJob } from '@/models/portal';
 import styles from './PortalPage.module.css';
 
@@ -17,19 +20,42 @@ const emptyForm = {
   isActive: true,
 };
 
+function getCreateErrorMessage(error: unknown): string {
+  if (error instanceof ApiError && error.body && typeof error.body === 'object') {
+    const body = error.body as { error?: string; code?: string };
+    if (body.code === 'company_not_approved') {
+      return 'Your company must be approved before posting jobs. Contact support or wait for admin approval.';
+    }
+    if (body.error) return body.error;
+  }
+  return error instanceof Error ? error.message : 'Failed to create job';
+}
+
 export function PortalJobsPage() {
+  const { showToast } = useToast();
   const [jobs, setJobs] = useState<PortalJob[]>([]);
+  const [companyStatus, setCompanyStatus] = useState<CompanyStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
 
   const load = () => {
     setLoading(true);
-    portalApi.getJobs()
-      .then(setJobs)
-      .catch(() => setJobs([]))
+    Promise.all([
+      portalApi.getJobs(),
+      portalApi.getStats(),
+    ])
+      .then(([jobList, stats]) => {
+        setJobs(jobList);
+        setCompanyStatus(stats.companyStatus);
+      })
+      .catch(() => {
+        setJobs([]);
+        setCompanyStatus(null);
+      })
       .finally(() => setLoading(false));
   };
 
@@ -37,9 +63,16 @@ export function PortalJobsPage() {
     load();
   }, []);
 
+  const canPublish = companyStatus === CompanyStatus.Approved;
+
   const openCreate = () => {
+    if (!canPublish) {
+      showToast('Company approval required before posting jobs', 'error');
+      return;
+    }
     setEditingId(null);
     setForm(emptyForm);
+    setFormError(null);
     setShowForm(true);
   };
 
@@ -57,18 +90,20 @@ export function PortalJobsPage() {
       salaryMax: job.salaryMax?.toString() ?? '',
       isActive: job.isActive,
     });
+    setFormError(null);
     setShowForm(true);
   };
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setSaving(true);
+    setFormError(null);
     try {
       const payload = {
-        title: form.title,
-        description: form.description,
-        location: form.location || undefined,
-        city: form.city || undefined,
+        title: form.title.trim(),
+        description: form.description.trim(),
+        location: form.location.trim() || undefined,
+        city: form.city.trim() || undefined,
         category: form.category,
         level: form.level,
         isRemote: form.isRemote,
@@ -78,14 +113,20 @@ export function PortalJobsPage() {
 
       if (editingId) {
         await portalApi.updateJob(editingId, { ...payload, isActive: form.isActive });
+        showToast('Job updated', 'success');
       } else {
         await portalApi.createJob(payload);
+        showToast('Job created', 'success');
       }
 
       setShowForm(false);
       setEditingId(null);
       setForm(emptyForm);
       load();
+    } catch (err) {
+      const message = getCreateErrorMessage(err);
+      setFormError(message);
+      showToast(message, 'error');
     } finally {
       setSaving(false);
     }
@@ -103,10 +144,17 @@ export function PortalJobsPage() {
         <p className={styles.subtitle}>Create, edit, and archive your listings.</p>
       </header>
 
+      {!canPublish && companyStatus !== null && (
+        <div className={styles.approvalNotice}>
+          Company status: {CompanyStatusLabels[companyStatus]}. Jobs can be created once your company is approved.
+        </div>
+      )}
+
       <div className={styles.actions}>
         <button
           type="button"
           className={styles.btnAccent}
+          disabled={!canPublish && !showForm}
           onClick={() => {
             if (showForm && !editingId) {
               setShowForm(false);
@@ -124,13 +172,14 @@ export function PortalJobsPage() {
           <h2 className={styles.title} style={{ fontSize: '1.0625rem' }}>
             {editingId ? 'Edit job' : 'New job'}
           </h2>
+          {formError && <p className={styles.formError} role="alert">{formError}</p>}
           <div className={styles.field}>
             <label className={styles.label} htmlFor="title">Title</label>
             <input id="title" className={styles.input} required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
           </div>
           <div className={styles.field}>
             <label className={styles.label} htmlFor="description">Description</label>
-            <textarea id="description" className={styles.textarea} required value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+            <textarea id="description" className={styles.textarea} required rows={5} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
           </div>
           <div className={styles.row}>
             <div className={styles.field}>

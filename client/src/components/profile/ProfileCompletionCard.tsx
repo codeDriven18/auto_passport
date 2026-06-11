@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { useMemo, useState } from 'react';
 import {
   calculateCompletionPercent,
@@ -61,7 +62,10 @@ export function ProfileCompletionCard({ profile, onAction }: ProfileCompletionCa
           </li>
         ))}
       </ul>
-      <p className={styles.hint}>Suggestions are optional — you can ignore any of them.</p>
+      <div className={styles.footer}>
+        <Link to="/profile/complete" className={styles.completeLink}>Complete profile</Link>
+        <p className={styles.hint}>Suggestions are optional — you can ignore any of them.</p>
+      </div>
     </aside>
   );
 }

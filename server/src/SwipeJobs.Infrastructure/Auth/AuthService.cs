@@ -1,5 +1,6 @@
 using System.Text.RegularExpressions;
 using BCrypt.Net;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using SwipeJobs.Application.Common.Dtos;
 using SwipeJobs.Application.Common.Interfaces;
@@ -23,6 +24,7 @@ public class AuthService : IAuthService
     private readonly IAuditLogService _auditLogService;
     private readonly IUnitOfWork _unitOfWork;
     private readonly ILogger<AuthService> _logger;
+    private readonly IConfiguration _configuration;
 
     public AuthService(
         IUserRepository userRepository,
@@ -33,7 +35,8 @@ public class AuthService : IAuthService
         ITokenService tokenService,
         IAuditLogService auditLogService,
         IUnitOfWork unitOfWork,
-        ILogger<AuthService> logger)
+        ILogger<AuthService> logger,
+        IConfiguration configuration)
     {
         _userRepository = userRepository;
         _profileRepository = profileRepository;
@@ -44,6 +47,7 @@ public class AuthService : IAuthService
         _auditLogService = auditLogService;
         _unitOfWork = unitOfWork;
         _logger = logger;
+        _configuration = configuration;
     }
 
     public async Task<AuthResponseDto> RegisterAsync(RegisterDto dto, CancellationToken cancellationToken = default)
@@ -62,6 +66,9 @@ public class AuthService : IAuthService
                     var normalized = dto.Email.Trim().ToLower();
                     if (string.IsNullOrWhiteSpace(dto.Password) || dto.Password.Length < 8)
                         throw new InvalidOperationException("Password must be at least 8 characters.");
+
+                    if (!IsValidEmail(normalized))
+                        throw new InvalidOperationException("Invalid email address.");
 
                     var isCompany = string.Equals(dto.AccountType, "company", StringComparison.OrdinalIgnoreCase);
                     if (isCompany && string.IsNullOrWhiteSpace(dto.CompanyName))
@@ -272,6 +279,7 @@ public class AuthService : IAuthService
         RegisterDto dto,
         CancellationToken cancellationToken)
     {
+        var autoApprove = _configuration.GetValue("Seed:AutoApproveCompanies", false);
         var company = new Company
         {
             Name = dto.CompanyName!.Trim(),
@@ -280,8 +288,8 @@ public class AuthService : IAuthService
             Industry = "Technology",
             Location = "Remote",
             CompanySize = "1-10",
-            Status = CompanyStatus.Pending,
-            IsActive = false,
+            Status = autoApprove ? CompanyStatus.Approved : CompanyStatus.Pending,
+            IsActive = autoApprove,
         };
         await _companyRepository.AddAsync(company, cancellationToken);
         RegisterFlowDiagnostics.LogPhaseStart(_logger, "create-company-account", "SaveChangesAsync (company)");
@@ -455,5 +463,29 @@ public class AuthService : IAuthService
             slug = $"{baseSlug}-{suffix++}";
         }
         return slug;
+    }
+
+    private static bool IsValidEmail(string email)
+    {
+        if (string.IsNullOrWhiteSpace(email) || email.Length > 254)
+            return false;
+
+        var at = email.IndexOf('@');
+        if (at <= 0 || at == email.Length - 1)
+            return false;
+
+        var domain = email[(at + 1)..];
+        if (!domain.Contains('.') || domain.StartsWith('.') || domain.EndsWith('.'))
+            return false;
+
+        try
+        {
+            var addr = new System.Net.Mail.MailAddress(email);
+            return string.Equals(addr.Address, email, StringComparison.OrdinalIgnoreCase);
+        }
+        catch
+        {
+            return false;
+        }
     }
 }

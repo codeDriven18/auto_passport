@@ -14,11 +14,16 @@ public class CompanyPortalController : ControllerBase
 {
     private readonly ICompanyPortalService _portalService;
     private readonly ICurrentUserService _currentUser;
+    private readonly ILogger<CompanyPortalController> _logger;
 
-    public CompanyPortalController(ICompanyPortalService portalService, ICurrentUserService currentUser)
+    public CompanyPortalController(
+        ICompanyPortalService portalService,
+        ICurrentUserService currentUser,
+        ILogger<CompanyPortalController> logger)
     {
         _portalService = portalService;
         _currentUser = currentUser;
+        _logger = logger;
     }
 
     [HttpGet("stats")]
@@ -42,8 +47,51 @@ public class CompanyPortalController : ControllerBase
     {
         _currentUser.RequireRole(UserRole.Company, UserRole.Admin);
         var companyId = _currentUser.GetRequiredCompanyId();
-        var job = await _portalService.CreateJobAsync(companyId, dto, cancellationToken);
-        return Ok(job);
+
+        if (!ModelState.IsValid)
+        {
+            var errors = ModelState
+                .Where(e => e.Value?.Errors.Count > 0)
+                .ToDictionary(
+                    e => e.Key,
+                    e => e.Value!.Errors.Select(x => x.ErrorMessage).ToArray());
+            _logger.LogWarning(
+                "POST /api/portal/jobs model binding failed companyId={CompanyId} errors={Errors}",
+                companyId,
+                errors);
+            return ValidationProblem(ModelState);
+        }
+
+        _logger.LogInformation(
+            "POST /api/portal/jobs companyId={CompanyId} title={Title} category={Category} level={Level} isRemote={IsRemote} hasSalary={HasSalary}",
+            companyId,
+            dto.Title,
+            dto.Category,
+            dto.Level,
+            dto.IsRemote,
+            dto.SalaryMin.HasValue || dto.SalaryMax.HasValue);
+
+        try
+        {
+            var job = await _portalService.CreateJobAsync(companyId, dto, cancellationToken);
+            return Ok(job);
+        }
+        catch (InvalidOperationException ex)
+        {
+            var code = ex.Message.Contains("approved", StringComparison.OrdinalIgnoreCase)
+                ? "company_not_approved"
+                : ex.Message.Contains("source", StringComparison.OrdinalIgnoreCase)
+                    ? "no_job_source"
+                    : "job_create_rejected";
+
+            _logger.LogWarning(
+                ex,
+                "POST /api/portal/jobs rejected companyId={CompanyId} code={Code}",
+                companyId,
+                code);
+
+            return BadRequest(new { error = ex.Message, code });
+        }
     }
 
     [HttpPut("jobs/{id:guid}")]
@@ -70,6 +118,48 @@ public class CompanyPortalController : ControllerBase
         _currentUser.RequireRole(UserRole.Company, UserRole.Admin);
         var companyId = _currentUser.GetRequiredCompanyId();
         return Ok(await _portalService.GetApplicationsAsync(companyId, jobId, cancellationToken));
+    }
+
+    [HttpGet("applications/{id:guid}")]
+    public async Task<IActionResult> GetApplicant(Guid id, CancellationToken cancellationToken)
+    {
+        _currentUser.RequireRole(UserRole.Company, UserRole.Admin);
+        var companyId = _currentUser.GetRequiredCompanyId();
+        var detail = await _portalService.GetApplicantDetailAsync(companyId, id, cancellationToken);
+        return detail is null ? NotFound() : Ok(detail);
+    }
+
+    [HttpPatch("applications/{id:guid}/status")]
+    public async Task<IActionResult> UpdateApplicationStatus(
+        Guid id,
+        [FromBody] PortalUpdateApplicationStatusDto dto,
+        CancellationToken cancellationToken)
+    {
+        _currentUser.RequireRole(UserRole.Company, UserRole.Admin);
+        var companyId = _currentUser.GetRequiredCompanyId();
+
+        try
+        {
+            var updated = await _portalService.UpdateApplicationStatusAsync(companyId, id, dto.Status, cancellationToken);
+            return updated is null ? NotFound() : Ok(updated);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { error = ex.Message, code = "invalid_status" });
+        }
+    }
+
+    [HttpGet("applications/{id:guid}/resume")]
+    public async Task<IActionResult> DownloadApplicantResume(Guid id, CancellationToken cancellationToken)
+    {
+        _currentUser.RequireRole(UserRole.Company, UserRole.Admin);
+        var companyId = _currentUser.GetRequiredCompanyId();
+        var opened = await _portalService.OpenApplicantResumeAsync(companyId, id, cancellationToken);
+        if (opened is null)
+            return NotFound(new { error = "Resume not available." });
+
+        var (stream, contentType, fileName) = opened.Value;
+        return File(stream, contentType, fileName);
     }
 
     [HttpGet("company")]

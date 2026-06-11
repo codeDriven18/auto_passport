@@ -62,3 +62,11 @@
 .pageContent {
   min-height: 100%;
 }
+
+.layoutStandalone {
+  padding-top: env(safe-area-inset-top);
+}
+
+.headerStandalone {
+  padding-top: max(0.75rem, env(safe-area-inset-top));
+}

@@ -19,14 +19,16 @@ export function AppLayout() {
   const isAuthPage = AUTH_PATHS.has(location.pathname);
   const hideHeader = isSwipe || isWelcome || isAuthPage;
   const hideNav = isAuthPage;
+  const isProfileHub = location.pathname === '/profile' || location.pathname.startsWith('/profile/');
 
   return (
-    <div className={styles.layout}>
+    <div className={`${styles.layout} ${isStandalone ? styles.layoutStandalone : ''}`}>
       {!hideHeader && (
-        <header className={styles.header}>
+        <header className={`${styles.header} ${isStandalone ? styles.headerStandalone : ''}`}>
           <div className={styles.brand}>
             <AppIcon size="sm" />
-            <span className={styles.title}>SwipeJobs</span>
+            {!isStandalone && <span className={styles.title}>SwipeJobs</span>}
+            {isStandalone && isProfileHub && <span className={styles.title}>Profile</span>}
           </div>
           <div className={styles.headerActions}>
             {!isStandalone && (

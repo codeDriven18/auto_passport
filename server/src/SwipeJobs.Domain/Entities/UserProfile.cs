@@ -17,6 +17,7 @@ public class UserProfile : BaseEntity
     public string? Headline { get; set; }
     public string? ResumeUrl { get; set; }
     public string? ResumeFileName { get; set; }
+    public long? ResumeFileSize { get; set; }
     public DateTime? ResumeUploadedAt { get; set; }
     public string? Location { get; set; }
     public string? ProfileImageUrl { get; set; }

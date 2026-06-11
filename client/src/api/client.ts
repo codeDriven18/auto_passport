@@ -137,6 +137,39 @@ export async function apiClient<T>(
   return readJsonResponse<T>(response);
 }
 
+export async function apiClientBlob(endpoint: string): Promise<Blob> {
+  const url = `${API_CONFIG.baseUrl}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
+
+  const buildHeaders = (): Record<string, string> => {
+    const next: Record<string, string> = {};
+    const token = getAccessToken();
+    if (token) next.Authorization = `Bearer ${token}`;
+    return next;
+  };
+
+  const execute = () =>
+    fetch(url, {
+      headers: buildHeaders(),
+      signal: AbortSignal.timeout(API_CONFIG.timeout),
+    });
+
+  let response = await execute();
+
+  if (response.status === 401 && getRefreshToken()) {
+    const refreshed = await refreshAuthSession();
+    if (refreshed) {
+      response = await execute();
+    }
+  }
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new ApiError(`API request failed: ${response.statusText}`, response.status, errorText);
+  }
+
+  return response.blob();
+}
+
 export function applyAuthResponse(response: AuthResponse) {
   persistAuthResponse(response);
 }

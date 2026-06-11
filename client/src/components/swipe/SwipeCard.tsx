@@ -1,5 +1,5 @@
-import { useRef } from 'react';
-import { motion, useMotionValue, useTransform, type PanInfo } from 'framer-motion';
+import { useEffect, useRef, useState } from 'react';
+import { animate, motion, useMotionValue, useTransform, type PanInfo } from 'framer-motion';
 import type { Job } from '@/models/job';
 import { JobCategoryLabels, JobLevelLabels } from '@/models/enums';
 import { formatSalary, truncateText } from '@/lib/jobFormat';
@@ -13,11 +13,11 @@ const SWIPE_X = 100;
 const SWIPE_Y = -90;
 const VELOCITY = 450;
 
-const exitVariants = {
-  left: { x: -420, opacity: 0, rotate: -18, transition: { type: 'spring' as const, stiffness: 280, damping: 28 } },
-  right: { x: 420, opacity: 0, rotate: 18, transition: { type: 'spring' as const, stiffness: 280, damping: 28 } },
-  up: { y: -480, opacity: 0, scale: 0.95, transition: { type: 'spring' as const, stiffness: 280, damping: 28 } },
-};
+const EXIT_X = 520;
+const EXIT_Y = -520;
+
+const EXIT_SPRING = { type: 'spring' as const, stiffness: 320, damping: 32, mass: 0.85 };
+const RETURN_SPRING = { type: 'spring' as const, stiffness: 520, damping: 38 };
 
 interface SwipeCardProps {
   job: Job;
@@ -40,65 +40,103 @@ export function SwipeCard({
 }: SwipeCardProps) {
   const x = useMotionValue(0);
   const y = useMotionValue(0);
+  const opacity = useMotionValue(1);
   const rotate = useTransform(x, [-200, 0, 200], [-12, 0, 12]);
   const skipOpacity = useTransform(x, [-120, -40, 0], [1, 0.3, 0]);
   const saveOpacity = useTransform(x, [0, 40, 120], [0, 0.3, 1]);
   const applyOpacity = useTransform(y, [-100, -30, 0], [1, 0.3, 0]);
 
+  const [isFlying, setIsFlying] = useState(false);
+  const exitStarted = useRef(false);
+  const wasActive = useRef(active);
+
+  const scale = 1 - index * 0.05;
+  const yOffset = index * 10;
+
+  const runExitAnimation = async (direction: SwipeDirection) => {
+    x.stop();
+    y.stop();
+
+    const opacityAnim = animate(opacity, 0, { duration: 0.2, ease: 'easeOut' });
+    const moveAnim =
+      direction === 'left'
+        ? animate(x, -EXIT_X, EXIT_SPRING)
+        : direction === 'right'
+          ? animate(x, EXIT_X, EXIT_SPRING)
+          : animate(y, EXIT_Y, EXIT_SPRING);
+
+    await Promise.all([opacityAnim, moveAnim]);
+    onExitComplete();
+  };
+
+  const beginExit = (direction: SwipeDirection) => {
+    if (exitStarted.current) return;
+    exitStarted.current = true;
+    setIsFlying(true);
+    void runExitAnimation(direction);
+  };
+
   const handleDragEnd = (_: unknown, info: PanInfo) => {
-    if (exitDirection) return;
+    if (exitStarted.current) return;
+
     const { offset, velocity } = info;
 
-    if (offset.y < SWIPE_Y || velocity.y < -VELOCITY) {
-      onSwipe('up');
+    let direction: SwipeDirection | null = null;
+    if (offset.y < SWIPE_Y || velocity.y < -VELOCITY) direction = 'up';
+    else if (offset.x > SWIPE_X || velocity.x > VELOCITY) direction = 'right';
+    else if (offset.x < -SWIPE_X || velocity.x < -VELOCITY) direction = 'left';
+
+    if (direction) {
+      onSwipe(direction);
+      beginExit(direction);
       return;
     }
-    if (offset.x > SWIPE_X || velocity.x > VELOCITY) {
-      onSwipe('right');
-      return;
-    }
-    if (offset.x < -SWIPE_X || velocity.x < -VELOCITY) {
-      onSwipe('left');
-      return;
-    }
+
+    void Promise.all([
+      animate(x, 0, RETURN_SPRING),
+      animate(y, 0, RETURN_SPRING),
+    ]);
 
     if (Math.abs(offset.x) < 10 && Math.abs(offset.y) < 10) {
       onTap();
     }
   };
 
-  const scale = 1 - index * 0.05;
-  const yOffset = index * 10;
-  const isExiting = exitDirection !== null;
-  const exitHandled = useRef(false);
+  // Action-button swipes (no drag) — parent sets exitDirection
+  useEffect(() => {
+    if (!exitDirection || !active || exitStarted.current) return;
+    beginExit(exitDirection);
+  }, [exitDirection, active]);
+
+  // Promote back card to top when index becomes 0
+  useEffect(() => {
+    if (active && !wasActive.current && !exitStarted.current) {
+      y.set(yOffset);
+      void animate(y, 0, { type: 'spring', stiffness: 420, damping: 34 });
+    }
+    wasActive.current = active;
+  }, [active, yOffset, y]);
+
+  const usesMotionPosition = active || isFlying;
 
   return (
     <motion.article
       className={styles.card}
       style={{
-        x: isExiting ? undefined : active ? x : 0,
-        y: isExiting ? undefined : active ? y : yOffset,
-        rotate: isExiting ? undefined : active ? rotate : 0,
+        x: usesMotionPosition ? x : 0,
+        y: usesMotionPosition ? y : yOffset,
+        rotate: usesMotionPosition ? rotate : 0,
+        opacity,
         scale,
         zIndex: 10 - index,
       }}
-      animate={
-        isExiting && exitDirection
-          ? exitVariants[exitDirection]
-          : { x: 0, y: yOffset, rotate: 0, opacity: 1 }
-      }
-      drag={active && !isExiting}
+      drag={active && !isFlying}
       dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
-      dragElastic={0.85}
-      onDragEnd={active && !isExiting ? handleDragEnd : undefined}
-      onAnimationComplete={() => {
-        if (isExiting && !exitHandled.current) {
-          exitHandled.current = true;
-          onExitComplete();
-        }
-      }}
+      dragElastic={0.9}
+      dragMomentum={false}
+      onDragEnd={active && !isFlying ? handleDragEnd : undefined}
     >
-      {active && !isExiting && (
+      {active && !isFlying && (
         <>
           <motion.span className={`${styles.stamp} ${styles.stampSkip}`} style={{ opacity: skipOpacity }}>
             SKIP

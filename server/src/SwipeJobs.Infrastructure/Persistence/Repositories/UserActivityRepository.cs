@@ -26,6 +26,11 @@ public class UserActivityRepository : Repository<UserActivity>, IUserActivityRep
             .Take(limit)
             .ToListAsync(cancellationToken);
 
+    public Task<int> CountByUserAndTypeAsync(
+        Guid userProfileId, ActivityType activityType, CancellationToken cancellationToken = default)
+        => DbSet.AsNoTracking()
+            .CountAsync(a => a.UserProfileId == userProfileId && a.ActivityType == activityType, cancellationToken);
+
     public async Task<IReadOnlyList<Guid>> GetRecentViewedJobIdsAsync(
         Guid userProfileId, int limit, CancellationToken cancellationToken = default)
         => await DbSet.AsNoTracking()

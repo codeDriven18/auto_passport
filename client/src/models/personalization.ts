@@ -10,6 +10,7 @@ export enum NotificationType {
   NewJobFromFollowedCompany = 0,
   RecommendedJob = 1,
   ProfileCompletenessReminder = 2,
+  ApplicationStatusChanged = 3,
 }
 
 export interface AppNotification {

@@ -34,6 +34,21 @@ public class ApplicationRepository : Repository<ApplicationEntity>, IApplication
         return await q.OrderByDescending(a => a.AppliedAt).ToListAsync(cancellationToken);
     }
 
+    public async Task<ApplicationEntity?> GetByIdForCompanyAsync(
+        Guid applicationId, Guid companyId, CancellationToken cancellationToken = default)
+        => await DbSet
+            .AsNoTracking()
+            .Include(a => a.Job)
+            .Include(a => a.UserProfile)
+                .ThenInclude(p => p!.Educations)
+            .Include(a => a.UserProfile)
+                .ThenInclude(p => p!.Skills)
+            .Include(a => a.UserProfile)
+                .ThenInclude(p => p!.Experiences)
+            .FirstOrDefaultAsync(
+                a => a.Id == applicationId && a.Job!.CompanyId == companyId,
+                cancellationToken);
+
     public Task<int> CountAsync(CancellationToken cancellationToken = default)
         => DbSet.CountAsync(cancellationToken);
 

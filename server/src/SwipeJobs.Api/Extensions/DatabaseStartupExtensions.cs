@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using SwipeJobs.Domain.Enums;
 using SwipeJobs.Infrastructure.Persistence;
 using SwipeJobs.Infrastructure.Persistence.Migrations;
 using SwipeJobs.Infrastructure.Persistence.Seeding;
@@ -23,6 +24,23 @@ public static class DatabaseStartupExtensions
 
         var showcaseSeeder = scope.ServiceProvider.GetRequiredService<ShowcaseJobSeeder>();
         await showcaseSeeder.SeedAsync();
+
+        if (app.Configuration.GetValue("Seed:AutoApproveCompanies", false))
+        {
+            var pending = await dbContext.Companies
+                .Where(c => c.Status == CompanyStatus.Pending)
+                .ToListAsync();
+            if (pending.Count > 0)
+            {
+                foreach (var company in pending)
+                {
+                    company.Status = CompanyStatus.Approved;
+                    company.IsActive = true;
+                }
+                await dbContext.SaveChangesAsync();
+                logger.LogInformation("Auto-approved {Count} pending companies.", pending.Count);
+            }
+        }
 
         logger.LogInformation("Database startup: seed completed.");
         Console.Error.WriteLine("[DatabaseStartup] Seed completed.");

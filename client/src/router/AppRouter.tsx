@@ -41,6 +41,7 @@ import { AdminSystemPage } from '@/pages/Admin/AdminSystemPage';
 import { PortalDashboardPage } from '@/pages/Portal/PortalDashboardPage';
 import { PortalJobsPage } from '@/pages/Portal/PortalJobsPage';
 import { PortalApplicationsPage } from '@/pages/Portal/PortalApplicationsPage';
+import { PortalApplicantPage } from '@/pages/Portal/PortalApplicantPage';
 
 export function AppRouter() {
   return (
@@ -87,6 +88,7 @@ export function AppRouter() {
           <Route index element={<PortalDashboardPage />} />
           <Route path="jobs" element={<PortalJobsPage />} />
           <Route path="applications" element={<PortalApplicationsPage />} />
+          <Route path="applications/:applicationId" element={<PortalApplicantPage />} />
         </Route>
 
         <Route element={<AppLayout />}>
@@ -102,7 +104,7 @@ export function AppRouter() {
           <Route path="/saved" element={<SavedPage />} />
           <Route path="/applications" element={<ApplicationsPage />} />
           <Route path="/settings" element={<SettingsPage />} />
-          <Route path="/profile" element={<AuthGate><ProfilePage /></AuthGate>} />
+          <Route path="/profile/*" element={<AuthGate><ProfilePage /></AuthGate>} />
           <Route path="/account" element={<AuthGate><AccountSettingsPage /></AuthGate>} />
         </Route>
       </Routes>

@@ -51,6 +51,31 @@ public record PortalApplicationDto(
     string? ApplicantPhone,
     string? ApplicantProfileImageUrl);
 
+public record PortalUpdateApplicationStatusDto(ApplicationStatus Status);
+
+public record PortalApplicantDetailDto(
+    Guid ApplicationId,
+    ApplicationStatus Status,
+    DateTime AppliedAt,
+    Guid JobId,
+    string JobTitle,
+    Guid UserProfileId,
+    string FirstName,
+    string LastName,
+    string Email,
+    string? Phone,
+    string? Headline,
+    string? Bio,
+    string? Location,
+    string? ProfileImageUrl,
+    bool HasResume,
+    string? ResumeFileName,
+    long? ResumeFileSize,
+    DateTime? ResumeUploadedAt,
+    IReadOnlyList<SkillDto> Skills,
+    IReadOnlyList<ExperienceDto> Experiences,
+    IReadOnlyList<EducationDto> Educations);
+
 public record PortalUpdateCompanyDto(
     string Description,
     string Industry,

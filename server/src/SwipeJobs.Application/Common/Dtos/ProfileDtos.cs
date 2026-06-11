@@ -50,6 +50,7 @@ public record UserProfileDto(
     string? Headline,
     string? ResumeUrl,
     string? ResumeFileName,
+    long? ResumeFileSize,
     DateTime? ResumeUploadedAt,
     string? Location,
     string? ProfileImageUrl,

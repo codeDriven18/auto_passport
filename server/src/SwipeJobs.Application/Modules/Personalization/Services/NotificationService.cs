@@ -168,6 +168,40 @@ public class NotificationService : INotificationService
         return dto;
     }
 
+    public async Task NotifyApplicationStatusChangedAsync(
+        Guid userProfileId,
+        Guid applicationId,
+        ApplicationStatus status,
+        string jobTitle,
+        CancellationToken cancellationToken = default)
+    {
+        var statusLabel = status switch
+        {
+            ApplicationStatus.UnderReview => "Under review",
+            ApplicationStatus.Accepted => "Accepted",
+            ApplicationStatus.Rejected => "Rejected",
+            _ => status.ToString(),
+        };
+
+        var title = $"Application update: {jobTitle}";
+        var message = $"Your application status is now {statusLabel}.";
+        if (await _notificationRepository.ExistsAsync(userProfileId, title, null, cancellationToken))
+            return;
+
+        var notification = new Notification
+        {
+            UserProfileId = userProfileId,
+            Type = NotificationType.ApplicationStatusChanged,
+            Title = title,
+            Message = message,
+            IsRead = false,
+        };
+
+        await _notificationRepository.AddAsync(notification, cancellationToken);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        await _publisher.PublishAsync(userProfileId, ToDto(notification), cancellationToken);
+    }
+
     private Task PublishIfNeededAsync(Guid userProfileId, Notification notification, CancellationToken cancellationToken)
         => _publisher.PublishAsync(userProfileId, ToDto(notification), cancellationToken);
 

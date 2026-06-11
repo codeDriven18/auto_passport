@@ -80,6 +80,7 @@ public static class DependencyInjection
         services.AddScoped<ISavedJobRepository, SavedJobRepository>();
         services.AddScoped<IAuditLogRepository, AuditLogRepository>();
         services.AddScoped<IAuditLogService, Audit.AuditLogService>();
+        services.AddScoped<IResumeStorageService, Storage.LocalResumeStorageService>();
         services.AddScoped<IDataSeeder, DataSeeder>();
         services.AddScoped<ShowcaseJobSeeder>();
 

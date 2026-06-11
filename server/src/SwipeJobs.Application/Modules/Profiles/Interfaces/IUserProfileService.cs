@@ -25,6 +25,9 @@ public interface IUserProfileService
         long contentLength,
         CancellationToken cancellationToken = default);
     Task<UserProfileDto?> RemoveResumeAsync(Guid userId, CancellationToken cancellationToken = default);
+    Task<(Stream Content, string ContentType, string FileName)?> OpenResumeForUserAsync(
+        Guid userId, CancellationToken cancellationToken = default);
     Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken = default);
     Task<ProfileCompletenessDto> CheckCompletenessAsync(Guid id, CancellationToken cancellationToken = default);
+    Task<UserProfileDto> EnsureForUserAsync(Guid userId, string email, CancellationToken cancellationToken = default);
 }

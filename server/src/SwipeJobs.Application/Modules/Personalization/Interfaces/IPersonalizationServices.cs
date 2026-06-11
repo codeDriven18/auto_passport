@@ -43,4 +43,10 @@ public interface INotificationService
     Task MarkAllReadAsync(Guid userProfileId, CancellationToken cancellationToken = default);
     Task GenerateForDashboardAsync(Guid userProfileId, CancellationToken cancellationToken = default);
     Task<NotificationDto> CreateAsync(Guid userProfileId, string title, string message, CancellationToken cancellationToken = default);
+    Task NotifyApplicationStatusChangedAsync(
+        Guid userProfileId,
+        Guid applicationId,
+        ApplicationStatus status,
+        string jobTitle,
+        CancellationToken cancellationToken = default);
 }

@@ -41,7 +41,7 @@ export function RegisterPage() {
         accountType,
         companyName: accountType === 'company' ? companyName : undefined,
       });
-      navigate(accountType === 'company' ? '/portal' : '/profile', { replace: true });
+      navigate(accountType === 'company' ? '/portal' : '/profile/complete?welcome=1', { replace: true });
     } catch (err) {
       setError(getErrorMessage(err));
     } finally {

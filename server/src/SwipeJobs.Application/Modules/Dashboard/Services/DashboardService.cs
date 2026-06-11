@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Caching.Memory;
 using SwipeJobs.Application.Common;
 using SwipeJobs.Application.Common.Dtos;
 using SwipeJobs.Application.Common.Interfaces.Repositories;
@@ -12,6 +13,7 @@ public class DashboardService : IDashboardService
 {
     private const int RecentApplicationsLimit = 5;
     private const int SectionLimit = 4;
+    private static readonly TimeSpan NotificationGenerationCooldown = TimeSpan.FromMinutes(30);
 
     private readonly IUserProfileRepository _profileRepository;
     private readonly ISavedJobRepository _savedJobRepository;
@@ -24,6 +26,7 @@ public class DashboardService : IDashboardService
     private readonly IInterestService _interestService;
     private readonly INotificationService _notificationService;
     private readonly IUserActivityRepository _activityRepository;
+    private readonly IMemoryCache _cache;
 
     public DashboardService(
         IUserProfileRepository profileRepository,
@@ -36,7 +39,8 @@ public class DashboardService : IDashboardService
         ICompanyFollowService companyFollowService,
         IInterestService interestService,
         INotificationService notificationService,
-        IUserActivityRepository activityRepository)
+        IUserActivityRepository activityRepository,
+        IMemoryCache cache)
     {
         _profileRepository = profileRepository;
         _savedJobRepository = savedJobRepository;
@@ -49,6 +53,7 @@ public class DashboardService : IDashboardService
         _interestService = interestService;
         _notificationService = notificationService;
         _activityRepository = activityRepository;
+        _cache = cache;
     }
 
     public async Task<UserDashboardDto?> GetUserDashboardAsync(
@@ -58,10 +63,53 @@ public class DashboardService : IDashboardService
         var profile = await _profileRepository.GetByIdWithDetailsAsync(userProfileId, cancellationToken);
         if (profile is null) return null;
 
-        await _notificationService.GenerateForDashboardAsync(userProfileId, cancellationToken);
+        var savedJobsTask = _savedJobRepository.GetByUserProfileIdAsync(userProfileId, cancellationToken);
+        var applicationsTask = _applicationRepository.GetByUserProfileIdAsync(userProfileId, cancellationToken);
+        var recommendedTask = _recommendationService.GetRecommendedJobsAsync(userProfileId, SectionLimit, cancellationToken);
+        var trendingTask = _trendingService.GetTrendingJobsAsync(SectionLimit, cancellationToken);
+        var followedJobsTask = _companyFollowService.GetNewJobsFromFollowedAsync(userProfileId, SectionLimit, cancellationToken);
+        var viewedIdsTask = _activityService.GetRecentViewedJobIdsAsync(userProfileId, SectionLimit, cancellationToken);
+        var interestsTask = _interestService.GetAsync(userProfileId, cancellationToken);
+        var unreadTask = _notificationService.GetUnreadCountAsync(userProfileId, cancellationToken);
+        var lastSwipeSkippedTask = _activityRepository.GetLastActivityAtAsync(
+            userProfileId, ActivityType.JobSkipped, cancellationToken);
+        var lastSwipeSavedTask = _activityRepository.GetLastActivityAtAsync(
+            userProfileId, ActivityType.JobSaved, cancellationToken);
+        var totalJobsTask = _jobRepository.SearchAsync(new JobQueryDto(
+            Search: null, Page: 1, PageSize: 1), cancellationToken);
+        var skippedCountTask = _activityRepository.CountByUserAndTypeAsync(
+            userProfileId, ActivityType.JobSkipped, cancellationToken);
 
-        var savedJobs = await _savedJobRepository.GetByUserProfileIdAsync(userProfileId, cancellationToken);
-        var applications = await _applicationRepository.GetByUserProfileIdAsync(userProfileId, cancellationToken);
+        var notificationTask = MaybeGenerateNotificationsAsync(userProfileId, cancellationToken);
+
+        await Task.WhenAll(
+            savedJobsTask,
+            applicationsTask,
+            recommendedTask,
+            trendingTask,
+            followedJobsTask,
+            viewedIdsTask,
+            interestsTask,
+            unreadTask,
+            lastSwipeSkippedTask,
+            lastSwipeSavedTask,
+            totalJobsTask,
+            skippedCountTask,
+            notificationTask);
+
+        var savedJobs = await savedJobsTask;
+        var applications = await applicationsTask;
+        var recommended = await recommendedTask;
+        var trending = await trendingTask;
+        var followedJobs = await followedJobsTask;
+        var viewedIds = await viewedIdsTask;
+        var unread = await unreadTask;
+        var lastSwipe = await lastSwipeSkippedTask ?? await lastSwipeSavedTask;
+        var (_, totalJobs) = await totalJobsTask;
+        var skippedCount = await skippedCountTask;
+
+        var interests = await interestsTask
+            ?? await _interestService.RecalculateAsync(userProfileId, cancellationToken);
 
         var recentApplications = applications
             .OrderByDescending(a => a.AppliedAt)
@@ -73,32 +121,20 @@ public class DashboardService : IDashboardService
             })
             .ToList();
 
-        var recommended = await _recommendationService.GetRecommendedJobsAsync(userProfileId, SectionLimit, cancellationToken);
-        var trending = await _trendingService.GetTrendingJobsAsync(SectionLimit, cancellationToken);
-        var followedJobs = await _companyFollowService.GetNewJobsFromFollowedAsync(userProfileId, SectionLimit, cancellationToken);
-
-        var viewedIds = await _activityService.GetRecentViewedJobIdsAsync(userProfileId, SectionLimit, cancellationToken);
         var recentlyViewed = new List<JobDto>();
-        var viewBadges = await _trendingService.GetTrendingBadgesAsync(viewedIds, cancellationToken);
-        foreach (var jobId in viewedIds)
+        if (viewedIds.Count > 0)
         {
-            var job = await _jobRepository.GetByIdWithDetailsAsync(jobId, cancellationToken);
-            if (job is not null && job.IsActive)
-                recentlyViewed.Add(JobMapper.ToDto(job, viewBadges.GetValueOrDefault(jobId, Array.Empty<string>())));
+            var viewBadges = await _trendingService.GetTrendingBadgesAsync(viewedIds, cancellationToken);
+            var viewedJobs = await _jobRepository.GetByIdsWithDetailsAsync(viewedIds, cancellationToken);
+            var jobMap = viewedJobs.Where(j => j.IsActive).ToDictionary(j => j.Id);
+
+            foreach (var jobId in viewedIds)
+            {
+                if (jobMap.TryGetValue(jobId, out var job))
+                    recentlyViewed.Add(JobMapper.ToDto(job, viewBadges.GetValueOrDefault(jobId, Array.Empty<string>())));
+            }
         }
 
-        var interests = await _interestService.GetAsync(userProfileId, cancellationToken)
-            ?? await _interestService.RecalculateAsync(userProfileId, cancellationToken);
-
-        var unread = await _notificationService.GetUnreadCountAsync(userProfileId, cancellationToken);
-        var lastSwipe = await _activityRepository.GetLastActivityAtAsync(
-            userProfileId, ActivityType.JobSkipped, cancellationToken)
-            ?? await _activityRepository.GetLastActivityAtAsync(userProfileId, ActivityType.JobSaved, cancellationToken);
-
-        var (allJobs, totalJobs) = await _jobRepository.SearchAsync(new JobQueryDto(
-            Search: null, Page: 1, PageSize: 1), cancellationToken);
-        var skippedCount = (await _activityRepository.GetRecentByUserAndTypeAsync(
-            userProfileId, ActivityType.JobSkipped, 500, cancellationToken)).Count;
         var swipeRemaining = Math.Max(0, totalJobs - skippedCount - applications.Count - savedJobs.Count);
 
         return new UserDashboardDto(
@@ -114,5 +150,15 @@ public class DashboardService : IDashboardService
             unread,
             swipeRemaining,
             lastSwipe);
+    }
+
+    private async Task MaybeGenerateNotificationsAsync(Guid userProfileId, CancellationToken cancellationToken)
+    {
+        var cacheKey = $"dashboard-notif-gen:{userProfileId}";
+        if (_cache.TryGetValue(cacheKey, out _))
+            return;
+
+        await _notificationService.GenerateForDashboardAsync(userProfileId, cancellationToken);
+        _cache.Set(cacheKey, true, NotificationGenerationCooldown);
     }
 }

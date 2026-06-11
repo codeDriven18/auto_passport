@@ -44,7 +44,7 @@ public static class ProfileCompletenessChecker
             (!string.IsNullOrWhiteSpace(profile.Phone), 12),
             (!string.IsNullOrWhiteSpace(profile.Location), 5),
             (!string.IsNullOrWhiteSpace(profile.Bio), 5),
-            (!string.IsNullOrWhiteSpace(profile.ResumeUrl), 15),
+            (!string.IsNullOrWhiteSpace(profile.ResumeUrl) || !string.IsNullOrWhiteSpace(profile.ResumeFileName), 15),
             (profile.Educations.Count > 0 || profile.Skills.Count > 0 || profile.Experiences.Count > 0, 35),
         };
 

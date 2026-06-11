@@ -3,14 +3,15 @@ import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useAuth } from '@/context/AuthContext';
+import { UserRole } from '@/models/auth';
 import styles from './NotificationBell.module.css';
 
 export function NotificationBell() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const { notifications, unreadCount, markRead, markAllRead } = useNotifications();
   const [open, setOpen] = useState(false);
 
-  if (!isAuthenticated) return null;
+  if (!isAuthenticated || user?.role !== UserRole.JobSeeker) return null;
 
   return (
     <div className={styles.wrap}>

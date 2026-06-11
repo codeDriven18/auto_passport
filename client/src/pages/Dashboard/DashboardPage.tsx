@@ -10,6 +10,7 @@ import { DashboardSkeleton } from '@/components/ui/Skeleton';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { useAuth } from '@/context/AuthContext';
 import { useProfile } from '@/hooks/useProfile';
+import { UserRole } from '@/models/auth';
 import { calculateProfileProgress } from '@/lib/profileProgress';
 import { profileToFormState } from '@/lib/profileForm';
 import type { UserDashboard } from '@/models/dashboard';
@@ -63,7 +64,8 @@ function JobSection({
 
 export function DashboardPage() {
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
+  const isJobSeeker = user?.role === UserRole.JobSeeker;
   const { profile, loading: profileLoading } = useProfile();
   const [dashboard, setDashboard] = useState<UserDashboard | null>(null);
   const [loading, setLoading] = useState(true);
@@ -77,7 +79,7 @@ export function DashboardPage() {
 
   useEffect(() => {
     if (profileLoading) return;
-    if (!isAuthenticated) {
+    if (!isAuthenticated || !isJobSeeker) {
       setDashboard(null);
       setLoading(false);
       return;
@@ -87,7 +89,7 @@ export function DashboardPage() {
       .then(setDashboard)
       .catch(() => setDashboard(null))
       .finally(() => setLoading(false));
-  }, [isAuthenticated, profileLoading]);
+  }, [isAuthenticated, isJobSeeker, profileLoading]);
 
   const profilePct = dashboard?.profileCompletionPercentage ?? localProgress;
   const savedCount = dashboard?.savedJobsCount ?? 0;

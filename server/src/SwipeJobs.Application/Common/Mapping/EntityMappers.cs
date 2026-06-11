@@ -137,8 +137,9 @@ public static class ProfileMapper
         profile.Phone,
         profile.Bio,
         profile.Headline,
-        profile.ResumeUrl,
+        HasResume(profile) ? "/api/profiles/me/resume" : null,
         profile.ResumeFileName,
+        profile.ResumeFileSize,
         profile.ResumeUploadedAt,
         profile.Location,
         profile.ProfileImageUrl,
@@ -162,6 +163,9 @@ public static class ProfileMapper
             e.Id, e.Company, e.Title, e.Description, e.StartDate, e.EndDate, e.IsCurrent)).ToList(),
         profile.CreatedAt,
         profile.UpdatedAt);
+
+    private static bool HasResume(UserProfile profile) =>
+        !string.IsNullOrWhiteSpace(profile.ResumeUrl) || !string.IsNullOrWhiteSpace(profile.ResumeFileName);
 
     public static ApplicationDto ToDto(ApplicationEntity application, JobDto? job = null) => new(
         application.Id,

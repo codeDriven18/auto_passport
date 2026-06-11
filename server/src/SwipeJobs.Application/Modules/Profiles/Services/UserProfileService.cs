@@ -21,15 +21,18 @@ public class UserProfileService : IUserProfileService
     };
 
     private readonly IUserProfileRepository _profileRepository;
+    private readonly IResumeStorageService _resumeStorage;
     private readonly IUnitOfWork _unitOfWork;
     private readonly ILogger<UserProfileService> _logger;
 
     public UserProfileService(
         IUserProfileRepository profileRepository,
+        IResumeStorageService resumeStorage,
         IUnitOfWork unitOfWork,
         ILogger<UserProfileService> logger)
     {
         _profileRepository = profileRepository;
+        _resumeStorage = resumeStorage;
         _unitOfWork = unitOfWork;
         _logger = logger;
     }
@@ -44,6 +47,30 @@ public class UserProfileService : IUserProfileService
     {
         var profile = await _profileRepository.GetByUserIdAsync(userId, cancellationToken);
         return profile is null ? null : ProfileMapper.ToDto(profile);
+    }
+
+    public async Task<UserProfileDto> EnsureForUserAsync(
+        Guid userId, string email, CancellationToken cancellationToken = default)
+    {
+        var existing = await _profileRepository.GetByUserIdAsync(userId, cancellationToken);
+        if (existing is not null)
+            return ProfileMapper.ToDto(existing);
+
+        _logger.LogInformation("Creating missing profile for userId={UserId}", userId);
+
+        var profile = new UserProfile
+        {
+            UserId = userId,
+            Email = email.Trim(),
+            FirstName = string.Empty,
+            LastName = string.Empty,
+        };
+
+        await _profileRepository.AddAsync(profile, cancellationToken);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        var created = await _profileRepository.GetByIdWithDetailsAsync(profile.Id, cancellationToken);
+        return ProfileMapper.ToDto(created!);
     }
 
     public async Task<UserProfileDto?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
@@ -179,7 +206,7 @@ public class UserProfileService : IUserProfileService
         long contentLength,
         CancellationToken cancellationToken = default)
     {
-        const int maxResumeBytes = 512 * 1024;
+        const int maxResumeBytes = 5 * 1024 * 1024;
         var allowed = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
             "application/pdf",
@@ -191,26 +218,26 @@ public class UserProfileService : IUserProfileService
             throw new InvalidOperationException("Unsupported file type. Upload PDF or Word document.");
 
         if (contentLength <= 0 || contentLength > maxResumeBytes)
-            throw new InvalidOperationException($"Resume must be between 1 byte and {maxResumeBytes / 1024} KB.");
+            throw new InvalidOperationException($"Resume must be between 1 byte and {maxResumeBytes / (1024 * 1024)} MB.");
 
         var profile = await _profileRepository.GetByUserIdForUpdateAsync(userId, cancellationToken)
             ?? throw new KeyNotFoundException("Profile not found.");
 
-        using var ms = new MemoryStream();
-        await content.CopyToAsync(ms, cancellationToken);
-        var bytes = ms.ToArray();
-        if (bytes.Length > maxResumeBytes)
-            throw new InvalidOperationException($"Resume must be at most {maxResumeBytes / 1024} KB.");
-
         var safeName = Path.GetFileName(fileName);
+        var storageKey = await _resumeStorage.SaveAsync(profile.Id, content, safeName, contentType, cancellationToken);
+
+        if (!string.IsNullOrWhiteSpace(profile.ResumeUrl))
+            await _resumeStorage.DeleteAsync(profile.ResumeUrl, cancellationToken);
+
         profile.ResumeFileName = safeName;
+        profile.ResumeFileSize = contentLength;
         profile.ResumeUploadedAt = DateTime.UtcNow;
-        profile.ResumeUrl = $"data:{contentType};base64,{Convert.ToBase64String(bytes)}";
+        profile.ResumeUrl = storageKey;
         profile.UpdatedAt = DateTime.UtcNow;
 
         _logger.LogInformation(
-            "Resume uploaded userId={UserId} profileId={ProfileId} file={FileName} bytes={Bytes}",
-            userId, profile.Id, safeName, bytes.Length);
+            "Resume uploaded userId={UserId} profileId={ProfileId} file={FileName} bytes={Bytes} storageKey={StorageKey}",
+            userId, profile.Id, safeName, contentLength, storageKey);
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         var updated = await _profileRepository.GetByIdWithDetailsAsync(profile.Id, cancellationToken);
@@ -222,14 +249,30 @@ public class UserProfileService : IUserProfileService
         var profile = await _profileRepository.GetByUserIdForUpdateAsync(userId, cancellationToken);
         if (profile is null) return null;
 
+        await _resumeStorage.DeleteAsync(profile.ResumeUrl, cancellationToken);
         profile.ResumeUrl = null;
         profile.ResumeFileName = null;
+        profile.ResumeFileSize = null;
         profile.ResumeUploadedAt = null;
         profile.UpdatedAt = DateTime.UtcNow;
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         var updated = await _profileRepository.GetByIdWithDetailsAsync(profile.Id, cancellationToken);
         return ProfileMapper.ToDto(updated!);
+    }
+
+    public async Task<(Stream Content, string ContentType, string FileName)?> OpenResumeForUserAsync(
+        Guid userId, CancellationToken cancellationToken = default)
+    {
+        var profile = await _profileRepository.GetByUserIdAsync(userId, cancellationToken);
+        if (profile is null || string.IsNullOrWhiteSpace(profile.ResumeUrl))
+            return null;
+
+        var opened = await _resumeStorage.OpenReadAsync(profile.ResumeUrl, cancellationToken);
+        if (opened is null) return null;
+
+        var fileName = profile.ResumeFileName ?? opened.Value.FileName;
+        return (opened.Value.Content, opened.Value.ContentType, fileName);
     }
 
     public async Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken = default)
@@ -270,7 +313,6 @@ public class UserProfileService : IUserProfileService
         profile.Phone = NormalizeOptional(dto.Phone);
         profile.Bio = NormalizeOptional(dto.Bio);
         profile.Headline = NormalizeOptional(dto.Headline);
-        profile.ResumeUrl = NormalizeOptional(dto.ResumeUrl);
         profile.Location = NormalizeOptional(dto.Location);
         profile.LinkedInUrl = NormalizeOptional(dto.LinkedInUrl);
         profile.GitHubUrl = NormalizeOptional(dto.GitHubUrl);

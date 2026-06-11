@@ -5,4 +5,5 @@ public enum NotificationType
     NewJobFromFollowedCompany = 0,
     RecommendedJob = 1,
     ProfileCompletenessReminder = 2,
+    ApplicationStatusChanged = 3,
 }

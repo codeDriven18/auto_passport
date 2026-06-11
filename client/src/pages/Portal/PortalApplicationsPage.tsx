@@ -54,6 +54,7 @@ export function PortalApplicationsPage() {
                 Applied for <strong>{app.jobTitle}</strong> on {new Date(app.appliedAt).toLocaleDateString()}
               </p>
               <div className={styles.actions}>
+                <Link to={`/portal/applications/${app.id}`} className={styles.btnAccent}>Review applicant</Link>
                 <Link to={`/jobs/${app.jobId}`} className={styles.btn}>View job</Link>
               </div>
             </article>

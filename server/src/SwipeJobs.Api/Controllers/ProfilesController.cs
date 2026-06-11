@@ -1,3 +1,5 @@
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SwipeJobs.Application.Common.Dtos;
@@ -28,8 +30,17 @@ public class ProfilesController : ControllerBase
     [HttpGet("me")]
     public async Task<IActionResult> GetMe(CancellationToken cancellationToken)
     {
-        var profile = await _profileService.GetByUserIdAsync(_currentUser.GetRequiredUserId(), cancellationToken);
-        return profile is null ? NotFound() : Ok(profile);
+        var userId = _currentUser.GetRequiredUserId();
+        var profile = await _profileService.GetByUserIdAsync(userId, cancellationToken);
+        if (profile is null)
+        {
+            var email = User.FindFirstValue(ClaimTypes.Email)
+                ?? User.FindFirstValue(JwtRegisteredClaimNames.Email)
+                ?? string.Empty;
+            profile = await _profileService.EnsureForUserAsync(userId, email, cancellationToken);
+        }
+
+        return Ok(profile);
     }
 
     [Authorize]
@@ -50,6 +61,16 @@ public class ProfilesController : ControllerBase
 
         try
         {
+            var existing = await _profileService.GetByUserIdAsync(userId, cancellationToken);
+            if (existing is null)
+            {
+                var email = dto.Email?.Trim()
+                    ?? User.FindFirstValue(ClaimTypes.Email)
+                    ?? User.FindFirstValue(JwtRegisteredClaimNames.Email)
+                    ?? string.Empty;
+                await _profileService.EnsureForUserAsync(userId, email, cancellationToken);
+            }
+
             var profile = await _profileService.UpdateForCurrentUserAsync(userId, dto, cancellationToken);
             if (profile is null)
             {
@@ -84,6 +105,8 @@ public class ProfilesController : ControllerBase
 
         try
         {
+            await EnsureProfileAsync(userId, cancellationToken);
+
             await using var stream = file.OpenReadStream();
             var profile = await _profileService.UploadAvatarAsync(
                 userId,
@@ -111,8 +134,9 @@ public class ProfilesController : ControllerBase
         return profile is null ? NotFound() : NoContent();
     }
 
+    [Authorize]
     [HttpPost("me/resume")]
-    [RequestSizeLimit(768_000)]
+    [RequestSizeLimit(5_242_880)]
     public async Task<IActionResult> UploadResume(IFormFile? file, CancellationToken cancellationToken)
     {
         if (file is null || file.Length == 0)
@@ -121,6 +145,8 @@ public class ProfilesController : ControllerBase
         var userId = _currentUser.GetRequiredUserId();
         try
         {
+            await EnsureProfileAsync(userId, cancellationToken);
+
             await using var stream = file.OpenReadStream();
             var profile = await _profileService.UploadResumeAsync(
                 userId, stream, file.FileName, file.ContentType, file.Length, cancellationToken);
@@ -134,6 +160,7 @@ public class ProfilesController : ControllerBase
         }
     }
 
+    [Authorize]
     [HttpDelete("me/resume")]
     public async Task<IActionResult> RemoveResume(CancellationToken cancellationToken)
     {
@@ -143,10 +170,24 @@ public class ProfilesController : ControllerBase
     }
 
     [Authorize]
+    [HttpGet("me/resume")]
+    public async Task<IActionResult> DownloadResume(CancellationToken cancellationToken)
+    {
+        var userId = _currentUser.GetRequiredUserId();
+        var opened = await _profileService.OpenResumeForUserAsync(userId, cancellationToken);
+        if (opened is null)
+            return NotFound(new { error = "No resume on file." });
+
+        var (stream, contentType, fileName) = opened.Value;
+        return File(stream, contentType, fileName);
+    }
+
+    [Authorize]
     [HttpGet("me/completeness")]
     public async Task<IActionResult> CheckMyCompleteness(CancellationToken cancellationToken)
     {
-        var existing = await _profileService.GetByUserIdAsync(_currentUser.GetRequiredUserId(), cancellationToken);
+        var userId = _currentUser.GetRequiredUserId();
+        var existing = await _profileService.GetByUserIdAsync(userId, cancellationToken);
         if (existing is null) return NotFound();
 
         var result = await _profileService.CheckCompletenessAsync(existing.Id, cancellationToken);
@@ -161,5 +202,16 @@ public class ProfilesController : ControllerBase
         if (own is null || own.Id != id) return Forbid();
 
         return Ok(own);
+    }
+
+    private async Task EnsureProfileAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        var existing = await _profileService.GetByUserIdAsync(userId, cancellationToken);
+        if (existing is not null) return;
+
+        var email = User.FindFirstValue(ClaimTypes.Email)
+            ?? User.FindFirstValue(JwtRegisteredClaimNames.Email)
+            ?? string.Empty;
+        await _profileService.EnsureForUserAsync(userId, email, cancellationToken);
     }
 }

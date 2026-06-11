@@ -2,19 +2,32 @@ using SwipeJobs.Application.Common.Dtos;
 using SwipeJobs.Application.Common.Interfaces;
 using SwipeJobs.Application.Common.Interfaces.Repositories;
 using SwipeJobs.Application.Common.Mapping;
+using SwipeJobs.Application.Modules.Personalization.Interfaces;
 using SwipeJobs.Application.Modules.Portal.Interfaces;
 using SwipeJobs.Domain.Entities;
+using SwipeJobs.Domain.Enums;
+using Microsoft.Extensions.Logging;
 
 namespace SwipeJobs.Application.Modules.Portal.Services;
 
 public class CompanyPortalService : ICompanyPortalService
 {
+    private static readonly HashSet<ApplicationStatus> EmployerSettableStatuses =
+    [
+        ApplicationStatus.UnderReview,
+        ApplicationStatus.Accepted,
+        ApplicationStatus.Rejected,
+    ];
+
     private readonly IJobRepository _jobRepository;
     private readonly IApplicationRepository _applicationRepository;
     private readonly ICompanyRepository _companyRepository;
     private readonly ISourceRepository _sourceRepository;
     private readonly IAuditLogService _auditLogService;
+    private readonly INotificationService _notificationService;
+    private readonly IResumeStorageService _resumeStorage;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly ILogger<CompanyPortalService> _logger;
 
     public CompanyPortalService(
         IJobRepository jobRepository,
@@ -22,14 +35,20 @@ public class CompanyPortalService : ICompanyPortalService
         ICompanyRepository companyRepository,
         ISourceRepository sourceRepository,
         IAuditLogService auditLogService,
-        IUnitOfWork unitOfWork)
+        INotificationService notificationService,
+        IResumeStorageService resumeStorage,
+        IUnitOfWork unitOfWork,
+        ILogger<CompanyPortalService> logger)
     {
         _jobRepository = jobRepository;
         _applicationRepository = applicationRepository;
         _companyRepository = companyRepository;
         _sourceRepository = sourceRepository;
         _auditLogService = auditLogService;
+        _notificationService = notificationService;
+        _resumeStorage = resumeStorage;
         _unitOfWork = unitOfWork;
+        _logger = logger;
     }
 
     public async Task<CompanyPortalStatsDto> GetStatsAsync(Guid companyId, CancellationToken cancellationToken = default)
@@ -45,7 +64,7 @@ public class CompanyPortalService : ICompanyPortalService
             jobs.Count(j => j.IsArchived),
             applications.Count,
             applications.Count(a => a.AppliedAt >= weekAgo),
-            company?.Status ?? Domain.Enums.CompanyStatus.Pending);
+            company?.Status ?? CompanyStatus.Pending);
     }
 
     public async Task<IReadOnlyList<JobDto>> GetJobsAsync(Guid companyId, CancellationToken cancellationToken = default)
@@ -60,7 +79,13 @@ public class CompanyPortalService : ICompanyPortalService
         var company = await _companyRepository.GetByIdAsync(companyId, cancellationToken)
             ?? throw new InvalidOperationException("Company not found.");
 
-        if (company.Status != Domain.Enums.CompanyStatus.Approved)
+        _logger.LogInformation(
+            "Portal job create companyId={CompanyId} companyStatus={CompanyStatus} title={Title}",
+            companyId,
+            company.Status,
+            dto.Title);
+
+        if (company.Status != CompanyStatus.Approved)
             throw new InvalidOperationException("Company must be approved before publishing jobs.");
 
         var source = await _sourceRepository.GetFirstAsync(cancellationToken)
@@ -89,8 +114,8 @@ public class CompanyPortalService : ICompanyPortalService
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         await _auditLogService.LogAsync(
-            Domain.Enums.AuditAction.JobCreated,
-            Domain.Enums.AuditEntityType.Job,
+            AuditAction.JobCreated,
+            AuditEntityType.Job,
             job.Id,
             $"Company portal created job \"{job.Title}\"",
             cancellationToken: cancellationToken);
@@ -100,6 +125,8 @@ public class CompanyPortalService : ICompanyPortalService
             await _jobRepository.SetTagsAsync(job.Id, dto.TagIds, cancellationToken);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
         }
+
+        _logger.LogInformation("Portal job created companyId={CompanyId} jobId={JobId}", companyId, job.Id);
 
         return (await _jobRepository.GetByIdWithDetailsAsync(job.Id, cancellationToken) is { } created
             ? JobMapper.ToDto(created)
@@ -132,8 +159,8 @@ public class CompanyPortalService : ICompanyPortalService
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         await _auditLogService.LogAsync(
-            Domain.Enums.AuditAction.JobUpdated,
-            Domain.Enums.AuditEntityType.Job,
+            AuditAction.JobUpdated,
+            AuditEntityType.Job,
             jobId,
             $"Company portal updated job \"{job.Title}\"",
             cancellationToken: cancellationToken);
@@ -153,8 +180,8 @@ public class CompanyPortalService : ICompanyPortalService
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         await _auditLogService.LogAsync(
-            Domain.Enums.AuditAction.JobArchived,
-            Domain.Enums.AuditEntityType.Job,
+            AuditAction.JobArchived,
+            AuditEntityType.Job,
             jobId,
             $"Company portal archived job \"{job.Title}\"",
             cancellationToken: cancellationToken);
@@ -166,17 +193,100 @@ public class CompanyPortalService : ICompanyPortalService
         Guid companyId, Guid? jobId, CancellationToken cancellationToken = default)
     {
         var applications = await _applicationRepository.GetByCompanyIdAsync(companyId, jobId, cancellationToken);
-        return applications.Select(a => new PortalApplicationDto(
-            a.Id,
-            a.Status,
-            a.AppliedAt,
-            a.JobId,
-            a.Job?.Title ?? "Job",
-            a.UserProfileId,
-            $"{a.UserProfile?.FirstName} {a.UserProfile?.LastName}".Trim(),
-            a.UserProfile?.Email ?? string.Empty,
-            a.UserProfile?.Phone,
-            a.UserProfile?.ProfileImageUrl)).ToList();
+        return applications.Select(ToPortalApplicationDto).ToList();
+    }
+
+    public async Task<PortalApplicantDetailDto?> GetApplicantDetailAsync(
+        Guid companyId, Guid applicationId, CancellationToken cancellationToken = default)
+    {
+        var application = await _applicationRepository.GetByIdForCompanyAsync(applicationId, companyId, cancellationToken);
+        if (application?.UserProfile is null) return null;
+
+        var profile = application.UserProfile;
+        return new PortalApplicantDetailDto(
+            application.Id,
+            application.Status,
+            application.AppliedAt,
+            application.JobId,
+            application.Job?.Title ?? "Job",
+            profile.Id,
+            profile.FirstName,
+            profile.LastName,
+            profile.Email,
+            profile.Phone,
+            profile.Headline,
+            profile.Bio,
+            profile.Location,
+            profile.ProfileImageUrl,
+            !string.IsNullOrWhiteSpace(profile.ResumeUrl) || !string.IsNullOrWhiteSpace(profile.ResumeFileName),
+            profile.ResumeFileName,
+            profile.ResumeFileSize,
+            profile.ResumeUploadedAt,
+            profile.Skills.Select(s => new SkillDto(s.Id, s.Name, s.Level)).ToList(),
+            profile.Experiences.Select(e => new ExperienceDto(
+                e.Id, e.Company, e.Title, e.Description, e.StartDate, e.EndDate, e.IsCurrent)).ToList(),
+            profile.Educations.Select(e => new EducationDto(
+                e.Id, e.Institution, e.Degree, e.FieldOfStudy, e.StartDate, e.EndDate, e.IsCurrent)).ToList());
+    }
+
+    public async Task<PortalApplicationDto?> UpdateApplicationStatusAsync(
+        Guid companyId, Guid applicationId, ApplicationStatus status, CancellationToken cancellationToken = default)
+    {
+        if (!EmployerSettableStatuses.Contains(status))
+            throw new InvalidOperationException("Invalid application status for employer update.");
+
+        var application = await _applicationRepository.GetByIdAsync(applicationId, cancellationToken);
+        if (application is null) return null;
+
+        var job = await _jobRepository.GetByIdAsync(application.JobId, cancellationToken);
+        if (job is null || job.CompanyId != companyId) return null;
+
+        if (application.Status == ApplicationStatus.Withdrawn)
+            throw new InvalidOperationException("Cannot update a withdrawn application.");
+
+        var previous = application.Status;
+        application.Status = status;
+        await _applicationRepository.UpdateAsync(application, cancellationToken);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation(
+            "Application status updated applicationId={ApplicationId} companyId={CompanyId} from={Previous} to={Status}",
+            applicationId,
+            companyId,
+            previous,
+            status);
+
+        await _auditLogService.LogAsync(
+            AuditAction.AdminAction,
+            AuditEntityType.Application,
+            applicationId,
+            $"Status changed from {previous} to {status}",
+            cancellationToken: cancellationToken);
+
+        var jobTitle = job.Title;
+        await _notificationService.NotifyApplicationStatusChangedAsync(
+            application.UserProfileId,
+            applicationId,
+            status,
+            jobTitle,
+            cancellationToken);
+
+        var refreshed = await _applicationRepository.GetByIdForCompanyAsync(applicationId, companyId, cancellationToken);
+        return refreshed is null ? null : ToPortalApplicationDto(refreshed);
+    }
+
+    public async Task<(Stream Content, string ContentType, string FileName)?> OpenApplicantResumeAsync(
+        Guid companyId, Guid applicationId, CancellationToken cancellationToken = default)
+    {
+        var application = await _applicationRepository.GetByIdForCompanyAsync(applicationId, companyId, cancellationToken);
+        if (application?.UserProfile is null || string.IsNullOrWhiteSpace(application.UserProfile.ResumeUrl))
+            return null;
+
+        var opened = await _resumeStorage.OpenReadAsync(application.UserProfile.ResumeUrl, cancellationToken);
+        if (opened is null) return null;
+
+        var fileName = application.UserProfile.ResumeFileName ?? opened.Value.FileName;
+        return (opened.Value.Content, opened.Value.ContentType, fileName);
     }
 
     public async Task<CompanyDto?> GetCompanyAsync(Guid companyId, CancellationToken cancellationToken = default)
@@ -208,4 +318,16 @@ public class CompanyPortalService : ICompanyPortalService
         var openJobs = await _companyRepository.CountOpenJobsAsync(companyId, cancellationToken);
         return CompanyMapper.ToDto(company, openJobs);
     }
+
+    private static PortalApplicationDto ToPortalApplicationDto(Domain.Entities.Application a) => new(
+        a.Id,
+        a.Status,
+        a.AppliedAt,
+        a.JobId,
+        a.Job?.Title ?? "Job",
+        a.UserProfileId,
+        $"{a.UserProfile?.FirstName} {a.UserProfile?.LastName}".Trim(),
+        a.UserProfile?.Email ?? string.Empty,
+        a.UserProfile?.Phone,
+        a.UserProfile?.ProfileImageUrl);
 }

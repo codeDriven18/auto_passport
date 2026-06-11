@@ -1,4 +1,3 @@
-import { apiClient } from './client';
 import type {
   PortalApplication,
   PortalCreateJobRequest,
@@ -7,6 +6,11 @@ import type {
   PortalUpdateCompanyRequest,
   PortalUpdateJobRequest,
 } from '@/models/portal';
+import type {
+  PortalApplicantDetail,
+  PortalUpdateApplicationStatusRequest,
+} from '@/models/portalApplicant';
+import { apiClient, apiClientBlob } from './client';
 
 export const portalApi = {
   getStats: () => apiClient<PortalStats>('/portal/stats'),
@@ -26,6 +30,18 @@ export const portalApi = {
     const query = jobId ? `?jobId=${jobId}` : '';
     return apiClient<PortalApplication[]>(`/portal/applications${query}`);
   },
+
+  getApplicant: (applicationId: string) =>
+    apiClient<PortalApplicantDetail>(`/portal/applications/${applicationId}`),
+
+  updateApplicationStatus: (applicationId: string, data: PortalUpdateApplicationStatusRequest) =>
+    apiClient<PortalApplication>(`/portal/applications/${applicationId}/status`, {
+      method: 'PATCH',
+      body: data,
+    }),
+
+  downloadApplicantResume: (applicationId: string) =>
+    apiClientBlob(`/portal/applications/${applicationId}/resume`),
 
   getCompany: () => apiClient<import('@/models/company').Company>('/portal/company'),
 

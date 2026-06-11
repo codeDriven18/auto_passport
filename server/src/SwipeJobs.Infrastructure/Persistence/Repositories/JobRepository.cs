@@ -86,6 +86,17 @@ public class JobRepository : Repository<Job>, IJobRepository
         => await BuildQuery()
             .FirstOrDefaultAsync(j => j.Id == id, cancellationToken);
 
+    public async Task<IReadOnlyList<Job>> GetByIdsWithDetailsAsync(
+        IReadOnlyList<Guid> ids, CancellationToken cancellationToken = default)
+    {
+        if (ids.Count == 0)
+            return Array.Empty<Job>();
+
+        return await BuildQuery()
+            .Where(j => ids.Contains(j.Id))
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<IReadOnlyList<Job>> GetAllWithDetailsAsync(CancellationToken cancellationToken = default)
         => await BuildQuery()
             .OrderByDescending(j => j.CreatedAt)

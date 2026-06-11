@@ -223,6 +223,18 @@ jobs:
               --name "$APP_NAME" \
               --web-sockets-enabled true
 
+          retry_az "Enable ARR Affinity (required for SignalR on App Service)" \
+            az webapp update \
+              --resource-group "$RG" \
+              --name "$APP_NAME" \
+              --client-aff-enabled true
+
+          AFFINITY=$(az webapp show --resource-group "$RG" --name "$APP_NAME" --query clientAffinityEnabled -o tsv | tr -d '\r')
+          echo "clientAffinityEnabled=$AFFINITY"
+          if [ "$AFFINITY" != "True" ] && [ "$AFFINITY" != "true" ]; then
+            echo "::warning::ARR Affinity is not enabled; SignalR WebSocket upgrades may fail across instances."
+          fi
+
           echo "Clearing Azure portal CORS (application middleware owns CORS)..."
           CORS_ORIGINS=$(az webapp cors show --resource-group "$RG" --name "$APP_NAME" --query allowedOrigins -o tsv 2>/dev/null | tr -d '\r' || true)
           if [ -n "${CORS_ORIGINS:-}" ]; then

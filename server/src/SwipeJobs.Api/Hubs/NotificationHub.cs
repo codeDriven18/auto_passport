@@ -19,13 +19,17 @@ public class NotificationHub : Hub
         var userId = Context.User?.FindFirstValue(ClaimTypes.NameIdentifier)
             ?? Context.User?.FindFirstValue("sub");
         var profileId = Context.User?.FindFirstValue("profileId");
+        var httpContext = Context.GetHttpContext();
+        var transport = Context.Features.Get<Microsoft.AspNetCore.Http.Connections.Features.IHttpTransportFeature>()?.TransportType
+            ?? Microsoft.AspNetCore.Http.Connections.HttpTransportType.None;
 
         _logger.LogWarning(
-            "SignalR connected: ConnectionId={ConnectionId} UserId={UserId} ProfileId={ProfileId} Transport={Transport}",
+            "SignalR connected: ConnectionId={ConnectionId} UserId={UserId} ProfileId={ProfileId} Transport={Transport} WebSocketRequest={IsWebSocket}",
             Context.ConnectionId,
             userId ?? "(none)",
             profileId ?? "(none)",
-            Context.GetHttpContext()?.WebSockets.IsWebSocketRequest == true ? "WebSockets" : "HTTP");
+            transport,
+            httpContext?.WebSockets.IsWebSocketRequest == true);
 
         if (!string.IsNullOrWhiteSpace(profileId))
             await Groups.AddToGroupAsync(Context.ConnectionId, ProfileGroup(profileId));

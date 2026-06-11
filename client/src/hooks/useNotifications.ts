@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { notificationsApi } from '@/api/notificationsApi';
 import { useAuth } from '@/context/AuthContext';
 import { UserRole } from '@/models/auth';
-import { useNotificationHub } from '@/hooks/useNotificationHub';
+import { useNotificationHub, type HubConnectionState } from '@/hooks/useNotificationHub';
 import type { AppNotification } from '@/models/personalization';
 
 const POLL_INTERVAL_MS = 60_000;
@@ -13,7 +13,9 @@ export function useNotifications() {
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [hubState, setHubState] = useState<HubConnectionState>('disconnected');
   const seenIds = useRef(new Set<string>());
+  const hubConnected = hubState === 'connected' || hubState === 'reconnecting';
 
   const load = useCallback(async () => {
     if (!isAuthenticated || !isJobSeeker) {
@@ -49,17 +51,17 @@ export function useNotifications() {
     }
   }, []);
 
-  useNotificationHub(handleRealtime);
+  useNotificationHub({ onReceived: handleRealtime, onStateChange: setHubState });
 
   useEffect(() => {
     void load();
   }, [load]);
 
   useEffect(() => {
-    if (!isAuthenticated || !isJobSeeker) return;
+    if (!isAuthenticated || !isJobSeeker || hubConnected) return;
     const interval = window.setInterval(() => void load(), POLL_INTERVAL_MS);
     return () => window.clearInterval(interval);
-  }, [isAuthenticated, isJobSeeker, load]);
+  }, [isAuthenticated, isJobSeeker, hubConnected, load]);
 
   const markRead = async (id: string) => {
     await notificationsApi.markRead(id);

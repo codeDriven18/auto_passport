@@ -13,5 +13,6 @@ public interface IUserRepository : IRepository<User>
 public interface IRefreshTokenRepository : IRepository<RefreshToken>
 {
     Task<RefreshToken?> GetByTokenHashAsync(string tokenHash, CancellationToken cancellationToken = default);
+    Task<RefreshToken?> GetByTokenHashIncludingRevokedAsync(string tokenHash, CancellationToken cancellationToken = default);
     Task RevokeAllForUserAsync(Guid userId, CancellationToken cancellationToken = default);
 }

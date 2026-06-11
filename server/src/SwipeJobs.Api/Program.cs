@@ -97,7 +97,9 @@ try
     builder.Services.AddAuthorization();
     builder.Services.AddSignalR(options =>
     {
-        options.EnableDetailedErrors = builder.Environment.IsDevelopment();
+        options.EnableDetailedErrors = true;
+        options.KeepAliveInterval = TimeSpan.FromSeconds(15);
+        options.ClientTimeoutInterval = TimeSpan.FromSeconds(60);
     });
     builder.Services.AddSwipeJobsCors(builder.Configuration, builder.Environment);
 

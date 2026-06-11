@@ -13,6 +13,9 @@ public class RefreshTokenRepository : Repository<RefreshToken>, IRefreshTokenRep
     public async Task<RefreshToken?> GetByTokenHashAsync(string tokenHash, CancellationToken cancellationToken = default)
         => await DbSet.FirstOrDefaultAsync(t => t.TokenHash == tokenHash && t.RevokedAt == null, cancellationToken);
 
+    public async Task<RefreshToken?> GetByTokenHashIncludingRevokedAsync(string tokenHash, CancellationToken cancellationToken = default)
+        => await DbSet.FirstOrDefaultAsync(t => t.TokenHash == tokenHash, cancellationToken);
+
     public async Task RevokeAllForUserAsync(Guid userId, CancellationToken cancellationToken = default)
     {
         var tokens = await DbSet.Where(t => t.UserId == userId && t.RevokedAt == null).ToListAsync(cancellationToken);

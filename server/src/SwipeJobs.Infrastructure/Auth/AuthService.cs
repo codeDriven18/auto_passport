@@ -217,12 +217,49 @@ public class AuthService : IAuthService
 
     public async Task<AuthResponseDto> RefreshAsync(string refreshToken, CancellationToken cancellationToken = default)
     {
+        if (string.IsNullOrWhiteSpace(refreshToken))
+        {
+            _logger.LogWarning("Refresh rejected: empty refresh token supplied");
+            throw new UnauthorizedAccessException("Invalid refresh token.");
+        }
+
+        var tokenLength = refreshToken.Length;
         var hash = _tokenService.HashToken(refreshToken);
-        var stored = await _refreshTokenRepository.GetByTokenHashAsync(hash, cancellationToken)
-            ?? throw new UnauthorizedAccessException("Invalid refresh token.");
+        _logger.LogInformation(
+            "Refresh attempt tokenLength={TokenLength} hashPrefix={HashPrefix}",
+            tokenLength,
+            hash[..Math.Min(12, hash.Length)]);
+
+        var stored = await _refreshTokenRepository.GetByTokenHashAsync(hash, cancellationToken);
+        if (stored is null)
+        {
+            var revoked = await _refreshTokenRepository.GetByTokenHashIncludingRevokedAsync(hash, cancellationToken);
+            if (revoked is not null)
+            {
+                _logger.LogWarning(
+                    "Refresh rejected: token revoked userId={UserId} revokedAt={RevokedAt} expired={Expired}",
+                    revoked.UserId,
+                    revoked.RevokedAt,
+                    revoked.ExpiresAt < DateTime.UtcNow);
+            }
+            else
+            {
+                _logger.LogWarning(
+                    "Refresh rejected: token hash not found tokenLength={TokenLength}",
+                    tokenLength);
+            }
+
+            throw new UnauthorizedAccessException("Invalid refresh token.");
+        }
 
         if (stored.ExpiresAt < DateTime.UtcNow)
+        {
+            _logger.LogWarning(
+                "Refresh rejected: token expired userId={UserId} expiredAt={ExpiredAt}",
+                stored.UserId,
+                stored.ExpiresAt);
             throw new UnauthorizedAccessException("Refresh token expired.");
+        }
 
         stored.RevokedAt = DateTime.UtcNow;
         await _refreshTokenRepository.UpdateAsync(stored, cancellationToken);
@@ -231,6 +268,8 @@ public class AuthService : IAuthService
             ?? throw new UnauthorizedAccessException("User not found.");
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("Refresh succeeded userId={UserId} rotating token", user.Id);
         return await IssueTokensAsync(user, user.Profile, user.CompanyMembership, cancellationToken);
     }
 

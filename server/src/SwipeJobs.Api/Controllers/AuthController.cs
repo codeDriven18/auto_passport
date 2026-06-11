@@ -102,14 +102,23 @@ public class AuthController : ControllerBase
     [HttpPost("refresh")]
     public async Task<IActionResult> Refresh([FromBody] RefreshTokenDto dto, CancellationToken cancellationToken)
     {
+        _logger.LogInformation(
+            "POST /api/auth/refresh tokenLength={TokenLength}",
+            dto.RefreshToken?.Length ?? 0);
+
         try
         {
-            var result = await _authService.RefreshAsync(dto.RefreshToken, cancellationToken);
+            var result = await _authService.RefreshAsync(dto.RefreshToken ?? string.Empty, cancellationToken);
+            _logger.LogInformation(
+                "POST /api/auth/refresh succeeded userId={UserId} newRefreshLength={RefreshLength}",
+                result.User.Id,
+                result.RefreshToken.Length);
             return Ok(result);
         }
         catch (UnauthorizedAccessException ex)
         {
-            return Unauthorized(new { error = ex.Message });
+            _logger.LogWarning("POST /api/auth/refresh rejected: {Reason}", ex.Message);
+            return Unauthorized(new { error = ex.Message, code = "refresh_rejected" });
         }
     }
 

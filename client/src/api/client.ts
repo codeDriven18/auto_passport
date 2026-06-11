@@ -50,28 +50,48 @@ async function readJsonResponse<T>(response: Response): Promise<T> {
 }
 
 async function tryRefreshTokens(): Promise<boolean> {
-  const refreshToken = getRefreshToken();
+  let refreshToken = getRefreshToken();
   if (!refreshToken) return false;
 
-  try {
-    const url = `${API_CONFIG.baseUrl}/auth/refresh`;
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ refreshToken }),
-      signal: AbortSignal.timeout(API_CONFIG.timeout),
-    });
-    if (!response.ok) {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const url = `${API_CONFIG.baseUrl}/auth/refresh`;
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refreshToken }),
+        signal: AbortSignal.timeout(API_CONFIG.timeout),
+      });
+
+      if (response.ok) {
+        const data = await readJsonResponse<AuthResponse>(response);
+        persistAuthResponse(data);
+        return true;
+      }
+
+      if (response.status === 401 && attempt === 0) {
+        const latest = getRefreshToken();
+        if (latest && latest !== refreshToken) {
+          refreshToken = latest;
+          continue;
+        }
+      }
+
       clearAuthSession();
       return false;
+    } catch {
+      if (attempt === 0) {
+        const latest = getRefreshToken();
+        if (latest && latest !== refreshToken) {
+          refreshToken = latest;
+          continue;
+        }
+      }
+      return false;
     }
-    const data = await readJsonResponse<AuthResponse>(response);
-    persistAuthResponse(data);
-    return true;
-  } catch {
-    clearAuthSession();
-    return false;
   }
+
+  return false;
 }
 
 export async function refreshAuthSession(): Promise<boolean> {

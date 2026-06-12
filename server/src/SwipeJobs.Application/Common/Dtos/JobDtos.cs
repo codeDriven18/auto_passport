@@ -8,6 +8,7 @@ public record JobDto(
     string Description,
     Guid CompanyId,
     string Company,
+    string? CompanyLogoUrl,
     string? CompanySlug,
     string? Location,
     string? City,

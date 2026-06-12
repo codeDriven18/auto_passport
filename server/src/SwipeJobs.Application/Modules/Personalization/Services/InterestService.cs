@@ -80,7 +80,18 @@ public class InterestService : IInterestService
             computed = existing;
         }
 
-        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+        }
+        catch
+        {
+            var persisted = await _interestRepository.GetByUserProfileIdAsync(userProfileId, cancellationToken);
+            if (persisted is not null)
+                return InterestCalculator.ToDto(persisted);
+            throw;
+        }
+
         return InterestCalculator.ToDto(computed);
     }
 }

@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import type { Job } from '@/models/job';
-import { CompanyInitial } from '@/components/jobs/CompanyInitial';
+import { CompanyLogo } from '@/components/jobs/CompanyLogo';
 import { formatSalary } from '@/lib/jobFormat';
 import { getMatchScore } from '@/lib/jobMatch';
 import styles from './DiscoveryRail.module.css';
@@ -25,7 +25,7 @@ export function DiscoveryJobCard({ job, index = 0, onClick }: DiscoveryJobCardPr
       transition={{ duration: 0.3, delay: index * 0.04, ease: [0.22, 1, 0.36, 1] }}
       whileTap={{ scale: 0.98 }}
     >
-      <CompanyInitial name={job.company} size="sm" />
+      <CompanyLogo name={job.company} logoUrl={job.companyLogoUrl} size="sm" />
       <div className={styles.body}>
         <span className={styles.title}>{job.title}</span>
         <span className={styles.company}>{job.company}</span>

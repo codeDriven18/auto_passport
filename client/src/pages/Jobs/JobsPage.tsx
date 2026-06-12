@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
+import { ApiError } from '@/api/client';
+import { applicationsApi } from '@/api/applicationsApi';
 import { jobsApi } from '@/api/jobsApi';
 import { savedJobsApi } from '@/api/savedJobsApi';
 import { tagsApi } from '@/api/tagsApi';
@@ -10,6 +12,7 @@ import { JobCardSkeletonList } from '@/components/ui/Skeleton';
 import { FilterDrawer } from '@/components/ui/FilterDrawer';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { useJobFilters } from '@/hooks/useJobFilters';
+import { useProfile } from '@/hooks/useProfile';
 import type { Job } from '@/models/job';
 import type { Tag } from '@/models/tag';
 import styles from './JobsPage.module.css';
@@ -17,11 +20,14 @@ import styles from './JobsPage.module.css';
 export function JobsPage() {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
+  const { profile } = useProfile();
   const filters = useJobFilters();
 
   const [jobs, setJobs] = useState<Job[]>([]);
   const [tags, setTags] = useState<Tag[]>([]);
   const [savedJobIds, setSavedJobIds] = useState<Set<string>>(new Set());
+  const [appliedJobIds, setAppliedJobIds] = useState<Set<string>>(new Set());
+  const [applyingJobId, setApplyingJobId] = useState<string | null>(null);
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
   const [filterOpen, setFilterOpen] = useState(false);
@@ -51,6 +57,9 @@ export function JobsPage() {
     savedJobsApi.getMine().then((saved) => {
       setSavedJobIds(new Set(saved.map((s) => s.jobId)));
     }).catch(() => {});
+    applicationsApi.getMine().then((apps) => {
+      setAppliedJobIds(new Set(apps.map((a) => a.jobId)));
+    }).catch(() => {});
   }, [isAuthenticated]);
 
   const toggleSave = async (e: React.MouseEvent, jobId: string) => {
@@ -65,6 +74,31 @@ export function JobsPage() {
     } else {
       await savedJobsApi.save(jobId);
       setSavedJobIds((prev) => new Set(prev).add(jobId));
+    }
+  };
+
+  const quickApply = async (e: React.MouseEvent, jobId: string) => {
+    e.stopPropagation();
+    if (!isAuthenticated) {
+      navigate('/login', { state: { from: '/jobs' } });
+      return;
+    }
+    if (!profile) {
+      navigate('/profile');
+      return;
+    }
+    if (appliedJobIds.has(jobId)) return;
+
+    setApplyingJobId(jobId);
+    try {
+      await applicationsApi.apply(jobId);
+      setAppliedJobIds((prev) => new Set(prev).add(jobId));
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 400) {
+        setAppliedJobIds((prev) => new Set(prev).add(jobId));
+      }
+    } finally {
+      setApplyingJobId(null);
     }
   };
 
@@ -124,8 +158,11 @@ export function JobsPage() {
               job={job}
               index={index}
               saved={savedJobIds.has(job.id)}
+              applied={appliedJobIds.has(job.id)}
+              applying={applyingJobId === job.id}
               onClick={() => navigate(`/jobs/${job.id}`)}
               onSaveToggle={(e) => void toggleSave(e, job.id)}
+              onQuickApply={(e) => void quickApply(e, job.id)}
             />
           ))}
         </div>

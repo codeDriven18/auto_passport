@@ -1,10 +1,8 @@
 import { Link } from 'react-router-dom';
-import { useTheme } from '@/theme/ThemeProvider';
+import { ThemeAppearancePicker } from '@/components/theme/ThemeAppearancePicker';
 import styles from './AdminPage.module.css';
 
 export function AdminSettingsPage() {
-  const { mode, setMode } = useTheme();
-
   return (
     <section className={styles.page}>
       <header className={styles.pageHeader}>
@@ -16,12 +14,7 @@ export function AdminSettingsPage() {
 
       <div className={styles.reportGrid}>
         <div className={styles.reportCard}>
-          <h3>Appearance</h3>
-          <p>Current theme: {mode}</p>
-          <div className={styles.actions} style={{ marginTop: '0.75rem' }}>
-            <button type="button" className={styles.btn} onClick={() => setMode('light')}>Light</button>
-            <button type="button" className={styles.btn} onClick={() => setMode('dark')}>Dark</button>
-          </div>
+          <ThemeAppearancePicker />
         </div>
         <div className={styles.reportCard}>
           <h3>Seeded admin account</h3>

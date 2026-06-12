@@ -2,7 +2,7 @@ import styles from './CompanyInitial.module.css';
 
 interface CompanyInitialProps {
   name: string;
-  size?: 'sm' | 'md' | 'lg';
+  size?: 'sm' | 'md' | 'lg' | 'xl';
   className?: string;
 }
 

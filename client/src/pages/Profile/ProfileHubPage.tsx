@@ -26,7 +26,7 @@ const MANAGE_CARDS: HubCard[] = [
   { to: '/profile/preferences', title: 'Preferences', description: 'Salary, locations, remote', icon: '🎯' },
   { to: '/profile/notifications', title: 'Notifications', description: 'Email, push, job alerts', icon: '🔔' },
   { to: '/profile/privacy', title: 'Privacy', description: 'Profile and contact visibility', icon: '🔒' },
-  { to: '/profile/app', title: 'App', description: 'Install, version, and updates', icon: '📱' },
+  { to: '/profile/app', title: 'App', description: 'Appearance, install, and updates', icon: '📱' },
   { to: '/account', title: 'Account', description: 'Password and sign out', icon: '👤' },
 ];
 

@@ -1,3 +1,4 @@
+import { ThemeAppearancePicker } from '@/components/theme/ThemeAppearancePicker';
 import { usePwaInstallPrompt } from '@/context/PwaInstallContext';
 import styles from './ProfileAppPanel.module.css';
 
@@ -43,6 +44,8 @@ export function ProfileAppPanel() {
 
   return (
     <div className={styles.panel}>
+      <ThemeAppearancePicker />
+      <div className={styles.divider} />
       <div className={styles.row}>
         <div>
           <p className={styles.rowLabel}>Installation</p>

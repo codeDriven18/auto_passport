@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import type { Job } from '@/models/job';
-import { CompanyInitial } from '@/components/jobs/CompanyInitial';
+import { CompanyLogo } from '@/components/jobs/CompanyLogo';
 import { formatSalary } from '@/lib/jobFormat';
 import { getMatchLabel, getMatchScore } from '@/lib/jobMatch';
 import styles from './SavedCollectionCard.module.css';
@@ -38,7 +38,7 @@ export function SavedCollectionCard({
       whileTap={{ scale: 0.99 }}
     >
       <div className={styles.top}>
-        <CompanyInitial name={job.company} size="md" />
+        <CompanyLogo name={job.company} logoUrl={job.companyLogoUrl} size="md" />
         <div className={styles.topMeta}>
           {matchLabel && <span className={styles.match}>{matchLabel} · {getMatchScore(job)}%</span>}
           {applied && <span className={styles.appliedBadge}>Applied</span>}

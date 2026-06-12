@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { dashboardApi } from '@/api/dashboardApi';
 import { JobCard } from '@/components/jobs/JobCard';
@@ -14,6 +14,8 @@ import { useProfile } from '@/hooks/useProfile';
 import { useDiscoveryCollections, getTimeGreeting } from '@/hooks/useDiscoveryCollections';
 import { UserRole } from '@/models/auth';
 import { getProfileCompletionPercent, shouldShowMandatoryCompletionPrompts } from '@/lib/profileCompletion';
+import { mergeDashboardWithEmpty } from '@/lib/emptyDashboard';
+import { parseUserRole } from '@/lib/userRole';
 import type { UserDashboard } from '@/models/dashboard';
 import styles from './DashboardPage.module.css';
 
@@ -29,49 +31,70 @@ const item = {
 
 export function DashboardPage() {
   const navigate = useNavigate();
-  const { isAuthenticated, user } = useAuth();
-  const isJobSeeker = user?.role === UserRole.JobSeeker;
+  const { isAuthenticated, isLoading: authLoading, user } = useAuth();
+  const role = parseUserRole(user?.role);
+  const isJobSeeker = role === UserRole.JobSeeker;
+  const isEmployer = role === UserRole.Company;
   const { profile, loading: profileLoading } = useProfile();
-  const [dashboard, setDashboard] = useState<UserDashboard | null>(null);
+  const [dashboard, setDashboard] = useState<UserDashboard>(() => mergeDashboardWithEmpty(null));
   const [loading, setLoading] = useState(true);
+  const [fetchFailed, setFetchFailed] = useState(false);
   const { collections } = useDiscoveryCollections(isAuthenticated);
 
-  useEffect(() => {
-    if (profileLoading) return;
+  const loadDashboard = useCallback(async () => {
+    if (authLoading || profileLoading) return;
     if (!isAuthenticated || !isJobSeeker) {
-      setDashboard(null);
+      setDashboard(mergeDashboardWithEmpty(null));
+      setFetchFailed(false);
       setLoading(false);
       return;
     }
-    dashboardApi.getMyDashboard()
-      .then(setDashboard)
-      .catch(() => setDashboard(null))
-      .finally(() => setLoading(false));
-  }, [isAuthenticated, isJobSeeker, profileLoading]);
 
-  const profilePct = dashboard?.profileCompletionPercentage
+    setLoading(true);
+    setFetchFailed(false);
+
+    try {
+      const data = await dashboardApi.getMyDashboard();
+      setDashboard(mergeDashboardWithEmpty(data));
+    } catch {
+      setDashboard(mergeDashboardWithEmpty(null));
+      setFetchFailed(true);
+    } finally {
+      setLoading(false);
+    }
+  }, [authLoading, profileLoading, isAuthenticated, isJobSeeker]);
+
+  useEffect(() => {
+    void loadDashboard();
+  }, [loadDashboard]);
+
+  const profilePct = dashboard.profileCompletionPercentage
     ?? getProfileCompletionPercent(profile);
-  const savedCount = dashboard?.savedJobsCount ?? 0;
-  const appsCount = dashboard?.applicationsCount ?? 0;
+  const savedCount = dashboard.savedJobsCount ?? 0;
+  const appsCount = dashboard.applicationsCount ?? 0;
   const matchesToday = Math.min(
-    dashboard?.recommendedJobs.length ?? 0,
-    dashboard?.swipeRemainingEstimate ?? 12,
+    dashboard.recommendedJobs.length ?? 0,
+    dashboard.swipeRemainingEstimate ?? 12,
   );
   const firstName = profile?.firstName?.trim() || 'there';
   const greeting = getTimeGreeting();
 
   const allJobsForCompanies = useMemo(() => [
-    ...(dashboard?.recommendedJobs ?? []),
-    ...(dashboard?.trendingJobs ?? []),
+    ...dashboard.recommendedJobs,
+    ...dashboard.trendingJobs,
     ...collections.remote,
   ], [dashboard, collections.remote]);
 
-  if (profileLoading || loading) {
+  if (authLoading || (isAuthenticated && isJobSeeker && (profileLoading || loading))) {
     return (
       <section className={styles.page}>
         <DashboardSkeleton />
       </section>
     );
+  }
+
+  if (isAuthenticated && isEmployer) {
+    return <Navigate to="/portal" replace />;
   }
 
   if (!isAuthenticated) {
@@ -120,18 +143,18 @@ export function DashboardPage() {
   }
 
   const timelineItems = [
-    ...(dashboard?.recentApplications.slice(0, 3).map((a) => ({
+    ...dashboard.recentApplications.slice(0, 3).map((a) => ({
       id: a.id,
       label: `Applied to ${a.job?.title ?? 'a role'}`,
       date: a.appliedAt,
       to: `/jobs/${a.jobId}`,
-    })) ?? []),
-    ...(dashboard?.recentlyViewedJobs.slice(0, 2).map((j) => ({
+    })),
+    ...dashboard.recentlyViewedJobs.slice(0, 2).map((j) => ({
       id: j.id,
       label: `Viewed ${j.title}`,
       date: j.createdAt,
       to: `/jobs/${j.id}`,
-    })) ?? []),
+    })),
   ].slice(0, 5);
 
   return (
@@ -199,12 +222,26 @@ export function DashboardPage() {
         </motion.div>
       )}
 
+      {fetchFailed && (
+        <motion.div variants={item}>
+          <EmptyState
+            illustration="swipe"
+            title="Could not refresh your dashboard"
+            description="Your feed is still available — try again or start swiping."
+            actions={[
+              { label: 'Retry', onClick: () => void loadDashboard(), primary: true },
+              { label: 'Start swiping', to: '/swipe' },
+            ]}
+          />
+        </motion.div>
+      )}
+
       <motion.div variants={item}>
         <div className={styles.sectionHeader}>
           <h2 className={styles.sectionTitle}>Recommended for you</h2>
           <Link to="/jobs" className={styles.sectionLink}>See all</Link>
         </div>
-        {(dashboard?.recommendedJobs.length ?? 0) === 0 ? (
+        {dashboard.recommendedJobs.length === 0 ? (
           <EmptyState
             illustration="swipe"
             title="Your feed is warming up"
@@ -213,7 +250,7 @@ export function DashboardPage() {
           />
         ) : (
           <div className={styles.jobScroll}>
-            {(dashboard?.recommendedJobs ?? []).map((job, index) => (
+            {dashboard.recommendedJobs.map((job, index) => (
               <JobCard key={job.id} job={job} index={index} onClick={() => navigate(`/jobs/${job.id}`)} />
             ))}
           </div>
@@ -253,7 +290,7 @@ export function DashboardPage() {
       <motion.div variants={item}>
         <DiscoveryRail
           title="Fast apply"
-          jobs={dashboard?.trendingJobs ?? collections.trending}
+          jobs={dashboard.trendingJobs.length > 0 ? dashboard.trendingJobs : collections.trending}
           onJobClick={(id) => navigate(`/jobs/${id}`)}
         />
       </motion.div>
@@ -261,7 +298,7 @@ export function DashboardPage() {
       <motion.div variants={item}>
         <DiscoveryRail
           title="Trending"
-          jobs={collections.trending.length > 0 ? collections.trending : (dashboard?.trendingJobs ?? [])}
+          jobs={collections.trending.length > 0 ? collections.trending : dashboard.trendingJobs}
           onJobClick={(id) => navigate(`/jobs/${id}`)}
         />
       </motion.div>
@@ -290,14 +327,14 @@ export function DashboardPage() {
         </motion.section>
       )}
 
-      {(dashboard?.recentApplications.length ?? 0) > 0 && (
+      {dashboard.recentApplications.length > 0 && (
         <motion.section variants={item}>
           <div className={styles.sectionHeader}>
             <h2 className={styles.sectionTitle}>Applications</h2>
             <Link to="/applications" className={styles.sectionLink}>View all</Link>
           </div>
           <div className={styles.appList}>
-            {dashboard!.recentApplications.slice(0, 3).map((app) => (
+            {dashboard.recentApplications.slice(0, 3).map((app) => (
               <article
                 key={app.id}
                 className={styles.appCard}

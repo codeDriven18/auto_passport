@@ -8,7 +8,7 @@ import { jobsApi } from '@/api/jobsApi';
 import { savedJobsApi } from '@/api/savedJobsApi';
 import { formatSalary } from '@/lib/jobFormat';
 import { CompanyLink } from '@/components/jobs/CompanyLink';
-import { CompanyInitial } from '@/components/jobs/CompanyInitial';
+import { CompanyLogo } from '@/components/jobs/CompanyLogo';
 import { Button } from '@/components/ui/Button';
 import { JobDetailSkeleton } from '@/components/ui/Skeleton';
 import { useProfile } from '@/hooks/useProfile';
@@ -125,7 +125,7 @@ export function JobDetailPage() {
 
       <header className={styles.hero}>
         <div className={styles.heroTop}>
-          <CompanyInitial name={job.company} size="lg" />
+          <CompanyLogo name={job.company} logoUrl={job.companyLogoUrl} size="lg" />
           <div className={styles.heroText}>
             <h1 className={styles.title}>{job.title}</h1>
             <CompanyLink name={job.company} slug={job.companySlug} className={styles.companyLink} />

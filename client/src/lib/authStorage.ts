@@ -1,5 +1,6 @@
 import type { UserRole } from '@/models/auth';
 import type { CompanyStatus } from '@/models/operations';
+import { parseUserRole } from '@/lib/userRole';
 
 const ACCESS_TOKEN_KEY = 'swipejobs-access-token';
 const REFRESH_TOKEN_KEY = 'swipejobs-refresh-token';
@@ -33,7 +34,7 @@ export function getStoredAuthUser(): StoredAuthUser | null {
       id: parsed.id,
       email: parsed.email,
       profileId: parsed.profileId ?? null,
-      role: parsed.role ?? 0,
+      role: parseUserRole(parsed.role),
       companyId: parsed.companyId ?? null,
       companyName: parsed.companyName ?? null,
       companyStatus: parsed.companyStatus ?? null,

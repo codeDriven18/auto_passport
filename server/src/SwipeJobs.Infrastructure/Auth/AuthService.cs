@@ -212,6 +212,18 @@ public class AuthService : IAuthService
         var fullUser = await _userRepository.GetByIdWithMembershipAsync(user.Id, cancellationToken)
             ?? throw new UnauthorizedAccessException("User not found.");
 
+        if (fullUser.Role == UserRole.JobSeeker && fullUser.Profile is null)
+        {
+            _logger.LogWarning(
+                "Job seeker userId={UserId} missing profile on login; creating default profile",
+                fullUser.Id);
+            fullUser.Profile = await CreateJobSeekerProfileAsync(
+                fullUser,
+                email,
+                new RegisterDto(email, dto.Password, null, null, "jobseeker", null),
+                cancellationToken);
+        }
+
         return await IssueTokensAsync(fullUser, fullUser.Profile, fullUser.CompanyMembership, cancellationToken);
     }
 
@@ -266,6 +278,18 @@ public class AuthService : IAuthService
 
         var user = await _userRepository.GetByIdWithMembershipAsync(stored.UserId, cancellationToken)
             ?? throw new UnauthorizedAccessException("User not found.");
+
+        if (user.Role == UserRole.JobSeeker && user.Profile is null)
+        {
+            _logger.LogWarning(
+                "Job seeker userId={UserId} missing profile on refresh; creating default profile",
+                user.Id);
+            user.Profile = await CreateJobSeekerProfileAsync(
+                user,
+                user.Email,
+                new RegisterDto(user.Email, string.Empty, null, null, "jobseeker", null),
+                cancellationToken);
+        }
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 

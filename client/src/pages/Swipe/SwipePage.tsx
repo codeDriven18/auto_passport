@@ -1,16 +1,20 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/context/AuthContext';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import { ApiError } from '@/api/client';
 import { applicationsApi } from '@/api/applicationsApi';
 import { jobsApi } from '@/api/jobsApi';
 import { savedJobsApi } from '@/api/savedJobsApi';
 import { tagsApi } from '@/api/tagsApi';
-import { SwipeCard, type SwipeAction } from '@/components/swipe/SwipeCard';
+import {
+  PremiumSwipeDeck,
+  type PremiumSwipeDeckHandle,
+  type SwipeDirection,
+} from '@/components/swipe/PremiumSwipeDeck';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { FilterDrawer } from '@/components/ui/FilterDrawer';
+import { useAuth } from '@/context/AuthContext';
 import { useJobFilters } from '@/hooks/useJobFilters';
 import { useProfile } from '@/hooks/useProfile';
 import { useActivityTracking } from '@/hooks/useActivityTracking';
@@ -18,7 +22,7 @@ import type { Job } from '@/models/job';
 import type { Tag } from '@/models/tag';
 import styles from './SwipePage.module.css';
 
-const STACK_SIZE = 3;
+const STACK_BUFFER = 3;
 
 export function SwipePage() {
   const navigate = useNavigate();
@@ -26,17 +30,17 @@ export function SwipePage() {
   const { profile } = useProfile();
   const { trackJobSkip } = useActivityTracking();
   const filters = useJobFilters();
+  const deckRef = useRef<PremiumSwipeDeckHandle>(null);
 
   const [queue, setQueue] = useState<Job[]>([]);
   const [tags, setTags] = useState<Tag[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterOpen, setFilterOpen] = useState(false);
-  const [exit, setExit] = useState<{ jobId: string; action: SwipeAction } | null>(null);
+  const [dragProgress, setDragProgress] = useState(0);
   const [toast, setToast] = useState<{ msg: string; tone: 'neutral' | 'success' | 'error' } | null>(null);
   const [fetchPage, setFetchPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const skippedRef = useRef<Set<string>>(new Set());
-  const pendingActionRef = useRef<{ action: SwipeAction; job: Job } | null>(null);
 
   const loadMore = useCallback(async (page: number, append: boolean) => {
     const result = await jobsApi.search({
@@ -62,81 +66,82 @@ export function SwipePage() {
   }, []);
 
   useEffect(() => {
-    if (queue.length <= STACK_SIZE + 2 && hasMore && !loading) {
+    if (queue.length <= STACK_BUFFER + 2 && hasMore && !loading) {
       void loadMore(fetchPage + 1, true);
     }
   }, [queue.length, hasMore, loading, fetchPage, loadMore]);
 
   const showToast = (msg: string, tone: 'neutral' | 'success' | 'error' = 'neutral') => {
     setToast({ msg, tone });
-    setTimeout(() => setToast(null), 2400);
+    window.setTimeout(() => setToast(null), 2400);
   };
 
-  const triggerAction = (action: SwipeAction) => {
-    const job = queue[0];
-    if (!job || exit) return;
-    pendingActionRef.current = { action, job };
-    setExit({ jobId: job.id, action });
-  };
+  const handleDismiss = useCallback(async (job: Job, direction: SwipeDirection) => {
+    setQueue((q) => q.filter((j) => j.id !== job.id));
 
-  const handleExitComplete = async () => {
-    const pending = pendingActionRef.current;
-    if (!pending) return;
-
-    const { action, job } = pending;
-    pendingActionRef.current = null;
-    setExit(null);
-
-    if (action === 'pass') {
+    if (direction === 'pass') {
       skippedRef.current.add(job.id);
       void trackJobSkip(job.id);
       showToast('Passed');
-    } else if (action === 'save') {
-      if (!isAuthenticated) {
-        navigate('/login', { state: { from: '/swipe' } });
-        return;
-      }
+      return;
+    }
+
+    if (!isAuthenticated) {
+      navigate('/login', { state: { from: '/swipe' } });
+      return;
+    }
+
+    if (direction === 'save') {
       try {
         await savedJobsApi.save(job.id);
-        showToast('Added to your collection', 'success');
+        showToast('Saved to your collection', 'success');
       } catch {
         showToast('Could not save', 'error');
       }
-    } else if (action === 'apply') {
-      if (!isAuthenticated) {
-        navigate('/login', { state: { from: '/swipe' } });
-        return;
-      }
-      if (!profile) {
-        navigate('/profile');
-        return;
-      }
-      try {
-        await applicationsApi.apply(job.id);
-        showToast('Application sent!', 'success');
-      } catch (e) {
-        if (e instanceof ApiError && e.body && typeof e.body === 'object' && 'error' in e.body) {
-          const msg = String((e.body as { error: string }).error);
-          showToast(msg, 'error');
-          if (msg.includes('Profile incomplete') || msg.includes('Profile not found')) {
-            navigate('/profile');
-          }
-        } else {
-          showToast('Apply failed', 'error');
-        }
-      }
+      return;
     }
 
-    setQueue((q) => q.filter((j) => j.id !== job.id));
-  };
+    if (!profile) {
+      navigate('/profile');
+      return;
+    }
 
-  const visible = queue.slice(0, STACK_SIZE);
+    try {
+      await applicationsApi.apply(job.id);
+      showToast('Application sent!', 'success');
+    } catch (e) {
+      if (e instanceof ApiError && e.body && typeof e.body === 'object' && 'error' in e.body) {
+        const msg = String((e.body as { error: string }).error);
+        showToast(msg, 'error');
+        if (msg.includes('Profile incomplete') || msg.includes('Profile not found')) {
+          navigate('/profile');
+        }
+      } else {
+        showToast('Apply failed', 'error');
+      }
+    }
+  }, [isAuthenticated, navigate, profile, trackJobSkip]);
+
   const topJob = queue[0];
+  const ambientScale = 1 + dragProgress * 0.04;
 
   return (
     <section className={styles.page}>
-      <div className={styles.backdrop} aria-hidden />
-      {topJob && <div className={styles.backdropJob} aria-hidden>{topJob.title}</div>}
+      <motion.div
+        className={styles.backdrop}
+        aria-hidden
+        animate={{ opacity: 1 - dragProgress * 0.15, scale: ambientScale }}
+        transition={{ type: 'spring', stiffness: 400, damping: 40 }}
+      />
+      {topJob && (
+        <motion.div
+          className={styles.backdropJob}
+          aria-hidden
+          animate={{ opacity: 0.04 + dragProgress * 0.02 }}
+        >
+          {topJob.title}
+        </motion.div>
+      )}
 
       <header className={styles.header}>
         <button
@@ -157,7 +162,7 @@ export function SwipePage() {
         </span>
       </header>
 
-      <div className={styles.stack}>
+      <div className={styles.stage}>
         {loading && queue.length === 0 ? (
           <Skeleton variant="swipeCard" className={styles.skeletonCard} />
         ) : queue.length === 0 ? (
@@ -171,22 +176,13 @@ export function SwipePage() {
             ]}
           />
         ) : (
-          [...visible].reverse().map((job, i, arr) => {
-            const stackIndex = arr.length - 1 - i;
-            const isTop = stackIndex === 0;
-            return (
-              <SwipeCard
-                key={job.id}
-                job={job}
-                stackIndex={stackIndex}
-                active={isTop}
-                exitAction={exit?.jobId === job.id ? exit.action : null}
-                onAction={triggerAction}
-                onTap={() => navigate(`/jobs/${job.id}`)}
-                onExitComplete={() => void handleExitComplete()}
-              />
-            );
-          })
+          <PremiumSwipeDeck
+            ref={deckRef}
+            jobs={queue}
+            onDismiss={(job, direction) => void handleDismiss(job, direction)}
+            onTap={(job) => navigate(`/jobs/${job.id}`)}
+            onDragProgress={setDragProgress}
+          />
         )}
       </div>
 
@@ -194,10 +190,10 @@ export function SwipePage() {
         <div className={styles.dock}>
           <motion.button
             type="button"
-            className={`${styles.dockBtn} ${styles.rejectBtn}`}
-            whileHover={{ scale: 1.08 }}
-            whileTap={{ scale: 0.9 }}
-            onClick={() => triggerAction('pass')}
+            className={`${styles.dockBtn} ${styles.passBtn}`}
+            whileHover={{ scale: 1.06 }}
+            whileTap={{ scale: 0.92 }}
+            onClick={() => deckRef.current?.dismiss('pass')}
             aria-label="Pass"
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden>
@@ -207,9 +203,9 @@ export function SwipePage() {
           <motion.button
             type="button"
             className={`${styles.dockBtn} ${styles.saveBtn}`}
-            whileHover={{ scale: 1.08 }}
-            whileTap={{ scale: 0.9 }}
-            onClick={() => triggerAction('save')}
+            whileHover={{ scale: 1.06 }}
+            whileTap={{ scale: 0.92 }}
+            onClick={() => deckRef.current?.dismiss('save')}
             aria-label="Save"
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
@@ -219,9 +215,9 @@ export function SwipePage() {
           <motion.button
             type="button"
             className={`${styles.dockBtn} ${styles.applyBtn}`}
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-            onClick={() => triggerAction('apply')}
+            whileHover={{ scale: 1.08 }}
+            whileTap={{ scale: 0.92 }}
+            onClick={() => deckRef.current?.dismiss('apply')}
             aria-label="Apply"
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden>

@@ -22,6 +22,16 @@
     <link rel="apple-touch-startup-image" href="/splash/apple-splash-750x1334.png" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" />
     <link rel="apple-touch-startup-image" href="/splash/apple-splash-2048x2732.png" media="(device-width: 1024px) and (device-height: 1366px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" />
     <title>SwipeJobs</title>
+    <script>
+      (function () {
+        var key = 'swipejobs-theme-preference';
+        var legacy = 'swipejobs-theme';
+        var pref = localStorage.getItem(key) || localStorage.getItem(legacy) || 'system';
+        var dark = pref === 'dark' || (pref === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+        document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+        document.documentElement.style.colorScheme = dark ? 'dark' : 'light';
+      })();
+    </script>
     <style>
       #pwa-splash {
         position: fixed;

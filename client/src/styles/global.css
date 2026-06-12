@@ -3,7 +3,7 @@
 :root {
   --color-accent: #ffd600;
   --color-accent-hover: #ffea00;
-  --color-bg: #fafafa;
+  --color-bg: #ffffff;
   --color-surface: #ffffff;
   --color-surface-raised: #ffffff;
   --color-surface-overlay: rgba(255, 255, 255, 0.95);
@@ -53,6 +53,10 @@
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+}
+
+html {
+  color-scheme: light dark;
 }
 
 html,

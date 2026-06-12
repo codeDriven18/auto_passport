@@ -36,7 +36,6 @@ export function SwipePage() {
   const [tags, setTags] = useState<Tag[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterOpen, setFilterOpen] = useState(false);
-  const [dragProgress, setDragProgress] = useState(0);
   const [toast, setToast] = useState<{ msg: string; tone: 'neutral' | 'success' | 'error' } | null>(null);
   const [fetchPage, setFetchPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
@@ -122,26 +121,9 @@ export function SwipePage() {
     }
   }, [isAuthenticated, navigate, profile, trackJobSkip]);
 
-  const topJob = queue[0];
-  const ambientScale = 1 + dragProgress * 0.04;
-
   return (
     <section className={styles.page}>
-      <motion.div
-        className={styles.backdrop}
-        aria-hidden
-        animate={{ opacity: 1 - dragProgress * 0.15, scale: ambientScale }}
-        transition={{ type: 'spring', stiffness: 400, damping: 40 }}
-      />
-      {topJob && (
-        <motion.div
-          className={styles.backdropJob}
-          aria-hidden
-          animate={{ opacity: 0.04 + dragProgress * 0.02 }}
-        >
-          {topJob.title}
-        </motion.div>
-      )}
+      <div className={styles.backdrop} aria-hidden />
 
       <header className={styles.header}>
         <button
@@ -181,7 +163,6 @@ export function SwipePage() {
             jobs={queue}
             onDismiss={(job, direction) => void handleDismiss(job, direction)}
             onTap={(job) => navigate(`/jobs/${job.id}`)}
-            onDragProgress={setDragProgress}
           />
         )}
       </div>

@@ -2,7 +2,6 @@
   position: relative;
   width: 100%;
   height: 100%;
-  perspective: 1200px;
 }
 
 .stackCard,
@@ -46,15 +45,14 @@
 
 .stamp {
   position: absolute;
-  font-size: var(--text-xl);
+  font-size: var(--text-lg);
   font-weight: var(--weight-extrabold);
-  letter-spacing: 0.14em;
-  padding: var(--space-2) var(--space-5);
+  letter-spacing: 0.12em;
+  padding: var(--space-2) var(--space-4);
   border-radius: var(--radius-lg);
-  border: 3px solid;
+  border: 2px solid;
   pointer-events: none;
   z-index: 5;
-  transform-origin: center;
 }
 
 .stampPass {

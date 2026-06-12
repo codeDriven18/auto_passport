@@ -10,17 +10,13 @@ export const SWIPE_VELOCITY = 380;
 export const SWIPE_EXIT_X = typeof window !== 'undefined' ? window.innerWidth * 1.15 : 640;
 export const SWIPE_EXIT_Y = typeof window !== 'undefined' ? window.innerHeight * 0.85 : 520;
 
-export const SWIPE_SPRING = {
-  stiff: { type: 'spring' as const, stiffness: 420, damping: 34, mass: 0.85 },
-  soft: { type: 'spring' as const, stiffness: 320, damping: 32, mass: 0.9 },
-  snapBack: { type: 'spring' as const, stiffness: 540, damping: 38, mass: 0.75 },
-  promote: { type: 'spring' as const, stiffness: 380, damping: 32, mass: 0.8 },
-};
+export const SWIPE_EXIT = { duration: 0.22, ease: [0.32, 0.72, 0, 1] as const };
+export const SWIPE_SNAP_BACK = { duration: 0.18, ease: 'easeOut' as const };
 
 export const STACK_LAYERS = 3;
 
 export const STACK_STYLE = [
   { scale: 1, y: 0, opacity: 1 },
-  { scale: 0.94, y: 14, opacity: 0.92 },
-  { scale: 0.88, y: 28, opacity: 0.84 },
+  { scale: 0.96, y: 10, opacity: 0.94 },
+  { scale: 0.92, y: 20, opacity: 0.88 },
 ] as const;

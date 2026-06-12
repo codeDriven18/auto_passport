@@ -47,8 +47,8 @@ export function AppRouter() {
   return (
     <OnboardingGate>
       <Routes>
+        <Route path="/landing" element={<LandingPage />} />
         <Route element={<MarketingLayout />}>
-          <Route path="/landing" element={<LandingPage />} />
           <Route path="/features" element={<FeaturesPage />} />
           <Route path="/about" element={<AboutPage />} />
           <Route path="/faq" element={<FaqPage />} />

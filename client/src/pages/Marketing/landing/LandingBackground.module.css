@@ -1,0 +1,69 @@
+.canvas {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  will-change: transform;
+}
+
+.orbA {
+  width: min(55vw, 32rem);
+  height: min(55vw, 32rem);
+  top: -8%;
+  right: -6%;
+  background: var(--landing-orb-a);
+  animation: driftA 28s ease-in-out infinite;
+}
+
+.orbB {
+  width: min(48vw, 28rem);
+  height: min(48vw, 28rem);
+  bottom: 8%;
+  left: -10%;
+  background: var(--landing-orb-b);
+  animation: driftB 34s ease-in-out infinite;
+}
+
+.orbC {
+  width: min(38vw, 22rem);
+  height: min(38vw, 22rem);
+  top: 42%;
+  left: 38%;
+  background: var(--landing-orb-c);
+  animation: driftC 26s ease-in-out infinite;
+}
+
+.noise {
+  position: absolute;
+  inset: 0;
+  opacity: 0.025;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+@keyframes driftA {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(-4%, 6%) scale(1.08); }
+}
+
+@keyframes driftB {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(8%, -5%) scale(1.06); }
+}
+
+@keyframes driftC {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(-6%, -4%) scale(1.1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .orb {
+    animation: none;
+  }
+}

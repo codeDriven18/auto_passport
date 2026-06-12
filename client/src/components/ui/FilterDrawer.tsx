@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useDragControls, type PanInfo } from 'framer-motion';
 import { registerFloatingPanel, unregisterFloatingPanel } from '@/lib/floatingPanels';
 import { JobCategory } from '@/models/enums';
 import type { Tag } from '@/models/tag';
 import styles from './FilterDrawer.module.css';
+
+const SHEET_TRANSITION = { duration: 0.28, ease: [0.32, 0.72, 0, 1] as const };
 
 interface FilterDrawerProps {
   open: boolean;
@@ -34,6 +36,7 @@ export function FilterDrawer({
   selectedTags,
   onApply,
 }: FilterDrawerProps) {
+  const dragControls = useDragControls();
   const [localCategory, setLocalCategory] = useState(category);
   const [localCity, setLocalCity] = useState(city);
   const [localRemote, setLocalRemote] = useState(isRemote);
@@ -69,6 +72,12 @@ export function FilterDrawer({
     };
   }, [open, onClose]);
 
+  const handleDragEnd = (_: unknown, info: PanInfo) => {
+    if (info.offset.y > 72 || info.velocity.y > 350) {
+      onClose();
+    }
+  };
+
   const handleApply = () => {
     onApply({
       category: localCategory,
@@ -97,7 +106,7 @@ export function FilterDrawer({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+            transition={{ duration: 0.2 }}
             onClick={onClose}
           />
           <motion.div
@@ -105,12 +114,25 @@ export function FilterDrawer({
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
-            transition={{ type: 'spring', damping: 30, stiffness: 340 }}
+            transition={SHEET_TRANSITION}
+            drag="y"
+            dragControls={dragControls}
+            dragListener={false}
+            dragConstraints={{ top: 0, bottom: 0 }}
+            dragElastic={{ top: 0, bottom: 0.35 }}
+            dragMomentum={false}
+            onDragEnd={handleDragEnd}
             role="dialog"
             aria-modal="true"
             aria-label="Filters"
           >
-            <div className={styles.handle} />
+            <div
+              className={styles.handleRow}
+              aria-hidden
+              onPointerDown={(event) => dragControls.start(event)}
+            >
+              <div className={styles.handle} />
+            </div>
             <header className={styles.header}>
               <h2>Filters</h2>
               <button type="button" className={styles.clearBtn} onClick={handleClear}>

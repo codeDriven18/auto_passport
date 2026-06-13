@@ -1,44 +1,45 @@
 import { useMemo } from 'react';
 import { motion } from 'framer-motion';
-import type { Job } from '@/models/job';
-import { IconBookmark } from '@/components/icons/Icons';
+import type { JobApplication } from '@/models/application';
 import { JobHeroImage } from '@/components/jobs/JobHeroImage';
 import { CompanyIdentityStrip } from '@/components/jobs/CompanyIdentityStrip';
+import { StatusBadge } from '@/components/ui/StatusBadge';
+import { ApplicationStatusTimeline } from '@/components/applications/ApplicationStatusTimeline';
 import { formatSalary } from '@/lib/jobFormat';
-import { getEmploymentType, getLocationLabel, getWorkType } from '@/lib/jobCardMeta';
+import { getLocationLabel, getWorkType } from '@/lib/jobCardMeta';
 import { resolveJobImage } from '@/lib/resolveJobImage';
-import styles from './SavedCollectionCard.module.css';
+import styles from './ApplicationCard.module.css';
 
-interface SavedCollectionCardProps {
-  job: Job;
-  savedAt?: string;
-  applied?: boolean;
+interface ApplicationCardProps {
+  application: JobApplication;
   index?: number;
   onClick?: () => void;
-  onUnsave?: (e: React.MouseEvent) => void;
 }
 
-function formatSavedDate(iso: string): string {
-  const date = new Date(iso);
-  const diffMs = Date.now() - date.getTime();
-  const days = Math.floor(diffMs / 86_400_000);
-  if (days <= 0) return 'Saved today';
-  if (days === 1) return 'Saved yesterday';
-  if (days < 7) return `Saved ${days}d ago`;
-  return `Saved ${date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`;
+function formatAppliedDate(iso: string): string {
+  return new Date(iso).toLocaleDateString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
 }
 
-export function SavedCollectionCard({
-  job,
-  savedAt,
-  applied,
-  index = 0,
-  onClick,
-  onUnsave,
-}: SavedCollectionCardProps) {
-  const heroImage = useMemo(() => resolveJobImage(job), [job]);
+export function ApplicationCard({ application, index = 0, onClick }: ApplicationCardProps) {
+  const job = application.job;
+  const heroImage = useMemo(() => (job ? resolveJobImage(job) : null), [job]);
+
+  if (!job || !heroImage) {
+    return (
+      <article className={styles.card} onClick={onClick} role="button" tabIndex={0}>
+        <div className={styles.fallbackBody}>
+          <h3 className={styles.title}>Application</h3>
+          <StatusBadge status={application.status} />
+        </div>
+      </article>
+    );
+  }
+
   const workType = getWorkType(job);
-  const employment = getEmploymentType(job);
   const locationLine = `${getLocationLabel(job)} · ${workType}`;
 
   return (
@@ -62,17 +63,7 @@ export function SavedCollectionCard({
         />
         <div className={styles.heroOverlay}>
           <div className={styles.heroTop}>
-            {applied && <span className={styles.appliedBadge}>Applied</span>}
-            {onUnsave && !applied && (
-              <button
-                type="button"
-                className={styles.unsave}
-                onClick={onUnsave}
-                aria-label="Remove from collection"
-              >
-                <IconBookmark size={18} />
-              </button>
-            )}
+            <StatusBadge status={application.status} />
           </div>
           <CompanyIdentityStrip job={job} variant="compact" onDark />
         </div>
@@ -85,10 +76,13 @@ export function SavedCollectionCard({
         </p>
         <p className={styles.company}>{job.company}</p>
         <p className={styles.location}>{locationLine}</p>
-        <div className={styles.metaRow}>
-          {savedAt && <span className={styles.savedDate}>{formatSavedDate(savedAt)}</span>}
-          <span className={styles.pill}>{employment}</span>
-        </div>
+        <p className={styles.appliedDate}>Applied {formatAppliedDate(application.appliedAt)}</p>
+
+        <ApplicationStatusTimeline
+          currentStatus={application.status}
+          statusHistory={application.statusHistory}
+          appliedAt={application.appliedAt}
+        />
       </div>
     </motion.article>
   );

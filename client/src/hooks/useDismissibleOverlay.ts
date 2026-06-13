@@ -7,6 +7,8 @@ interface UseDismissibleOverlayOptions {
   onClose: () => void;
   /** Root element — clicks inside (trigger + panel) do not dismiss. */
   containerRef: RefObject<HTMLElement | null>;
+  /** Optional scrollable panel — scrolling inside does not dismiss. */
+  panelRef?: RefObject<HTMLElement | null>;
   /** Unique id for single-panel coordination. */
   panelId?: string;
   /** Close when the route changes. Default true. */
@@ -14,14 +16,20 @@ interface UseDismissibleOverlayOptions {
   closeOnScroll?: boolean;
 }
 
+function isInsideRef(ref: RefObject<HTMLElement | null> | undefined, target: EventTarget | null): boolean {
+  if (!ref?.current || !target) return false;
+  return ref.current.contains(target as Node);
+}
+
 /**
  * Standard dismiss behavior for dropdowns/overlays:
- * pointer down outside, Escape, route change, and single-panel coordination.
+ * pointer down outside, Escape, route change, scroll outside panel, single-panel coordination.
  */
 export function useDismissibleOverlay({
   open,
   onClose,
   containerRef,
+  panelRef,
   panelId,
   closeOnRouteChange = true,
   closeOnScroll = true,
@@ -49,25 +57,30 @@ export function useDismissibleOverlay({
       }
     };
 
-    const onScroll = () => onClose();
+    const onScroll = (event: Event) => {
+      const target = event.target;
+      if (isInsideRef(containerRef, target)) return;
+      if (isInsideRef(panelRef, target)) return;
+      onClose();
+    };
 
     document.addEventListener('pointerdown', onPointerDown, true);
     document.addEventListener('keydown', onKeyDown);
     if (closeOnScroll) {
-      window.addEventListener('scroll', onScroll, { capture: true, passive: true });
+      document.addEventListener('scroll', onScroll, { capture: true, passive: true });
     }
 
     return () => {
       document.removeEventListener('pointerdown', onPointerDown, true);
       document.removeEventListener('keydown', onKeyDown);
       if (closeOnScroll) {
-        window.removeEventListener('scroll', onScroll, true);
+        document.removeEventListener('scroll', onScroll, true);
       }
       if (panelId) {
         unregisterFloatingPanel(panelId);
       }
     };
-  }, [open, onClose, containerRef, panelId, closeOnScroll]);
+  }, [open, onClose, containerRef, panelRef, panelId, closeOnScroll]);
 
   useEffect(() => {
     if (!open || !closeOnRouteChange) return;

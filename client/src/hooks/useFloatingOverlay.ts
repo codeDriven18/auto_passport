@@ -11,8 +11,13 @@ interface UseFloatingOverlayOptions {
   closeOnScroll?: boolean;
 }
 
+function isInsideRef(ref: RefObject<HTMLElement | null> | undefined, target: EventTarget | null): boolean {
+  if (!ref?.current || !target) return false;
+  return ref.current.contains(target as Node);
+}
+
 /**
- * Single-overlay dismiss: outside tap, Escape, route change, scroll, panel coordination.
+ * Single-overlay dismiss: outside tap, Escape, route change, scroll outside panel, panel coordination.
  */
 export function useFloatingOverlay({
   open,
@@ -42,19 +47,22 @@ export function useFloatingOverlay({
       }
     };
 
-    const onScroll = () => onClose();
+    const onScroll = (event: Event) => {
+      if (isInsideRef(panelRef, event.target)) return;
+      onClose();
+    };
 
     document.addEventListener('pointerdown', onPointerDown, true);
     document.addEventListener('keydown', onKeyDown);
     if (closeOnScroll) {
-      window.addEventListener('scroll', onScroll, { capture: true, passive: true });
+      document.addEventListener('scroll', onScroll, { capture: true, passive: true });
     }
 
     return () => {
       document.removeEventListener('pointerdown', onPointerDown, true);
       document.removeEventListener('keydown', onKeyDown);
       if (closeOnScroll) {
-        window.removeEventListener('scroll', onScroll, true);
+        document.removeEventListener('scroll', onScroll, true);
       }
       unregisterFloatingPanel(panelId);
     };

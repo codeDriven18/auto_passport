@@ -12,6 +12,7 @@ interface JobHeroImageProps {
 export function JobHeroImage({ image, alt, className = '', priority = false }: JobHeroImageProps) {
   const [loaded, setLoaded] = useState(false);
   const [src, setSrc] = useState(image.url);
+  const isCategory = image.source === 'category';
 
   useEffect(() => {
     setLoaded(false);
@@ -26,7 +27,7 @@ export function JobHeroImage({ image, alt, className = '', priority = false }: J
       <img
         src={src}
         alt={alt}
-        className={`${styles.img} ${loaded ? styles.visible : ''}`}
+        className={`${styles.img} ${loaded ? styles.visible : ''} ${isCategory ? styles.category : ''}`}
         loading={priority ? 'eager' : 'lazy'}
         decoding="async"
         fetchPriority={priority ? 'high' : 'auto'}
@@ -39,6 +40,7 @@ export function JobHeroImage({ image, alt, className = '', priority = false }: J
         }}
       />
       <div className={styles.fade} aria-hidden />
+      <div className={styles.fadeSurface} aria-hidden />
     </div>
   );
 }

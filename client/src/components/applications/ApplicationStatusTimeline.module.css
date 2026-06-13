@@ -1,0 +1,96 @@
+.timeline {
+  list-style: none;
+  display: flex;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+}
+
+.step {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  position: relative;
+  min-width: 0;
+}
+
+.step:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  top: 0.45rem;
+  left: calc(50% + 0.45rem);
+  right: calc(-50% + 0.45rem);
+  height: 2px;
+  background: var(--color-border-subtle);
+  z-index: 0;
+}
+
+.step.done:not(:last-child)::after,
+.step.current:not(:last-child)::after {
+  background: color-mix(in srgb, var(--color-accent) 55%, var(--color-border-subtle));
+}
+
+.dot {
+  position: relative;
+  z-index: 1;
+  width: 0.9rem;
+  height: 0.9rem;
+  border-radius: var(--radius-full);
+  background: var(--color-bg);
+  border: 2px solid var(--color-border);
+  flex-shrink: 0;
+}
+
+.step.done .dot {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+}
+
+.step.current .dot {
+  background: var(--color-surface-raised);
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 25%, transparent);
+}
+
+.step.rejected .dot {
+  background: var(--color-danger);
+  border-color: var(--color-danger);
+}
+
+.step.withdrawn .dot {
+  background: var(--color-text-muted);
+  border-color: var(--color-text-muted);
+}
+
+.stepBody {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.1rem;
+  text-align: center;
+  min-width: 0;
+  padding: 0 var(--space-1);
+}
+
+.label {
+  font-size: 0.65rem;
+  font-weight: var(--weight-bold);
+  color: var(--color-text-muted);
+  line-height: 1.2;
+}
+
+.step.current .label,
+.step.done .label {
+  color: var(--color-text);
+}
+
+.step.rejected .label {
+  color: var(--color-danger);
+}
+
+.date {
+  font-size: 0.6rem;
+  color: var(--color-text-subtle);
+}

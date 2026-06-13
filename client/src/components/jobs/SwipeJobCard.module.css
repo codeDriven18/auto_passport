@@ -38,8 +38,7 @@
   gap: 0.35rem;
   padding: 0.35rem 0.65rem;
   border-radius: var(--radius-full);
-  background: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(8px);
+  background: rgba(0, 0, 0, 0.58);
   color: #fff;
   font-size: 0.68rem;
   font-weight: var(--weight-semibold);
@@ -58,8 +57,7 @@
   width: 2.5rem;
   height: 2.5rem;
   border-radius: var(--radius-full);
-  background: rgba(0, 0, 0, 0.45);
-  backdrop-filter: blur(8px);
+  background: rgba(0, 0, 0, 0.58);
   color: #fff;
 }
 
@@ -70,9 +68,14 @@
   flex-direction: column;
   gap: var(--space-3);
   padding: var(--space-5);
-  margin-top: calc(-1 * var(--space-6));
+  margin-top: calc(-1 * var(--space-4));
   position: relative;
   z-index: 3;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--color-surface-raised) 0%, transparent) 0%,
+    var(--color-surface-raised) 18%
+  );
 }
 
 .companyRow {

@@ -31,6 +31,7 @@ export function DiscoveryJobCard({ job, index = 0, onClick }: DiscoveryJobCardPr
     >
       <div className={styles.hero}>
         <JobHeroImage image={heroImage} alt={job.title} className={styles.heroImage} />
+        <span className={styles.match}>{getMatchScore(job)}%</span>
       </div>
       <div className={styles.body}>
         <span className={styles.title}>{job.title}</span>
@@ -39,7 +40,6 @@ export function DiscoveryJobCard({ job, index = 0, onClick }: DiscoveryJobCardPr
           {formatSalary(job.salaryMin, job.salaryMax, job.category, job.externalUrl)}
         </span>
       </div>
-      <span className={styles.match}>{getMatchScore(job)}%</span>
     </motion.article>
   );
 }

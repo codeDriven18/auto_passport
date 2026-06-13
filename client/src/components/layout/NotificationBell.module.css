@@ -54,12 +54,19 @@
   width: min(20rem, calc(100vw - 2.5rem));
   max-height: 22rem;
   overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
   background: var(--color-surface-raised);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-lg);
   z-index: 60;
   padding: 0.75rem;
+}
+
+.panel::-webkit-scrollbar {
+  display: none;
 }
 
 .panelHeader {

@@ -6,7 +6,11 @@
   min-height: 32rem;
   margin: calc(-1 * var(--space-6));
   margin-bottom: calc(-1 * (var(--nav-height) + var(--space-6)));
-  padding: var(--space-4) var(--space-5) 0;
+  padding:
+    max(var(--space-4), env(safe-area-inset-top))
+    max(var(--space-5), env(safe-area-inset-right))
+    0
+    max(var(--space-5), env(safe-area-inset-left));
   overflow: visible;
 }
 
@@ -26,8 +30,11 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: var(--space-3);
+  min-height: 2.75rem;
   margin-bottom: var(--space-3);
   flex-shrink: 0;
+  padding-inline: var(--space-1);
 }
 
 .filterBtn {
@@ -52,8 +59,9 @@
 
 .filterCount {
   position: absolute;
-  top: -2px;
-  right: -2px;
+  top: 0;
+  right: 0;
+  transform: translate(25%, -25%);
   min-width: 1.125rem;
   height: 1.125rem;
   display: flex;
@@ -71,6 +79,9 @@
   font-size: var(--text-sm);
   font-weight: var(--weight-semibold);
   color: var(--color-text-muted);
+  white-space: nowrap;
+  flex-shrink: 0;
+  padding-right: var(--space-1);
 }
 
 .stage {
@@ -163,7 +174,7 @@
 
 .toast {
   position: fixed;
-  bottom: calc(var(--nav-height) + 7.5rem);
+  bottom: calc(var(--nav-height) + 7.5rem + env(safe-area-inset-bottom));
   left: 50%;
   transform: translateX(-50%);
   padding: var(--space-3) var(--space-6);

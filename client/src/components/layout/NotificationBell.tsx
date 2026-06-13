@@ -15,6 +15,7 @@ export function NotificationBell() {
   const { notifications, unreadCount, markRead, markAllRead } = useNotifications();
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
 
   const close = useCallback(() => setOpen(false), []);
 
@@ -22,6 +23,7 @@ export function NotificationBell() {
     open,
     onClose: close,
     containerRef,
+    panelRef,
     panelId: PANEL_ID,
   });
 
@@ -58,6 +60,7 @@ export function NotificationBell() {
               tabIndex={-1}
             />
             <motion.div
+              ref={panelRef}
               className={styles.panel}
               role="dialog"
               aria-label="Notifications"

@@ -42,6 +42,7 @@ import { PortalDashboardPage } from '@/pages/Portal/PortalDashboardPage';
 import { PortalJobsPage } from '@/pages/Portal/PortalJobsPage';
 import { PortalApplicationsPage } from '@/pages/Portal/PortalApplicationsPage';
 import { PortalApplicantPage } from '@/pages/Portal/PortalApplicantPage';
+import { PublicProfilePage } from '@/pages/Profile/PublicProfilePage';
 
 export function AppRouter() {
   return (
@@ -101,6 +102,7 @@ export function AppRouter() {
           <Route path="/swipe" element={<SwipePage />} />
           <Route path="/jobs" element={<JobsPage />} />
           <Route path="/jobs/:id" element={<JobDetailPage />} />
+          <Route path="/p/:id" element={<PublicProfilePage />} />
           <Route path="/saved" element={<SavedPage />} />
           <Route path="/applications" element={<ApplicationsPage />} />
           <Route path="/settings" element={<SettingsPage />} />

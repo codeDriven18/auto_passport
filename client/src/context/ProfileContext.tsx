@@ -32,6 +32,7 @@ import { UserRole } from '@/models/auth';
 import { syncAuthUserProfileId } from '@/api/client';
 import { setOnboardingComplete } from '@/lib/onboardingStorage';
 import { isProfileSubstantiallyComplete } from '@/lib/profileCompletion';
+import { markProfileSubstantiallyComplete } from '@/lib/profileCompletionStorage';
 
 import { normalizeUserProfile } from '@/lib/normalizeProfile';
 
@@ -178,6 +179,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (profile && isProfileSubstantiallyComplete(profile)) {
       setOnboardingComplete();
+      markProfileSubstantiallyComplete();
     }
   }, [profile]);
 

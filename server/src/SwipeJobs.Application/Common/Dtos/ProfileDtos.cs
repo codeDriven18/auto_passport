@@ -131,3 +131,15 @@ public record ProfileCompletenessDto(bool IsComplete, IReadOnlyList<string> Miss
 public record ProfileAvatarUploadDto(string ProfileImageUrl);
 
 public record ProfileResumeUploadDto(string ResumeFileName, DateTime ResumeUploadedAt);
+
+public record PublicProfileDto(
+    Guid Id,
+    string FirstName,
+    string LastName,
+    string? Headline,
+    string? Location,
+    string? ProfileImageUrl,
+    IReadOnlyList<string> Skills,
+    bool HasLinkedIn,
+    bool HasGitHub,
+    bool HasPortfolio);

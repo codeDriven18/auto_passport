@@ -17,7 +17,13 @@ export function getProfileCompletionPercent(profile: UserProfile | null | undefi
 }
 
 export function isProfileSubstantiallyComplete(profile: UserProfile | null | undefined): boolean {
-  return getProfileCompletionPercent(profile) >= PROFILE_COMPLETION_THRESHOLD;
+  if (!profile) return false;
+  if (getProfileCompletionPercent(profile) >= PROFILE_COMPLETION_THRESHOLD) return true;
+  try {
+    return localStorage.getItem('swipejobs-profile-substantially-complete') === '1';
+  } catch {
+    return false;
+  }
 }
 
 /** Mandatory completion banners and hub prompts — voluntary wizard links are still allowed. */

@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { dashboardApi } from '@/api/dashboardApi';
-import { JobCard } from '@/components/jobs/JobCard';
 import { DiscoveryRail } from '@/components/discovery/DiscoveryRail';
 import { CompanyCarousel } from '@/components/discovery/CompanyCarousel';
 import { AnimatedCounter } from '@/components/ui/AnimatedCounter';
@@ -39,7 +38,7 @@ export function DashboardPage() {
   const [dashboard, setDashboard] = useState<UserDashboard>(() => mergeDashboardWithEmpty(null));
   const [loading, setLoading] = useState(true);
   const [fetchFailed, setFetchFailed] = useState(false);
-  const { collections } = useDiscoveryCollections(isAuthenticated);
+  const { collections } = useDiscoveryCollections(true);
 
   const loadDashboard = useCallback(async () => {
     if (authLoading || profileLoading) return;
@@ -134,6 +133,32 @@ export function DashboardPage() {
           />
         </motion.div>
 
+        <motion.div variants={item}>
+          <DiscoveryRail
+            title="Graduate roles"
+            jobs={collections.graduate}
+            onJobClick={(id) => navigate(`/jobs/${id}`)}
+          />
+        </motion.div>
+
+        <motion.div variants={item}>
+          <DiscoveryRail
+            title="High salary"
+            jobs={collections.highSalary}
+            onJobClick={(id) => navigate(`/jobs/${id}`)}
+          />
+        </motion.div>
+
+        <motion.div variants={item}>
+          <DiscoveryRail
+            title="Recently added"
+            jobs={collections.recentlyAdded}
+            linkTo="/jobs"
+            linkLabel="Browse"
+            onJobClick={(id) => navigate(`/jobs/${id}`)}
+          />
+        </motion.div>
+
         <motion.div className={styles.authPrompt} variants={item}>
           <Link to="/register" className={styles.quickActionPrimary}>Create free account</Link>
           <Link to="/login" className={styles.quickActionGhost}>Sign in</Link>
@@ -161,7 +186,10 @@ export function DashboardPage() {
     <motion.section className={styles.page} variants={container} initial="hidden" animate="show">
       <motion.header className={styles.hero} variants={item}>
         <p className={styles.greetingTime}>{greeting}, {firstName}</p>
-        <h1 className={styles.heroTitle}>Continue your search</h1>
+        <h1 className={styles.heroTitle}>Discover your next role</h1>
+        <Link to="/swipe" className={styles.heroCtaInline}>
+          Start swiping →
+        </Link>
         <div className={styles.statRow}>
           <div className={styles.statPill}>
             <AnimatedCounter value={appsCount} className={styles.statNum} />
@@ -177,6 +205,86 @@ export function DashboardPage() {
           </div>
         </div>
       </motion.header>
+
+      {fetchFailed && (
+        <motion.div variants={item}>
+          <EmptyState
+            illustration="swipe"
+            title="Could not refresh your dashboard"
+            description="Your feed is still available — try again or start swiping."
+            actions={[
+              { label: 'Retry', onClick: () => void loadDashboard(), primary: true },
+              { label: 'Start swiping', to: '/swipe' },
+            ]}
+          />
+        </motion.div>
+      )}
+
+      <motion.div variants={item}>
+        <DiscoveryRail
+          title="Recommended for you"
+          jobs={dashboard.recommendedJobs}
+          linkTo="/jobs"
+          linkLabel="See all"
+          onJobClick={(id) => navigate(`/jobs/${id}`)}
+        />
+        {dashboard.recommendedJobs.length === 0 && (
+          <EmptyState
+            illustration="swipe"
+            title="Your feed is warming up"
+            description="Start swiping to unlock personalized recommendations."
+            actions={[{ label: 'Start swiping', to: '/swipe', primary: true }]}
+          />
+        )}
+      </motion.div>
+
+      <motion.div variants={item}>
+        <DiscoveryRail
+          title="Remote jobs"
+          jobs={collections.remote}
+          linkTo="/jobs?isRemote=true"
+          linkLabel="Browse"
+          onJobClick={(id) => navigate(`/jobs/${id}`)}
+        />
+      </motion.div>
+
+      <motion.div variants={item}>
+        <DiscoveryRail
+          title="Graduate roles"
+          jobs={collections.graduate}
+          onJobClick={(id) => navigate(`/jobs/${id}`)}
+        />
+      </motion.div>
+
+      <motion.div variants={item}>
+        <DiscoveryRail
+          title="Trending jobs"
+          jobs={collections.trending.length > 0 ? collections.trending : dashboard.trendingJobs}
+          onJobClick={(id) => navigate(`/jobs/${id}`)}
+        />
+      </motion.div>
+
+      <motion.div variants={item}>
+        <DiscoveryRail
+          title="High salary"
+          jobs={collections.highSalary}
+          onJobClick={(id) => navigate(`/jobs/${id}`)}
+        />
+      </motion.div>
+
+      <motion.div variants={item}>
+        <DiscoveryRail
+          title="Recently added"
+          jobs={collections.recentlyAdded}
+          linkTo="/jobs"
+          linkLabel="Browse"
+          onJobClick={(id) => navigate(`/jobs/${id}`)}
+        />
+      </motion.div>
+
+      <motion.div variants={item}>
+        <CompanyCarousel jobs={allJobsForCompanies} />
+      </motion.div>
 
       <motion.div className={styles.quickGrid} variants={item}>
         <Link to="/swipe" className={styles.quickActionFeatured}>
@@ -221,87 +329,6 @@ export function DashboardPage() {
           </div>
         </motion.div>
       )}
-
-      {fetchFailed && (
-        <motion.div variants={item}>
-          <EmptyState
-            illustration="swipe"
-            title="Could not refresh your dashboard"
-            description="Your feed is still available — try again or start swiping."
-            actions={[
-              { label: 'Retry', onClick: () => void loadDashboard(), primary: true },
-              { label: 'Start swiping', to: '/swipe' },
-            ]}
-          />
-        </motion.div>
-      )}
-
-      <motion.div variants={item}>
-        <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>Recommended for you</h2>
-          <Link to="/jobs" className={styles.sectionLink}>See all</Link>
-        </div>
-        {dashboard.recommendedJobs.length === 0 ? (
-          <EmptyState
-            illustration="swipe"
-            title="Your feed is warming up"
-            description="Start swiping to unlock personalized recommendations."
-            actions={[{ label: 'Start swiping', to: '/swipe', primary: true }]}
-          />
-        ) : (
-          <div className={styles.jobScroll}>
-            {dashboard.recommendedJobs.map((job, index) => (
-              <JobCard key={job.id} job={job} index={index} onClick={() => navigate(`/jobs/${job.id}`)} />
-            ))}
-          </div>
-        )}
-      </motion.div>
-
-      <motion.div variants={item}>
-        <CompanyCarousel jobs={allJobsForCompanies} />
-      </motion.div>
-
-      <motion.div variants={item}>
-        <DiscoveryRail
-          title="Remote jobs"
-          jobs={collections.remote}
-          linkTo="/jobs"
-          linkLabel="Browse"
-          onJobClick={(id) => navigate(`/jobs/${id}`)}
-        />
-      </motion.div>
-
-      <motion.div variants={item}>
-        <DiscoveryRail
-          title="Graduate roles"
-          jobs={collections.graduate}
-          onJobClick={(id) => navigate(`/jobs/${id}`)}
-        />
-      </motion.div>
-
-      <motion.div variants={item}>
-        <DiscoveryRail
-          title="High salary"
-          jobs={collections.highSalary}
-          onJobClick={(id) => navigate(`/jobs/${id}`)}
-        />
-      </motion.div>
-
-      <motion.div variants={item}>
-        <DiscoveryRail
-          title="Fast apply"
-          jobs={dashboard.trendingJobs.length > 0 ? dashboard.trendingJobs : collections.trending}
-          onJobClick={(id) => navigate(`/jobs/${id}`)}
-        />
-      </motion.div>
-
-      <motion.div variants={item}>
-        <DiscoveryRail
-          title="Trending"
-          jobs={collections.trending.length > 0 ? collections.trending : dashboard.trendingJobs}
-          onJobClick={(id) => navigate(`/jobs/${id}`)}
-        />
-      </motion.div>
 
       {timelineItems.length > 0 && (
         <motion.section className={styles.timeline} variants={item}>

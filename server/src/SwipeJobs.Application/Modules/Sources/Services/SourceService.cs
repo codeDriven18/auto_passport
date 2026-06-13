@@ -37,6 +37,8 @@ public class SourceService : ISourceService
             Name = dto.Name,
             Type = dto.Type,
             ExternalIdentifier = dto.ExternalIdentifier,
+            LogoUrl = dto.LogoUrl,
+            TrustScore = Math.Clamp(dto.TrustScore, 0, 100),
             IsActive = true,
         };
         await _sourceRepository.AddAsync(source, cancellationToken);
@@ -52,6 +54,8 @@ public class SourceService : ISourceService
         source.Name = dto.Name;
         source.Type = dto.Type;
         source.ExternalIdentifier = dto.ExternalIdentifier;
+        source.LogoUrl = dto.LogoUrl;
+        source.TrustScore = Math.Clamp(dto.TrustScore, 0, 100);
         source.IsActive = dto.IsActive;
         await _sourceRepository.UpdateAsync(source, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);

@@ -13,7 +13,15 @@ public static class TagMapper
 public static class SourceMapper
 {
     public static SourceDto ToDto(Source source) =>
-        new(source.Id, source.Name, source.Type, source.ExternalIdentifier, source.IsActive);
+        new(
+            source.Id,
+            source.Name,
+            source.Type,
+            source.ExternalIdentifier,
+            source.LogoUrl,
+            source.TrustScore,
+            SourceTrustHelper.ToLevel(source.TrustScore),
+            source.IsActive);
 }
 
 public static class CompanyMapper
@@ -39,31 +47,7 @@ public static class CompanyMapper
 
 public static class JobMapper
 {
-    public static JobDto ToDto(Job job) => new(
-        job.Id,
-        job.Title,
-        job.Description,
-        job.CompanyId,
-        job.Company?.Name ?? string.Empty,
-        job.Company?.LogoUrl,
-        job.Company?.Slug,
-        job.Location,
-        job.City,
-        job.Category,
-        job.Level,
-        job.IsRemote,
-        job.IsActive,
-        job.IsArchived,
-        job.SalaryMin,
-        job.SalaryMax,
-        job.ExpiresAt,
-        job.ExternalUrl,
-        job.SourceId,
-        job.Source?.Name,
-        job.JobTags?.Select(jt => TagMapper.ToDto(jt.Tag)).ToList() ?? [],
-        [],
-        job.CreatedAt,
-        job.UpdatedAt);
+    public static JobDto ToDto(Job job) => ToDto(job, []);
 
     public static JobDto ToDto(Job job, IReadOnlyList<string>? trendingBadges) => new(
         job.Id,
@@ -72,7 +56,13 @@ public static class JobMapper
         job.CompanyId,
         job.Company?.Name ?? string.Empty,
         job.Company?.LogoUrl,
+        job.Company?.BannerUrl,
         job.Company?.Slug,
+        job.Company?.Website,
+        job.Company?.LinkedInUrl,
+        job.Company?.Industry,
+        job.Company?.CompanySize,
+        job.Company?.Description,
         job.Location,
         job.City,
         job.Category,
@@ -84,8 +74,13 @@ public static class JobMapper
         job.SalaryMax,
         job.ExpiresAt,
         job.ExternalUrl,
+        job.JobImageUrl,
+        job.AiGeneratedImageUrl,
         job.SourceId,
         job.Source?.Name,
+        job.Source?.LogoUrl,
+        SourceTrustHelper.ToLevel(job.Source?.TrustScore ?? 0),
+        job.Source?.TrustScore ?? 0,
         job.JobTags?.Select(jt => TagMapper.ToDto(jt.Tag)).ToList() ?? [],
         trendingBadges ?? [],
         job.CreatedAt,
@@ -105,8 +100,12 @@ public static class JobMapper
         job.SalaryMax = dto.SalaryMax;
         job.ExpiresAt = dto.ExpiresAt;
         job.ExternalUrl = dto.ExternalUrl;
+        job.JobImageUrl = dto.JobImageUrl;
+        job.AiGeneratedImageUrl = dto.AiGeneratedImageUrl;
         job.SourceId = dto.SourceId;
         job.IsActive = true;
+        job.ContentFingerprint = JobContentFingerprint.Compute(
+            dto.Title, dto.CompanyId, dto.City, dto.SourceId, dto.ExternalUrl);
     }
 
     public static void ApplyUpdate(Job job, UpdateJobDto dto)
@@ -124,7 +123,11 @@ public static class JobMapper
         job.SalaryMax = dto.SalaryMax;
         job.ExpiresAt = dto.ExpiresAt;
         job.ExternalUrl = dto.ExternalUrl;
+        job.JobImageUrl = dto.JobImageUrl;
+        job.AiGeneratedImageUrl = dto.AiGeneratedImageUrl;
         job.SourceId = dto.SourceId;
+        job.ContentFingerprint = JobContentFingerprint.Compute(
+            dto.Title, dto.CompanyId, dto.City, dto.SourceId, dto.ExternalUrl);
     }
 }
 

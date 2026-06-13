@@ -18,6 +18,12 @@ public class Job : BaseEntity
     public bool IsArchived { get; set; }
     public DateTime? ExpiresAt { get; set; }
     public string? ExternalUrl { get; set; }
+    public string? JobImageUrl { get; set; }
+    public string? AiGeneratedImageUrl { get; set; }
+    /// <summary>SHA-256 fingerprint for deduplication during ingestion.</summary>
+    public string? ContentFingerprint { get; set; }
+    /// <summary>Stable external key from the originating source (e.g. Telegram message id).</summary>
+    public string? ExternalSourceKey { get; set; }
 
     public Guid CompanyId { get; set; }
     public Company Company { get; set; } = null!;

@@ -15,6 +15,13 @@ public class JobConfiguration : IEntityTypeConfiguration<Job>
         builder.Property(j => j.SalaryMin).HasPrecision(18, 2);
         builder.Property(j => j.SalaryMax).HasPrecision(18, 2);
         builder.Property(j => j.ExternalUrl).HasMaxLength(1000);
+        builder.Property(j => j.JobImageUrl).HasMaxLength(1000);
+        builder.Property(j => j.AiGeneratedImageUrl).HasMaxLength(1000);
+        builder.Property(j => j.ContentFingerprint).HasMaxLength(64);
+        builder.Property(j => j.ExternalSourceKey).HasMaxLength(500);
+
+        builder.HasIndex(j => j.ContentFingerprint);
+        builder.HasIndex(j => new { j.SourceId, j.ExternalSourceKey });
 
         builder.HasOne(j => j.Company)
             .WithMany(c => c.Jobs)

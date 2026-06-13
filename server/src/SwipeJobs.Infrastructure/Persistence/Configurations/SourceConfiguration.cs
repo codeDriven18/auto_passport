@@ -11,6 +11,8 @@ public class SourceConfiguration : IEntityTypeConfiguration<Source>
         builder.HasKey(s => s.Id);
         builder.Property(s => s.Name).IsRequired().HasMaxLength(200);
         builder.Property(s => s.ExternalIdentifier).HasMaxLength(500);
+        builder.Property(s => s.LogoUrl).HasMaxLength(1000);
+        builder.Property(s => s.TrustScore).HasDefaultValue(50);
         builder.HasIndex(s => s.Type);
     }
 }

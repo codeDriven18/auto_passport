@@ -16,11 +16,13 @@ export function SavedPage() {
   const [saved, setSaved] = useState<SavedJob[]>([]);
   const [appliedJobIds, setAppliedJobIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
+  const [failed, setFailed] = useState(false);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    if (authLoading) return;
-    if (!isAuthenticated) { setLoading(false); return; }
+  const load = () => {
+    if (authLoading || !isAuthenticated) return;
+    setLoading(true);
+    setFailed(false);
     Promise.all([
       savedJobsApi.getMine(),
       applicationsApi.getMine(),
@@ -29,7 +31,18 @@ export function SavedPage() {
         setSaved(savedList);
         setAppliedJobIds(new Set(apps.map((a) => a.jobId)));
       })
+      .catch(() => {
+        setSaved([]);
+        setAppliedJobIds(new Set());
+        setFailed(true);
+      })
       .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    if (authLoading) return;
+    if (!isAuthenticated) { setLoading(false); return; }
+    load();
   }, [isAuthenticated, authLoading]);
 
   const { recent, earlier, applied } = useMemo(() => {
@@ -101,6 +114,22 @@ export function SavedPage() {
             { label: 'Sign in', to: '/login', primary: true },
             { label: 'Explore jobs', to: '/swipe' },
           ]}
+        />
+      </section>
+    );
+  }
+
+  if (failed) {
+    return (
+      <section className={styles.page}>
+        <header className={styles.hero}>
+          <h1 className={styles.heroTitle}>Your collection</h1>
+        </header>
+        <EmptyState
+          illustration="saved"
+          title="Could not load saved jobs"
+          description="Check your connection and try again."
+          actions={[{ label: 'Retry', onClick: load, primary: true }]}
         />
       </section>
     );

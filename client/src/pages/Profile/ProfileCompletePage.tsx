@@ -54,11 +54,11 @@ export function ProfileCompletePage() {
   }, [profile?.id, profile?.updatedAt]);
 
   useEffect(() => {
-    if (loading || !profile || !isWelcome) return;
+    if (loading || !profile) return;
     if (isProfileSubstantiallyComplete(profile)) {
       navigate('/profile', { replace: true });
     }
-  }, [loading, profile, isWelcome, navigate]);
+  }, [loading, profile, navigate]);
 
   const stepIndex = STEPS.indexOf(step);
   const percent = useMemo(() => getProfileCompletionPercent(profile), [profile]);

@@ -1,4 +1,4 @@
-import type { ApplicationStatus, JobCategory, JobLevel } from './enums';
+import type { ApplicationStatus, CandidateTrustLevel, JobCategory, JobLevel } from './enums';
 import type { Job } from './job';
 
 export interface PortalStats {
@@ -23,6 +23,7 @@ export interface PortalApplication {
   applicantProfileImageUrl?: string;
   reapplicationCount: number;
   applicationNumber: number;
+  candidateTrustLevel: CandidateTrustLevel;
 }
 
 export interface PortalUpdateCompanyRequest {

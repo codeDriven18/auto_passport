@@ -30,4 +30,5 @@ public interface IUserProfileService
     Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken = default);
     Task<ProfileCompletenessDto> CheckCompletenessAsync(Guid id, CancellationToken cancellationToken = default);
     Task<UserProfileDto> EnsureForUserAsync(Guid userId, string email, CancellationToken cancellationToken = default);
+    Task<PublicProfileDto?> GetPublicShareAsync(Guid id, CancellationToken cancellationToken = default);
 }

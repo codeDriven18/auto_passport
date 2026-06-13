@@ -345,6 +345,10 @@ namespace SwipeJobs.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<string>("AiGeneratedImageUrl")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
                     b.Property<int>("Category")
                         .HasColumnType("integer");
 
@@ -355,6 +359,10 @@ namespace SwipeJobs.Infrastructure.Migrations
                     b.Property<Guid>("CompanyId")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("ContentFingerprint")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -364,6 +372,10 @@ namespace SwipeJobs.Infrastructure.Migrations
 
                     b.Property<DateTime?>("ExpiresAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ExternalSourceKey")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
 
                     b.Property<string>("ExternalUrl")
                         .HasMaxLength(1000)
@@ -377,6 +389,10 @@ namespace SwipeJobs.Infrastructure.Migrations
 
                     b.Property<bool>("IsRemote")
                         .HasColumnType("boolean");
+
+                    b.Property<string>("JobImageUrl")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
 
                     b.Property<int>("Level")
                         .HasColumnType("integer");
@@ -412,11 +428,13 @@ namespace SwipeJobs.Infrastructure.Migrations
 
                     b.HasIndex("CompanyId");
 
+                    b.HasIndex("ContentFingerprint");
+
                     b.HasIndex("CreatedAt");
 
                     b.HasIndex("IsActive");
 
-                    b.HasIndex("SourceId");
+                    b.HasIndex("SourceId", "ExternalSourceKey");
 
                     b.ToTable("Jobs");
                 });
@@ -596,10 +614,19 @@ namespace SwipeJobs.Infrastructure.Migrations
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
 
+                    b.Property<string>("LogoUrl")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
+
+                    b.Property<int>("TrustScore")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(50);
 
                     b.Property<int>("Type")
                         .HasColumnType("integer");

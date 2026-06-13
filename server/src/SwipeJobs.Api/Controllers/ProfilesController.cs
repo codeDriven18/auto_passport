@@ -26,6 +26,14 @@ public class ProfilesController : ControllerBase
         _logger = logger;
     }
 
+    [AllowAnonymous]
+    [HttpGet("public/{id:guid}")]
+    public async Task<IActionResult> GetPublic(Guid id, CancellationToken cancellationToken)
+    {
+        var profile = await _profileService.GetPublicShareAsync(id, cancellationToken);
+        return profile is null ? NotFound() : Ok(profile);
+    }
+
     [Authorize]
     [HttpGet("me")]
     public async Task<IActionResult> GetMe(CancellationToken cancellationToken)

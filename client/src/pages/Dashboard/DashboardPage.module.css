@@ -90,6 +90,15 @@
   transform: translateY(-2px);
 }
 
+.heroCtaInline {
+  display: inline-flex;
+  align-items: center;
+  margin-top: var(--space-2);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-bold);
+  color: var(--color-accent);
+}
+
 .heroCtaTitle {
   font-size: var(--text-xl);
   font-weight: var(--weight-extrabold);

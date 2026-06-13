@@ -1,4 +1,13 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { JobShareMenu } from '@/components/jobs/JobShareMenu';
+import { JobHeroImage } from '@/components/jobs/JobHeroImage';
+import { SourceBadge } from '@/components/jobs/SourceBadge';
+import { CompanyIdentityStrip } from '@/components/jobs/CompanyIdentityStrip';
+import { resolveJobImage } from '@/lib/resolveJobImage';
+import { getJobCanonicalUrl, resolveShareImageUrl } from '@/lib/shareUrls';
+import { getFriendlyErrorMessage } from '@/lib/friendlyError';
+import { usePageMeta } from '@/hooks/usePageMeta';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { useNavigate, useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/context/AuthContext';
@@ -35,9 +44,11 @@ export function JobDetailPage() {
   const [saved, setSaved] = useState(false);
   const [latestApplication, setLatestApplication] = useState<JobApplication | null>(null);
   const [loading, setLoading] = useState(true);
+  const [fetchFailed, setFetchFailed] = useState(false);
   const [applying, setApplying] = useState(false);
   const [actionMsg, setActionMsg] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [shareOpen, setShareOpen] = useState(false);
 
   const canReapply = canReapplyToJob(latestApplication ?? undefined);
   const isBlocked = blocksNewApplication(latestApplication ?? undefined);
@@ -46,7 +57,15 @@ export function JobDetailPage() {
 
   useEffect(() => {
     if (!id) return;
-    jobsApi.getById(id).then(setJob).finally(() => setLoading(false));
+    setLoading(true);
+    setFetchFailed(false);
+    jobsApi.getById(id)
+      .then(setJob)
+      .catch(() => {
+        setJob(null);
+        setFetchFailed(true);
+      })
+      .finally(() => setLoading(false));
   }, [id]);
 
   useEffect(() => {
@@ -83,7 +102,7 @@ export function JobDetailPage() {
         setActionMsg('Saved to your list');
       }
     } catch (e) {
-      setActionError(e instanceof Error ? e.message : 'Failed to save');
+      setActionError(getFriendlyErrorMessage(e, 'Failed to save'));
     }
   };
 
@@ -107,7 +126,7 @@ export function JobDetailPage() {
         }
         return;
       }
-      setActionError(e instanceof Error ? e.message : 'Apply failed');
+      setActionError(getFriendlyErrorMessage(e, 'Apply failed'));
     } finally {
       setApplying(false);
     }
@@ -120,6 +139,21 @@ export function JobDetailPage() {
     return 'Quick Apply';
   };
 
+  const heroImage = useMemo(() => (job ? resolveJobImage(job) : null), [job]);
+
+  const pageMeta = useMemo(() => {
+    if (!job || !id) return null;
+    const salary = formatSalary(job.salaryMin, job.salaryMax, job.category, job.externalUrl);
+    return {
+      title: `${job.title} at ${job.company} · SwipeJobs`,
+      description: [salary, job.city ?? job.location, job.company].filter(Boolean).join(' · '),
+      image: resolveShareImageUrl(job.jobImageUrl ?? job.aiGeneratedImageUrl ?? heroImage?.url),
+      url: getJobCanonicalUrl(id),
+    };
+  }, [job, id, heroImage?.url]);
+
+  usePageMeta(pageMeta);
+
   if (loading) {
     return (
       <section className={styles.page}>
@@ -128,10 +162,18 @@ export function JobDetailPage() {
     );
   }
 
-  if (!job) {
+  if (fetchFailed || !job) {
     return (
       <section className={styles.page}>
-        <p className={styles.status}>Job not found.</p>
+        <EmptyState
+          illustration="generic"
+          title="Job not found"
+          description="This listing may have been removed or is temporarily unavailable."
+          actions={[
+            { label: 'Browse jobs', to: '/jobs', primary: true },
+            { label: 'Go back', onClick: () => navigate(-1) },
+          ]}
+        />
       </section>
     );
   }
@@ -143,12 +185,29 @@ export function JobDetailPage() {
       </button>
 
       <header className={styles.hero}>
+        <div className={styles.heroBanner}>
+          {heroImage && (
+            <JobHeroImage
+              image={heroImage}
+              alt={`${job.title} at ${job.company}`}
+              className={styles.heroBannerImage}
+              priority
+            />
+          )}
+          <div className={styles.heroBannerMeta}>
+            <SourceBadge job={job} />
+          </div>
+        </div>
         <div className={styles.heroTop}>
           <CompanyLogo name={job.company} logoUrl={job.companyLogoUrl} size="lg" />
           <div className={styles.heroText}>
             <h1 className={styles.title}>{job.title}</h1>
             <CompanyLink name={job.company} slug={job.companySlug} className={styles.companyLink} />
           </div>
+        </div>
+
+        <div className={styles.companySection}>
+          <CompanyIdentityStrip job={job} variant="detail" />
         </div>
 
         <TrendingBadges badges={job.trendingBadges} />
@@ -206,6 +265,8 @@ export function JobDetailPage() {
         )}
       </article>
 
+      <JobShareMenu job={job} open={shareOpen} onClose={() => setShareOpen(false)} />
+
       <AnimatePresence>
         {actionMsg && (
           <motion.p
@@ -223,6 +284,17 @@ export function JobDetailPage() {
       <div className={styles.stickySpacer} aria-hidden />
 
       <footer className={styles.stickyBar}>
+        <motion.button
+          type="button"
+          className={styles.shareIcon}
+          onClick={() => setShareOpen(true)}
+          aria-label="Share job"
+          whileTap={{ scale: 1.1 }}
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+            <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8M16 6l-4-4-4 4M12 2v13" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </motion.button>
         <motion.button
           type="button"
           className={saved ? styles.saveIconActive : styles.saveIcon}

@@ -25,6 +25,36 @@ export enum SourceType {
   ExternalApi = 2,
 }
 
+export enum SourceTrustLevel {
+  Unknown = 0,
+  Community = 1,
+  Standard = 2,
+  Verified = 3,
+  Trusted = 4,
+}
+
+export const SourceTrustLevelLabels: Record<SourceTrustLevel, string> = {
+  [SourceTrustLevel.Unknown]: 'Unverified source',
+  [SourceTrustLevel.Community]: 'Community source',
+  [SourceTrustLevel.Standard]: 'Standard source',
+  [SourceTrustLevel.Verified]: 'Verified source',
+  [SourceTrustLevel.Trusted]: 'Trusted source',
+};
+
+export enum CandidateTrustLevel {
+  None = 0,
+  Verified = 1,
+  Strong = 2,
+  Complete = 3,
+}
+
+export const CandidateTrustLevelLabels: Record<CandidateTrustLevel, string> = {
+  [CandidateTrustLevel.None]: 'Unverified',
+  [CandidateTrustLevel.Verified]: 'Verified Candidate',
+  [CandidateTrustLevel.Strong]: 'Strong Candidate',
+  [CandidateTrustLevel.Complete]: 'Complete Candidate',
+};
+
 export const JobCategoryLabels: Record<JobCategory, string> = {
   [JobCategory.Gig]: 'Gig',
   [JobCategory.It]: 'IT',

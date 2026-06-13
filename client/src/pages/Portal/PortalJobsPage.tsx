@@ -1,7 +1,10 @@
 import { useEffect, useState, type FormEvent } from 'react';
+import { Link } from 'react-router-dom';
 import { portalApi } from '@/api/portalApi';
 import { ApiError } from '@/api/client';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { useToast } from '@/context/ToastContext';
+import { getFriendlyErrorMessage } from '@/lib/friendlyError';
 import { JobCategory, JobLevel } from '@/models/enums';
 import { CompanyStatus, CompanyStatusLabels } from '@/models/operations';
 import type { PortalJob } from '@/models/portal';
@@ -28,7 +31,7 @@ function getCreateErrorMessage(error: unknown): string {
     }
     if (body.error) return body.error;
   }
-  return error instanceof Error ? error.message : 'Failed to create job';
+  return getFriendlyErrorMessage(error, 'Failed to save job');
 }
 
 export function PortalJobsPage() {
@@ -36,6 +39,7 @@ export function PortalJobsPage() {
   const [jobs, setJobs] = useState<PortalJob[]>([]);
   const [companyStatus, setCompanyStatus] = useState<CompanyStatus | null>(null);
   const [loading, setLoading] = useState(true);
+  const [failed, setFailed] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
@@ -44,6 +48,7 @@ export function PortalJobsPage() {
 
   const load = () => {
     setLoading(true);
+    setFailed(false);
     Promise.all([
       portalApi.getJobs(),
       portalApi.getStats(),
@@ -55,6 +60,7 @@ export function PortalJobsPage() {
       .catch(() => {
         setJobs([]);
         setCompanyStatus(null);
+        setFailed(true);
       })
       .finally(() => setLoading(false));
   };
@@ -236,9 +242,21 @@ export function PortalJobsPage() {
       )}
 
       {loading ? (
-        <p className={styles.status}>Loading jobs...</p>
+        <p className={styles.status}>Loading jobs…</p>
+      ) : failed ? (
+        <EmptyState
+          illustration="generic"
+          title="Could not load jobs"
+          description="Check your connection and try again."
+          actions={[{ label: 'Retry', onClick: load, primary: true }]}
+        />
       ) : jobs.length === 0 ? (
-        <p className={styles.status}>No jobs yet. Post your first listing.</p>
+        <EmptyState
+          illustration="generic"
+          title="No jobs yet"
+          description={canPublish ? 'Post your first listing to start receiving applicants.' : 'Jobs can be created once your company is approved.'}
+          actions={canPublish ? [{ label: 'Post new job', onClick: openCreate, primary: true }] : []}
+        />
       ) : (
         <div className={styles.list}>
           {jobs.map((job) => (
@@ -257,6 +275,7 @@ export function PortalJobsPage() {
               <p className={styles.cardMeta}>{job.description.slice(0, 140)}{job.description.length > 140 ? '…' : ''}</p>
               <div className={styles.actions}>
                 <button type="button" className={styles.btn} onClick={() => openEdit(job)}>Edit</button>
+                <Link to={`/portal/applications?jobId=${job.id}`} className={styles.btn}>Applicants</Link>
                 {job.isActive && (
                   <button type="button" className={styles.btnDanger} onClick={() => void handleArchive(job.id)}>
                     Archive

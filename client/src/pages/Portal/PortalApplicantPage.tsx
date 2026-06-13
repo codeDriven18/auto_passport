@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { portalApi } from '@/api/portalApi';
+import { CandidateTrustBadge } from '@/components/portal/CandidateTrustBadge';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { UserAvatar } from '@/components/profile/UserAvatar';
 import { ApplicationStatus, ApplicationStatusLabels } from '@/models/enums';
 import type { PortalApplicantDetail } from '@/models/portalApplicant';
@@ -76,8 +78,15 @@ export function PortalApplicantPage() {
   if (!applicant) {
     return (
       <section className={styles.page}>
-        <p className={styles.status}>{error ?? 'Applicant not found.'}</p>
-        <Link to="/portal/applications" className={styles.btn}>Back to applications</Link>
+        <EmptyState
+          illustration="applications"
+          title="Applicant not found"
+          description={error ?? 'This application may have been removed.'}
+          actions={[
+            { label: 'Try again', onClick: () => void loadApplicant(), primary: true },
+            { label: 'Back to applications', to: '/portal/applications' },
+          ]}
+        />
       </section>
     );
   }
@@ -89,6 +98,10 @@ export function PortalApplicantPage() {
       <header className={styles.header}>
         <Link to="/portal/applications" className={styles.btn}>← Applications</Link>
         <h1 className={styles.title}>{fullName}</h1>
+        <CandidateTrustBadge
+          level={applicant.candidateTrustLevel}
+          signals={applicant.candidateTrustSignals}
+        />
         <p className={styles.subtitle}>
           Application #{applicant.applicationNumber} · Applied for {applicant.jobTitle} on {new Date(applicant.appliedAt).toLocaleDateString()}
         </p>

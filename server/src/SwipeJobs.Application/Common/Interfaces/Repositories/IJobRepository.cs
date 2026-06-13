@@ -14,4 +14,6 @@ public interface IJobRepository : IRepository<Job>
     Task<IReadOnlyList<Job>> GetAllWithDetailsAsync(CancellationToken cancellationToken = default);
     Task<IReadOnlyList<Job>> GetByCompanyIdAsync(Guid companyId, CancellationToken cancellationToken = default);
     Task SetTagsAsync(Guid jobId, IReadOnlyList<Guid> tagIds, CancellationToken cancellationToken = default);
+    Task<Job?> FindByContentFingerprintAsync(string fingerprint, CancellationToken cancellationToken = default);
+    Task<Job?> FindByExternalSourceKeyAsync(Guid sourceId, string externalSourceKey, CancellationToken cancellationToken = default);
 }

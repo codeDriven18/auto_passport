@@ -1,7 +1,9 @@
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { useMemo } from 'react';
 import type { Job } from '@/models/job';
-import { CompanyLogo } from '@/components/jobs/CompanyLogo';
+import { JobHeroImage } from '@/components/jobs/JobHeroImage';
+import { resolveJobImage } from '@/lib/resolveJobImage';
 import { formatSalary } from '@/lib/jobFormat';
 import { getMatchScore } from '@/lib/jobMatch';
 import styles from './DiscoveryRail.module.css';
@@ -13,6 +15,8 @@ interface DiscoveryJobCardProps {
 }
 
 export function DiscoveryJobCard({ job, index = 0, onClick }: DiscoveryJobCardProps) {
+  const heroImage = useMemo(() => resolveJobImage(job), [job]);
+
   return (
     <motion.article
       className={styles.card}
@@ -25,7 +29,9 @@ export function DiscoveryJobCard({ job, index = 0, onClick }: DiscoveryJobCardPr
       transition={{ duration: 0.3, delay: index * 0.04, ease: [0.22, 1, 0.36, 1] }}
       whileTap={{ scale: 0.98 }}
     >
-      <CompanyLogo name={job.company} logoUrl={job.companyLogoUrl} size="sm" />
+      <div className={styles.hero}>
+        <JobHeroImage image={heroImage} alt={job.title} className={styles.heroImage} />
+      </div>
       <div className={styles.body}>
         <span className={styles.title}>{job.title}</span>
         <span className={styles.company}>{job.company}</span>

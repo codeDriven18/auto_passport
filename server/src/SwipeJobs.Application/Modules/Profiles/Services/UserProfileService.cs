@@ -79,6 +79,24 @@ public class UserProfileService : IUserProfileService
         return profile is null ? null : ProfileMapper.ToDto(profile);
     }
 
+    public async Task<PublicProfileDto?> GetPublicShareAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        var profile = await _profileRepository.GetByIdWithDetailsAsync(id, cancellationToken);
+        if (profile is null) return null;
+
+        return new PublicProfileDto(
+            profile.Id,
+            profile.FirstName,
+            profile.LastName,
+            profile.Headline,
+            profile.Location,
+            profile.ProfileImageUrl,
+            profile.Skills.Select(s => s.Name).Take(8).ToList(),
+            !string.IsNullOrWhiteSpace(profile.LinkedInUrl),
+            !string.IsNullOrWhiteSpace(profile.GitHubUrl),
+            !string.IsNullOrWhiteSpace(profile.WebsiteUrl));
+    }
+
     public async Task<UserProfileDto> CreateAsync(CreateUserProfileDto dto, CancellationToken cancellationToken = default)
     {
         var existing = dto.ExternalUserId is not null

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { portalApi } from '@/api/portalApi';
+import { EmptyState } from '@/components/ui/EmptyState';
 import type { PortalStats } from '@/models/portal';
 import { CompanyStatus, CompanyStatusLabels } from '@/models/operations';
 import styles from './PortalPage.module.css';
@@ -8,16 +9,38 @@ import styles from './PortalPage.module.css';
 export function PortalDashboardPage() {
   const [stats, setStats] = useState<PortalStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [failed, setFailed] = useState(false);
 
-  useEffect(() => {
+  const load = () => {
+    setLoading(true);
+    setFailed(false);
     portalApi.getStats()
       .then(setStats)
-      .catch(() => setStats(null))
+      .catch(() => {
+        setStats(null);
+        setFailed(true);
+      })
       .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    load();
   }, []);
 
-  if (loading) return <p className={styles.status}>Loading portal stats...</p>;
-  if (!stats) return <p className={styles.error}>Failed to load portal stats.</p>;
+  if (loading) return <p className={styles.status}>Loading portal…</p>;
+
+  if (failed || !stats) {
+    return (
+      <section className={styles.page}>
+        <EmptyState
+          illustration="generic"
+          title="Could not load portal"
+          description="Check your connection and try again."
+          actions={[{ label: 'Retry', onClick: load, primary: true }]}
+        />
+      </section>
+    );
+  }
 
   const isApproved = stats.companyStatus === CompanyStatus.Approved;
   const cards = [

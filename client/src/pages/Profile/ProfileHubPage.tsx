@@ -2,38 +2,27 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { applicationsApi } from '@/api/applicationsApi';
 import { savedJobsApi } from '@/api/savedJobsApi';
+import { ProfileShareMenu } from '@/components/profile/ProfileShareMenu';
 import { UserAvatar } from '@/components/profile/UserAvatar';
 import { ProfileSkeleton } from '@/components/ui/Skeleton';
 import { useProfile } from '@/hooks/useProfile';
-import { getProfileCompletionPercent, shouldShowMandatoryCompletionPrompts } from '@/lib/profileCompletion';
-import { getProfileSuggestions } from '@/lib/profileSuggestions';
+import { getProfileCompletionPercent, isProfileSubstantiallyComplete, shouldShowMandatoryCompletionPrompts } from '@/lib/profileCompletion';
+import { markProfileSubstantiallyComplete } from '@/lib/profileCompletionStorage';
+import { getVerificationSignals, isVerifiedCandidate } from '@/lib/verification';
 import { getProfileDisplayName } from '@/models/userProfile';
 import styles from './ProfilePage.module.css';
-
-interface HubCard {
-  to: string;
-  title: string;
-  description: string;
-  icon: string;
-}
-
-const MANAGE_CARDS: HubCard[] = [
-  { to: '/profile/details', title: 'Personal Information', description: 'Name, headline, about, location, photo', icon: '◎' },
-  { to: '/profile/resume', title: 'Resume', description: 'Upload or replace your CV', icon: '📄' },
-  { to: '/profile/skills', title: 'Skills', description: 'Technologies and strengths', icon: '⚡' },
-  { to: '/profile/experience', title: 'Experience', description: 'Work history and roles', icon: '💼' },
-  { to: '/profile/education', title: 'Education', description: 'Degrees and training', icon: '🎓' },
-  { to: '/profile/preferences', title: 'Preferences', description: 'Salary, locations, remote', icon: '🎯' },
-  { to: '/profile/notifications', title: 'Notifications', description: 'Email, push, job alerts', icon: '🔔' },
-  { to: '/profile/privacy', title: 'Privacy', description: 'Profile and contact visibility', icon: '🔒' },
-  { to: '/profile/app', title: 'App', description: 'Appearance, install, and updates', icon: '📱' },
-  { to: '/account', title: 'Account', description: 'Password and sign out', icon: '👤' },
-];
 
 export function ProfileHubPage() {
   const { profile, loading } = useProfile();
   const [applicationsCount, setApplicationsCount] = useState(0);
   const [savedCount, setSavedCount] = useState(0);
+  const [shareOpen, setShareOpen] = useState(false);
+
+  useEffect(() => {
+    if (profile && isProfileSubstantiallyComplete(profile)) {
+      markProfileSubstantiallyComplete();
+    }
+  }, [profile]);
 
   useEffect(() => {
     applicationsApi.getMine().then((a) => setApplicationsCount(a.length)).catch(() => setApplicationsCount(0));
@@ -41,7 +30,8 @@ export function ProfileHubPage() {
   }, []);
 
   const percent = useMemo(() => getProfileCompletionPercent(profile), [profile]);
-  const missingCount = useMemo(() => getProfileSuggestions(profile).length, [profile]);
+  const verified = useMemo(() => (profile ? isVerifiedCandidate(profile) : false), [profile]);
+  const signals = useMemo(() => (profile ? getVerificationSignals(profile) : []), [profile]);
 
   if (loading || !profile) {
     return (
@@ -51,7 +41,10 @@ export function ProfileHubPage() {
     );
   }
 
-  const displayName = getProfileDisplayName(profile) || 'Your account';
+  const displayName = getProfileDisplayName(profile) || 'Your profile';
+  const topSkills = profile.skills.slice(0, 8);
+  const topExperience = profile.experiences.slice(0, 3);
+  const topEducation = profile.educations.slice(0, 2);
 
   return (
     <section className={styles.page}>
@@ -61,67 +54,158 @@ export function ProfileHubPage() {
           <UserAvatar profile={profile} size="xl" className={styles.identityAvatar} />
         </div>
         <div className={styles.identityBody}>
-          <h1 className={styles.name}>{displayName}</h1>
+          <div className={styles.identityTitleRow}>
+            <h1 className={styles.name}>{displayName}</h1>
+            {verified && <span className={styles.verifiedBadge}>Verified Candidate</span>}
+            <button type="button" className={styles.shareBtn} onClick={() => setShareOpen(true)}>
+              Share
+            </button>
+          </div>
           <p className={styles.headline}>{profile.headline?.trim() || 'Add a professional headline'}</p>
           <p className={styles.meta}>
-            {profile.location?.trim() ? `📍 ${profile.location}` : 'Add your location'}
+            {profile.location?.trim() ? profile.location : 'Add your location'}
           </p>
+          <div className={styles.completionInline}>
+            <div className={styles.barTrack} aria-hidden>
+              <div className={styles.barFill} style={{ width: `${percent}%` }} />
+            </div>
+            <span className={styles.completionPct}>{percent}% complete</span>
+          </div>
         </div>
       </header>
 
       {shouldShowMandatoryCompletionPrompts(profile) && (
-        <aside className={styles.completionHubCard} aria-label="Profile completion">
-          <div className={styles.completionHubTop}>
-            <div>
-              <p className={styles.completionHubLabel}>Profile {percent}% complete</p>
-              {missingCount > 0 && (
-                <p className={styles.completionHubMissing}>
-                  {missingCount} item{missingCount !== 1 ? 's' : ''} remaining
-                </p>
-              )}
-            </div>
-            <div className={styles.barTrack} aria-hidden>
-              <div className={styles.barFill} style={{ width: `${percent}%` }} />
-            </div>
-          </div>
-          <Link to="/profile/complete" className={styles.completeProfileBtn}>
-            Complete profile
-          </Link>
-        </aside>
+        <Link to="/profile/complete" className={styles.completionHubCard}>
+          Complete your profile to unlock Quick Apply everywhere →
+        </Link>
       )}
 
-      <div className={styles.statsRow}>
-        <div className={styles.statCard}>
-          <span className={styles.statValue}>{percent}%</span>
-          <span className={styles.statLabel}>Complete</span>
-        </div>
-        <div className={styles.statCard}>
-          <span className={styles.statValue}>{applicationsCount}</span>
-          <span className={styles.statLabel}>Applications</span>
-        </div>
-        <div className={styles.statCard}>
-          <span className={styles.statValue}>{savedCount}</span>
-          <span className={styles.statLabel}>Saved jobs</span>
-        </div>
+      <div className={styles.quickLinksRow}>
+        <Link to="/applications" className={styles.quickLinkCard}>
+          <span className={styles.quickLinkValue}>{applicationsCount}</span>
+          <span className={styles.quickLinkLabel}>Applications</span>
+        </Link>
+        <Link to="/saved" className={styles.quickLinkCard}>
+          <span className={styles.quickLinkValue}>{savedCount}</span>
+          <span className={styles.quickLinkLabel}>Saved jobs</span>
+        </Link>
+        <Link to="/profile/resume" className={styles.quickLinkCard}>
+          <span className={styles.quickLinkValue}>{profile.resumeFileName ? '✓' : '—'}</span>
+          <span className={styles.quickLinkLabel}>Resume</span>
+        </Link>
       </div>
 
-      <section className={styles.hubSection}>
-        <h2 className={styles.hubSectionTitle}>Your profile</h2>
-        <p className={styles.hubSectionHint}>
-          Tap a section to update. Each area opens a focused page — no long forms.
+      <section className={styles.identitySection}>
+        <div className={styles.sectionHeader}>
+          <h2 className={styles.sectionTitle}>About me</h2>
+          <Link to="/profile/details" className={styles.sectionEdit}>Edit</Link>
+        </div>
+        <p className={profile.bio?.trim() ? `${styles.aboutText} copyable-content` : styles.placeholderText}>
+          {profile.bio?.trim() || 'Tell employers who you are and what you are looking for.'}
         </p>
-        <div className={styles.hubGrid}>
-          {MANAGE_CARDS.map((card) => (
-            <Link key={card.to} to={card.to} className={styles.hubCard}>
-              <span className={styles.hubCardIcon} aria-hidden>{card.icon}</span>
-              <div>
-                <span className={styles.hubCardTitle}>{card.title}</span>
-                <span className={styles.hubCardDesc}>{card.description}</span>
-              </div>
-            </Link>
+      </section>
+
+      <section className={styles.identitySection}>
+        <div className={styles.sectionHeader}>
+          <h2 className={styles.sectionTitle}>Verification</h2>
+        </div>
+        <ul className={styles.verificationList}>
+          {signals.map((signal) => (
+            <li key={signal.id} className={signal.met ? styles.verificationMet : styles.verificationPending}>
+              {signal.met ? '✓' : '○'} {signal.label}
+            </li>
           ))}
+        </ul>
+      </section>
+
+      {topSkills.length > 0 && (
+        <section className={styles.identitySection}>
+          <div className={styles.sectionHeader}>
+            <h2 className={styles.sectionTitle}>Skills</h2>
+            <Link to="/profile/skills" className={styles.sectionEdit}>Edit</Link>
+          </div>
+          <div className={styles.skillChips}>
+            {topSkills.map((skill) => (
+              <span key={skill.id ?? skill.name} className={styles.skillChip}>{skill.name}</span>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {topExperience.length > 0 && (
+        <section className={styles.identitySection}>
+          <div className={styles.sectionHeader}>
+            <h2 className={styles.sectionTitle}>Experience</h2>
+            <Link to="/profile/experience" className={styles.sectionEdit}>Edit</Link>
+          </div>
+          <ul className={styles.timeline}>
+            {topExperience.map((exp) => (
+              <li key={exp.id ?? `${exp.company}-${exp.title}`} className={styles.timelineItem}>
+                <span className={styles.timelineDot} aria-hidden />
+                <div>
+                  <strong>{exp.title}</strong>
+                  <p className={styles.timelineMeta}>{exp.company}</p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {topEducation.length > 0 && (
+        <section className={styles.identitySection}>
+          <div className={styles.sectionHeader}>
+            <h2 className={styles.sectionTitle}>Education</h2>
+            <Link to="/profile/education" className={styles.sectionEdit}>Edit</Link>
+          </div>
+          <ul className={styles.timeline}>
+            {topEducation.map((edu) => (
+              <li key={edu.id ?? `${edu.institution}-${edu.degree}`} className={styles.timelineItem}>
+                <span className={styles.timelineDot} aria-hidden />
+                <div>
+                  <strong>{edu.degree}</strong>
+                  <p className={styles.timelineMeta}>{edu.institution}</p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      <section className={styles.identitySection}>
+        <div className={styles.sectionHeader}>
+          <h2 className={styles.sectionTitle}>Links</h2>
+          <Link to="/profile/details" className={styles.sectionEdit}>Edit</Link>
+        </div>
+        <div className={styles.linkRow}>
+          {profile.linkedInUrl && (
+            <a href={profile.linkedInUrl} target="_blank" rel="noopener noreferrer" className={styles.linkPill}>LinkedIn</a>
+          )}
+          {profile.gitHubUrl && (
+            <a href={profile.gitHubUrl} target="_blank" rel="noopener noreferrer" className={styles.linkPill}>GitHub</a>
+          )}
+          {profile.websiteUrl && (
+            <a href={profile.websiteUrl} target="_blank" rel="noopener noreferrer" className={styles.linkPill}>Portfolio</a>
+          )}
+          {!profile.linkedInUrl && !profile.gitHubUrl && !profile.websiteUrl && (
+            <p className={styles.placeholderText}>Add LinkedIn, GitHub, or your portfolio.</p>
+          )}
         </div>
       </section>
+
+      <footer className={styles.profileSettingsFooter}>
+        <Link to="/profile/app" className={styles.settingsLink}>App settings & appearance</Link>
+        <Link to="/profile/notifications" className={styles.settingsLink}>Notifications</Link>
+        <Link to="/profile/privacy" className={styles.settingsLink}>Privacy</Link>
+        <Link to="/account" className={styles.settingsLink}>Account</Link>
+      </footer>
+
+      <ProfileShareMenu
+        profileId={profile.id}
+        displayName={displayName}
+        open={shareOpen}
+        onClose={() => setShareOpen(false)}
+      />
     </section>
   );
 }

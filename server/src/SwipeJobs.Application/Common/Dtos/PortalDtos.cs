@@ -22,6 +22,7 @@ public record PortalCreateJobDto(
     decimal? SalaryMax,
     DateTime? ExpiresAt,
     string? ExternalUrl,
+    string? JobImageUrl,
     IReadOnlyList<Guid>? TagIds);
 
 public record PortalUpdateJobDto(
@@ -37,6 +38,7 @@ public record PortalUpdateJobDto(
     decimal? SalaryMax,
     DateTime? ExpiresAt,
     string? ExternalUrl,
+    string? JobImageUrl,
     IReadOnlyList<Guid>? TagIds);
 
 public record PortalApplicationDto(
@@ -51,7 +53,8 @@ public record PortalApplicationDto(
     string? ApplicantPhone,
     string? ApplicantProfileImageUrl,
     int ReapplicationCount,
-    int ApplicationNumber);
+    int ApplicationNumber,
+    CandidateTrustLevel CandidateTrustLevel);
 
 public record PortalUpdateApplicationStatusDto(ApplicationStatus Status);
 
@@ -86,7 +89,9 @@ public record PortalApplicantDetailDto(
     IReadOnlyList<PortalApplicationSummaryDto> ApplicationHistory,
     IReadOnlyList<SkillDto> Skills,
     IReadOnlyList<ExperienceDto> Experiences,
-    IReadOnlyList<EducationDto> Educations);
+    IReadOnlyList<EducationDto> Educations,
+    CandidateTrustLevel CandidateTrustLevel,
+    int CandidateTrustSignals);
 
 public record PortalUpdateCompanyDto(
     string Description,

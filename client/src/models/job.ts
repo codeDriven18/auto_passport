@@ -1,4 +1,4 @@
-import type { JobCategory, JobLevel } from './enums';
+import type { JobCategory, JobLevel, SourceTrustLevel } from './enums';
 import type { Tag } from './tag';
 
 export interface Job {
@@ -9,6 +9,12 @@ export interface Job {
   company: string;
   companySlug?: string;
   companyLogoUrl?: string;
+  companyBannerUrl?: string;
+  companyWebsite?: string;
+  companyLinkedInUrl?: string;
+  companyIndustry?: string;
+  companySize?: string;
+  companyDescription?: string;
   location?: string;
   city?: string;
   category: JobCategory;
@@ -20,8 +26,13 @@ export interface Job {
   salaryMax?: number;
   expiresAt?: string;
   externalUrl?: string;
+  jobImageUrl?: string;
+  aiGeneratedImageUrl?: string;
   sourceId: string;
   sourceName?: string;
+  sourceLogoUrl?: string;
+  sourceTrustLevel?: SourceTrustLevel;
+  sourceTrustScore?: number;
   tags: Tag[];
   trendingBadges?: string[];
   createdAt: string;

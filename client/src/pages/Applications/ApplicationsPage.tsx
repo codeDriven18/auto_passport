@@ -18,12 +18,26 @@ export function ApplicationsPage() {
   const { profile } = useProfile();
   const [applications, setApplications] = useState<JobApplication[]>([]);
   const [loading, setLoading] = useState(true);
+  const [failed, setFailed] = useState(false);
   const navigate = useNavigate();
+
+  const load = () => {
+    if (authLoading || !isAuthenticated) return;
+    setLoading(true);
+    setFailed(false);
+    applicationsApi.getMine()
+      .then(setApplications)
+      .catch(() => {
+        setApplications([]);
+        setFailed(true);
+      })
+      .finally(() => setLoading(false));
+  };
 
   useEffect(() => {
     if (authLoading) return;
     if (!isAuthenticated) { setLoading(false); return; }
-    applicationsApi.getMine().then(setApplications).finally(() => setLoading(false));
+    load();
   }, [isAuthenticated, authLoading]);
 
   if (authLoading || loading) {
@@ -55,7 +69,14 @@ export function ApplicationsPage() {
   return (
     <section className={styles.page}>
       <PageHeader title="Applications" subtitle={`${applications.length} submission${applications.length !== 1 ? 's' : ''}`} />
-      {applications.length === 0 ? (
+      {failed ? (
+        <EmptyState
+          illustration="applications"
+          title="Could not load applications"
+          description="Check your connection and try again."
+          actions={[{ label: 'Retry', onClick: load, primary: true }]}
+        />
+      ) : applications.length === 0 ? (
         <EmptyState
           illustration="applications"
           title="Your next opportunity starts here"

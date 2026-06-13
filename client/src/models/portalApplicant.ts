@@ -1,4 +1,4 @@
-import type { ApplicationStatus } from './enums';
+import type { ApplicationStatus, CandidateTrustLevel } from './enums';
 import type { Education, Experience, Skill } from './userProfile';
 
 export interface ApplicationStatusHistoryEntry {
@@ -39,6 +39,8 @@ export interface PortalApplicantDetail {
   skills: Skill[];
   experiences: Experience[];
   educations: Education[];
+  candidateTrustLevel: CandidateTrustLevel;
+  candidateTrustSignals: number;
 }
 
 export interface PortalUpdateApplicationStatusRequest {

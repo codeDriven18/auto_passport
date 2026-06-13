@@ -175,19 +175,48 @@ public class DataSeeder : IDataSeeder
 
     private async Task<Source> EnsureSourceAsync(CancellationToken cancellationToken)
     {
-        var existing = await _context.Sources.FirstOrDefaultAsync(cancellationToken);
-        if (existing is not null) return existing;
-
-        var source = new Source
+        var catalog = new (string Name, SourceType Type, string? ExternalId, string LogoPath, int Trust)[]
         {
-            Name = "SwipeJobs Manual",
-            Type = SourceType.Manual,
-            IsActive = true,
+            ("SwipeJobs", SourceType.Manual, "swipejobs", "/sources/swipejobs.svg", 95),
+            ("Company Website", SourceType.Manual, "company-website", "/sources/company.svg", 85),
+            ("LinkedIn", SourceType.ExternalApi, "linkedin", "/sources/linkedin.svg", 80),
+            ("HeadHunter", SourceType.ExternalApi, "hh", "/sources/headhunter.svg", 75),
+            ("EPAM Careers", SourceType.ExternalApi, "epam", "/sources/epam.svg", 90),
+            ("Telegram Jobs", SourceType.Telegram, "telegram-jobs", "/sources/telegram.svg", 40),
         };
-        _context.Sources.Add(source);
+
+        Source? primary = null;
+        foreach (var entry in catalog)
+        {
+            var existing = await _context.Sources
+                .FirstOrDefaultAsync(s => s.ExternalIdentifier == entry.ExternalId, cancellationToken);
+
+            if (existing is null)
+            {
+                existing = new Source
+                {
+                    Name = entry.Name,
+                    Type = entry.Type,
+                    ExternalIdentifier = entry.ExternalId,
+                    LogoUrl = entry.LogoPath,
+                    TrustScore = entry.Trust,
+                    IsActive = true,
+                };
+                _context.Sources.Add(existing);
+            }
+            else
+            {
+                existing.Name = entry.Name;
+                existing.LogoUrl = entry.LogoPath;
+                existing.TrustScore = entry.Trust;
+            }
+
+            primary ??= existing;
+        }
+
         await _context.SaveChangesAsync(cancellationToken);
-        _logger.LogInformation("Seeded default job source.");
-        return source;
+        primary ??= await _context.Sources.FirstAsync(cancellationToken);
+        return primary;
     }
 
     private async Task<Dictionary<string, Tag>> EnsureTagsAsync(CancellationToken cancellationToken)

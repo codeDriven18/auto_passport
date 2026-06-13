@@ -7,6 +7,7 @@ export interface DiscoveryCollections {
   graduate: Job[];
   highSalary: Job[];
   trending: Job[];
+  recentlyAdded: Job[];
 }
 
 export function useDiscoveryCollections(enabled: boolean) {
@@ -15,6 +16,7 @@ export function useDiscoveryCollections(enabled: boolean) {
     graduate: [],
     highSalary: [],
     trending: [],
+    recentlyAdded: [],
   });
   const [loading, setLoading] = useState(true);
 
@@ -28,21 +30,23 @@ export function useDiscoveryCollections(enabled: boolean) {
     setLoading(true);
 
     Promise.all([
-      jobsApi.search({ isRemote: true, pageSize: 10, sortBy: 'createdAt', sortOrder: 'desc' }),
-      jobsApi.search({ pageSize: 10, sortBy: 'createdAt', sortOrder: 'desc' }),
-      jobsApi.search({ pageSize: 10, sortBy: 'salary', sortOrder: 'desc', salaryMin: 1 }),
-      jobsApi.search({ pageSize: 10, sortBy: 'createdAt', sortOrder: 'desc' }),
+      jobsApi.search({ isRemote: true, pageSize: 12, sortBy: 'createdAt', sortOrder: 'desc' }),
+      jobsApi.search({ pageSize: 20, sortBy: 'createdAt', sortOrder: 'desc' }),
+      jobsApi.search({ pageSize: 12, sortBy: 'salary', sortOrder: 'desc', salaryMin: 1 }),
+      jobsApi.search({ pageSize: 12, sortBy: 'createdAt', sortOrder: 'desc' }),
+      jobsApi.search({ pageSize: 12, sortBy: 'createdAt', sortOrder: 'desc' }),
     ])
-      .then(([remote, all, highSalary, trending]) => {
+      .then(([remote, all, highSalary, trendingPool, recent]) => {
         if (cancelled) return;
         const graduate = all.items.filter(
           (j) => j.level === 1 || j.level === 2,
         );
         setCollections({
           remote: remote.items,
-          graduate,
+          graduate: graduate.slice(0, 12),
           highSalary: highSalary.items,
-          trending: trending.items.filter((j) => (j.trendingBadges?.length ?? 0) > 0).slice(0, 10),
+          trending: trendingPool.items.filter((j) => (j.trendingBadges?.length ?? 0) > 0).slice(0, 12),
+          recentlyAdded: recent.items,
         });
       })
       .catch(() => {})

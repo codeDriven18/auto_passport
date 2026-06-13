@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using SwipeJobs.Application.Modules.Ingestion.Services;
 using SwipeJobs.Application.Modules.Admin.Interfaces;
 using SwipeJobs.Application.Modules.Admin.Services;
 using SwipeJobs.Application.Modules.Applications.Interfaces;
@@ -44,6 +45,7 @@ public static class DependencyInjection
         services.AddScoped<ISavedJobService, SavedJobService>();
         services.AddScoped<ITagService, TagService>();
         services.AddScoped<ISourceService, SourceService>();
+        services.AddScoped<JobIngestionService>();
 
         return services;
     }

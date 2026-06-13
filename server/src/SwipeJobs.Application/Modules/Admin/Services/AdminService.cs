@@ -140,6 +140,8 @@ public class AdminService : IAdminService
             dto.SalaryMax,
             null,
             null,
+            null,
+            null,
             source.Id,
             null), cancellationToken);
 
@@ -173,6 +175,8 @@ public class AdminService : IAdminService
             dto.IsActive,
             dto.SalaryMin,
             dto.SalaryMax,
+            null,
+            null,
             null,
             null,
             source.Id,

@@ -119,6 +119,17 @@ public class JobRepository : Repository<Job>, IJobRepository
         }
     }
 
+    public Task<Job?> FindByContentFingerprintAsync(string fingerprint, CancellationToken cancellationToken = default) =>
+        BuildQuery()
+            .FirstOrDefaultAsync(j => j.ContentFingerprint == fingerprint, cancellationToken);
+
+    public Task<Job?> FindByExternalSourceKeyAsync(
+        Guid sourceId, string externalSourceKey, CancellationToken cancellationToken = default) =>
+        BuildQuery()
+            .FirstOrDefaultAsync(
+                j => j.SourceId == sourceId && j.ExternalSourceKey == externalSourceKey,
+                cancellationToken);
+
     private IQueryable<Job> BuildQuery() =>
         DbSet
             .AsNoTracking()

@@ -106,9 +106,12 @@ public class CompanyPortalService : ICompanyPortalService
             SalaryMax = dto.SalaryMax,
             ExpiresAt = dto.ExpiresAt,
             ExternalUrl = dto.ExternalUrl,
+            JobImageUrl = dto.JobImageUrl,
             SourceId = source.Id,
             IsActive = true,
             IsArchived = false,
+            ContentFingerprint = JobContentFingerprint.Compute(
+                dto.Title.Trim(), companyId, dto.City, source.Id, dto.ExternalUrl),
         };
 
         await _jobRepository.AddAsync(job, cancellationToken);
@@ -152,6 +155,9 @@ public class CompanyPortalService : ICompanyPortalService
         job.SalaryMax = dto.SalaryMax;
         job.ExpiresAt = dto.ExpiresAt;
         job.ExternalUrl = dto.ExternalUrl;
+        job.JobImageUrl = dto.JobImageUrl;
+        job.ContentFingerprint = JobContentFingerprint.Compute(
+            dto.Title.Trim(), companyId, dto.City, job.SourceId, dto.ExternalUrl);
 
         await _jobRepository.UpdateAsync(job, cancellationToken);
         if (dto.TagIds is not null)
@@ -247,7 +253,9 @@ public class CompanyPortalService : ICompanyPortalService
             profile.Experiences.Select(e => new ExperienceDto(
                 e.Id, e.Company, e.Title, e.Description, e.StartDate, e.EndDate, e.IsCurrent)).ToList(),
             profile.Educations.Select(e => new EducationDto(
-                e.Id, e.Institution, e.Degree, e.FieldOfStudy, e.StartDate, e.EndDate, e.IsCurrent)).ToList());
+                e.Id, e.Institution, e.Degree, e.FieldOfStudy, e.StartDate, e.EndDate, e.IsCurrent)).ToList(),
+            CandidateTrustCalculator.Compute(profile),
+            CandidateTrustCalculator.CountSignals(profile));
     }
 
     public async Task<PortalApplicationDto?> UpdateApplicationStatusAsync(
@@ -343,17 +351,26 @@ public class CompanyPortalService : ICompanyPortalService
         return CompanyMapper.ToDto(company, openJobs);
     }
 
-    private static PortalApplicationDto ToPortalApplicationDto(Domain.Entities.Application a) => new(
-        a.Id,
-        a.Status,
-        a.AppliedAt,
-        a.JobId,
-        a.Job?.Title ?? "Job",
-        a.UserProfileId,
-        $"{a.UserProfile?.FirstName} {a.UserProfile?.LastName}".Trim(),
-        a.UserProfile?.Email ?? string.Empty,
-        a.UserProfile?.Phone,
-        a.UserProfile?.ProfileImageUrl,
-        a.ReapplicationCount,
-        ApplicationWorkflow.ToApplicationNumber(a.ReapplicationCount));
+    private static PortalApplicationDto ToPortalApplicationDto(Domain.Entities.Application a)
+    {
+        var profile = a.UserProfile;
+        var trust = profile is null
+            ? CandidateTrustLevel.None
+            : CandidateTrustCalculator.Compute(profile);
+
+        return new PortalApplicationDto(
+            a.Id,
+            a.Status,
+            a.AppliedAt,
+            a.JobId,
+            a.Job?.Title ?? "Job",
+            a.UserProfileId,
+            $"{profile?.FirstName} {profile?.LastName}".Trim(),
+            profile?.Email ?? string.Empty,
+            profile?.Phone,
+            profile?.ProfileImageUrl,
+            a.ReapplicationCount,
+            ApplicationWorkflow.ToApplicationNumber(a.ReapplicationCount),
+            trust);
+    }
 }

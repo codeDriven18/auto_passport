@@ -27,3 +27,9 @@ export function blocksNewApplication(latest: JobApplication | undefined): boolea
   if (!latest) return false;
   return !canReapplyToJob(latest);
 }
+
+export function canWithdrawApplication(status: ApplicationStatus): boolean {
+  return status !== ApplicationStatus.Withdrawn
+    && status !== ApplicationStatus.Accepted
+    && status !== ApplicationStatus.Rejected;
+}

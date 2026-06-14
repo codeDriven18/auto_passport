@@ -61,9 +61,12 @@ export function ProfileHubPage() {
   }
 
   const displayName = getProfileDisplayName(profile) || 'Your profile';
-  const topSkills = profile.skills.slice(0, 8);
-  const topExperience = profile.experiences.slice(0, 3);
-  const topEducation = profile.educations.slice(0, 2);
+  const infoSummary = [
+    profile.bio?.trim() && 'About',
+    profile.experiences.length > 0 && `${profile.experiences.length} role${profile.experiences.length !== 1 ? 's' : ''}`,
+    profile.skills.length > 0 && `${profile.skills.length} skill${profile.skills.length !== 1 ? 's' : ''}`,
+    profile.educations.length > 0 && `${profile.educations.length} school${profile.educations.length !== 1 ? 's' : ''}`,
+  ].filter(Boolean).join(' · ');
 
   const handleLogout = async () => {
     await logout();
@@ -72,7 +75,11 @@ export function ProfileHubPage() {
 
   return (
     <section className={styles.page}>
-      <div className={styles.identityBanner} aria-hidden />
+      <div
+        className={styles.identityBanner}
+        style={profile.bannerUrl ? { backgroundImage: `url(${profile.bannerUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' } : undefined}
+        aria-hidden
+      />
       <header className={styles.identityCard}>
         <div className={styles.identityAvatarWrap}>
           <UserAvatar profile={profile} size="xl" className={styles.identityAvatar} />
@@ -89,6 +96,7 @@ export function ProfileHubPage() {
           <p className={styles.meta}>
             {profile.location?.trim() ? profile.location : 'Add your location'}
           </p>
+          <Link to="/profile/details" className={styles.identityDetailsLink}>Edit name & contact</Link>
         </div>
       </header>
 
@@ -115,53 +123,15 @@ export function ProfileHubPage() {
         </Link>
       </div>
 
-      <section className={styles.identitySection}>
-        <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>About me</h2>
-          <Link to="/profile/details" className={styles.sectionEdit}>Edit</Link>
+      <Link to="/profile/info" className={styles.infoEntryCard}>
+        <div className={styles.infoEntryText}>
+          <strong className={styles.infoEntryTitle}>Profile info</strong>
+          <span className={styles.infoEntrySub}>
+            {infoSummary || 'Photo, background, about, experience, skills, education'}
+          </span>
         </div>
-        <p className={profile.bio?.trim() ? `${styles.aboutText} copyable-content` : styles.placeholderText}>
-          {profile.bio?.trim() || 'Tell employers who you are and what you are looking for.'}
-        </p>
-      </section>
-
-      <section className={styles.identitySection}>
-        <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>Experience</h2>
-          <Link to="/profile/experience" className={styles.sectionEdit}>Edit</Link>
-        </div>
-        {topExperience.length > 0 ? (
-          <ul className={styles.timeline}>
-            {topExperience.map((exp) => (
-              <li key={exp.id ?? `${exp.company}-${exp.title}`} className={styles.timelineItem}>
-                <span className={styles.timelineDot} aria-hidden />
-                <div>
-                  <strong>{exp.title}</strong>
-                  <p className={styles.timelineMeta}>{exp.company}</p>
-                </div>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className={styles.placeholderText}>Add roles that show what you have accomplished.</p>
-        )}
-      </section>
-
-      <section className={styles.identitySection}>
-        <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>Skills</h2>
-          <Link to="/profile/skills" className={styles.sectionEdit}>Edit</Link>
-        </div>
-        {topSkills.length > 0 ? (
-          <div className={styles.skillChips}>
-            {topSkills.map((skill) => (
-              <span key={skill.id ?? skill.name} className={styles.skillChip}>{skill.name}</span>
-            ))}
-          </div>
-        ) : (
-          <p className={styles.placeholderText}>Highlight the skills employers search for.</p>
-        )}
-      </section>
+        <IconChevronRight size={20} className={styles.infoEntryIcon} aria-hidden />
+      </Link>
 
       <section className={styles.identitySection}>
         <div className={styles.sectionHeader}>
@@ -178,28 +148,6 @@ export function ProfileHubPage() {
           </div>
         ) : (
           <p className={styles.placeholderText}>Upload a resume to apply faster everywhere.</p>
-        )}
-      </section>
-
-      <section className={styles.identitySection}>
-        <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>Education</h2>
-          <Link to="/profile/education" className={styles.sectionEdit}>Edit</Link>
-        </div>
-        {topEducation.length > 0 ? (
-          <ul className={styles.timeline}>
-            {topEducation.map((edu) => (
-              <li key={edu.id ?? `${edu.institution}-${edu.degree}`} className={styles.timelineItem}>
-                <span className={styles.timelineDot} aria-hidden />
-                <div>
-                  <strong>{edu.degree}</strong>
-                  <p className={styles.timelineMeta}>{edu.institution}</p>
-                </div>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className={styles.placeholderText}>Add your education background.</p>
         )}
       </section>
 

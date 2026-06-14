@@ -22,8 +22,8 @@ interface AuthContextValue {
   user: StoredAuthUser | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (data: LoginRequest) => Promise<void>;
-  register: (data: RegisterRequest) => Promise<void>;
+  login: (data: LoginRequest) => Promise<StoredAuthUser>;
+  register: (data: RegisterRequest) => Promise<StoredAuthUser>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
 }
@@ -90,13 +90,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = useCallback(async (data: LoginRequest) => {
     const response = await authApi.login(data);
     applySession(response);
-    setUser(toStoredAuthUser(response.user));
+    const stored = toStoredAuthUser(response.user);
+    setUser(stored);
+    return stored;
   }, []);
 
   const register = useCallback(async (data: RegisterRequest) => {
     const response = await authApi.register(data);
     applySession(response);
-    setUser(toStoredAuthUser(response.user));
+    const stored = toStoredAuthUser(response.user);
+    setUser(stored);
+    return stored;
   }, []);
 
   const logout = useCallback(async () => {

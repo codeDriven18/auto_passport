@@ -149,6 +149,7 @@ public static class ProfileMapper
         profile.ResumeUploadedAt,
         profile.Location,
         profile.ProfileImageUrl,
+        profile.BannerUrl,
         profile.LinkedInUrl,
         profile.GitHubUrl,
         profile.WebsiteUrl,

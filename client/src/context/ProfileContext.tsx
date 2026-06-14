@@ -24,7 +24,7 @@ import { ApiError } from '@/api/client';
 
 import { profilesApi, removeProfileAvatar, uploadProfileAvatar } from '@/api/profilesApi';
 
-import { removeProfileResume, uploadProfileResume } from '@/api/profileUploadApi';
+import { removeProfileBanner, removeProfileResume, uploadProfileBanner, uploadProfileResume } from '@/api/profileUploadApi';
 
 import { useAuth } from '@/context/AuthContext';
 import { UserRole } from '@/models/auth';
@@ -61,6 +61,10 @@ interface ProfileContextValue {
   uploadAvatar: (file: File, onProgress?: (percent: number) => void) => Promise<UserProfile>;
 
   removeAvatar: () => Promise<UserProfile>;
+
+  uploadBanner: (file: File, onProgress?: (percent: number) => void) => Promise<UserProfile>;
+
+  removeBanner: () => Promise<UserProfile>;
 
   uploadResume: (file: File, onProgress?: (percent: number) => void) => Promise<UserProfile>;
 
@@ -301,6 +305,66 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
 
 
 
+  const uploadBannerFn = useCallback(async (file: File, onProgress?: (percent: number) => void) => {
+
+    setSaving(true);
+
+    setError(null);
+
+    try {
+
+      await uploadProfileBanner(file, onProgress);
+
+      return await refreshProfile();
+
+    } catch (e) {
+
+      const message = e instanceof Error ? e.message : 'Failed to upload background';
+
+      setError(message);
+
+      throw e;
+
+    } finally {
+
+      setSaving(false);
+
+    }
+
+  }, [refreshProfile]);
+
+
+
+  const removeBannerFn = useCallback(async () => {
+
+    setSaving(true);
+
+    setError(null);
+
+    try {
+
+      await removeProfileBanner();
+
+      return await refreshProfile();
+
+    } catch (e) {
+
+      const message = e instanceof Error ? e.message : 'Failed to remove background';
+
+      setError(message);
+
+      throw e;
+
+    } finally {
+
+      setSaving(false);
+
+    }
+
+  }, [refreshProfile]);
+
+
+
   const uploadResumeFn = useCallback(async (file: File, onProgress?: (percent: number) => void) => {
 
     setSaving(true);
@@ -381,13 +445,17 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
 
       removeAvatar: removeAvatarFn,
 
+      uploadBanner: uploadBannerFn,
+
+      removeBanner: removeBannerFn,
+
       uploadResume: uploadResumeFn,
 
       removeResume: removeResumeFn,
 
     }),
 
-    [profile, authLoading, loading, saving, error, load, updateProfile, uploadAvatar, removeAvatarFn, uploadResumeFn, removeResumeFn],
+    [profile, authLoading, loading, saving, error, load, updateProfile, uploadAvatar, removeAvatarFn, uploadBannerFn, removeBannerFn, uploadResumeFn, removeResumeFn],
 
   );
 

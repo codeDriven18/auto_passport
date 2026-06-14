@@ -24,6 +24,7 @@ export class ApiError extends Error {
 interface RequestOptions extends Omit<RequestInit, 'body'> {
   body?: unknown;
   skipAuth?: boolean;
+  timeoutMs?: number;
 }
 
 let refreshPromise: Promise<boolean> | null = null;
@@ -107,9 +108,10 @@ export async function apiClient<T>(
   endpoint: string,
   options: RequestOptions = {},
 ): Promise<T> {
-  const { body, headers, skipAuth, ...rest } = options;
+  const { body, headers, skipAuth, timeoutMs, ...rest } = options;
 
   const url = `${API_CONFIG.baseUrl}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
+  const requestTimeout = timeoutMs ?? API_CONFIG.timeout;
 
   const buildHeaders = (): Record<string, string> => {
     const next: Record<string, string> = {
@@ -128,7 +130,7 @@ export async function apiClient<T>(
       ...rest,
       headers: buildHeaders(),
       body: body !== undefined ? JSON.stringify(body) : undefined,
-      signal: AbortSignal.timeout(API_CONFIG.timeout),
+      signal: AbortSignal.timeout(requestTimeout),
     });
 
   let response = await execute();
@@ -138,6 +140,12 @@ export async function apiClient<T>(
     if (refreshed) {
       response = await execute();
     }
+  }
+
+  if (response.status === 403 && !skipAuth) {
+    const errorText = await response.text();
+    const errorBody = parseResponseBody(errorText);
+    throw new ApiError('Forbidden', 403, errorBody);
   }
 
   if (!response.ok) {

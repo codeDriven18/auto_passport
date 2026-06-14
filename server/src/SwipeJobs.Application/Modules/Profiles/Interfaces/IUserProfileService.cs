@@ -17,6 +17,13 @@ public interface IUserProfileService
         long contentLength,
         CancellationToken cancellationToken = default);
     Task<UserProfileDto?> RemoveAvatarAsync(Guid userId, CancellationToken cancellationToken = default);
+    Task<UserProfileDto?> UploadBannerAsync(
+        Guid userId,
+        Stream content,
+        string contentType,
+        long contentLength,
+        CancellationToken cancellationToken = default);
+    Task<UserProfileDto?> RemoveBannerAsync(Guid userId, CancellationToken cancellationToken = default);
     Task<UserProfileDto?> UploadResumeAsync(
         Guid userId,
         Stream content,

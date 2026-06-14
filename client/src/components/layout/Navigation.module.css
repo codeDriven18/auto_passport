@@ -89,11 +89,10 @@
 .label {
   position: relative;
   z-index: 1;
-  letter-spacing: 0.01em;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 100%;
+  letter-spacing: 0;
+  font-weight: var(--weight-medium);
+  line-height: 1.1;
+  text-align: center;
 }
 
 .navAvatar {

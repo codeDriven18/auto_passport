@@ -12,6 +12,7 @@ namespace SwipeJobs.Application.Modules.Profiles.Services;
 public class UserProfileService : IUserProfileService
 {
     private const int MaxAvatarBytes = 256 * 1024;
+    private const int MaxBannerBytes = 512 * 1024;
     private static readonly HashSet<string> AllowedAvatarTypes = new(StringComparer.OrdinalIgnoreCase)
     {
         "image/jpeg",
@@ -209,6 +210,58 @@ public class UserProfileService : IUserProfileService
         if (profile is null) return null;
 
         profile.ProfileImageUrl = null;
+        profile.UpdatedAt = DateTime.UtcNow;
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        var updated = await _profileRepository.GetByIdWithDetailsAsync(profile.Id, cancellationToken);
+        return ProfileMapper.ToDto(updated!);
+    }
+
+    public async Task<UserProfileDto?> UploadBannerAsync(
+        Guid userId,
+        Stream content,
+        string contentType,
+        long contentLength,
+        CancellationToken cancellationToken = default)
+    {
+        if (!AllowedAvatarTypes.Contains(contentType))
+            throw new InvalidOperationException("Unsupported image type. Use JPEG, PNG, WebP, or GIF.");
+
+        if (contentLength <= 0 || contentLength > MaxBannerBytes)
+            throw new InvalidOperationException($"Image must be between 1 byte and {MaxBannerBytes / 1024} KB.");
+
+        var profile = await _profileRepository.GetByUserIdForUpdateAsync(userId, cancellationToken)
+            ?? throw new KeyNotFoundException("Profile not found.");
+
+        using var ms = new MemoryStream();
+        await content.CopyToAsync(ms, cancellationToken);
+        var bytes = ms.ToArray();
+        if (bytes.Length > MaxBannerBytes)
+            throw new InvalidOperationException($"Image must be at most {MaxBannerBytes / 1024} KB.");
+
+        var base64 = Convert.ToBase64String(bytes);
+        profile.BannerUrl = $"data:{contentType};base64,{base64}";
+        profile.UpdatedAt = DateTime.UtcNow;
+
+        _logger.LogInformation(
+            "Profile banner uploaded userId={UserId} profileId={ProfileId} bytes={Bytes} contentType={ContentType}",
+            userId,
+            profile.Id,
+            bytes.Length,
+            contentType);
+
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        var updated = await _profileRepository.GetByIdWithDetailsAsync(profile.Id, cancellationToken);
+        return ProfileMapper.ToDto(updated!);
+    }
+
+    public async Task<UserProfileDto?> RemoveBannerAsync(Guid userId, CancellationToken cancellationToken = default)
+    {
+        var profile = await _profileRepository.GetByUserIdForUpdateAsync(userId, cancellationToken);
+        if (profile is null) return null;
+
+        profile.BannerUrl = null;
         profile.UpdatedAt = DateTime.UtcNow;
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 

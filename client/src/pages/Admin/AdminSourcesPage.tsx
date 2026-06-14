@@ -1,7 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { sourcesApi } from '@/api/sourcesApi';
-import type { AdminSource, CreateAdminSourceRequest, SourceConnectionTestResult } from '@/models/source';
+import type {
+  AdminSource,
+  CreateAdminSourceRequest,
+  SourceConnectionTestResult,
+  SourceIngestionLogEntry,
+} from '@/models/source';
 import { SourceTypeLabels } from '@/models/source';
 import { SourceTrustLevel, SourceTrustLevelLabels, SourceType } from '@/models/enums';
 import adminStyles from './AdminPage.module.css';
@@ -36,6 +41,9 @@ export function AdminSourcesPage() {
   const [form, setForm] = useState<CreateAdminSourceRequest>(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [testResult, setTestResult] = useState<SourceConnectionTestResult | null>(null);
+  const [logsOpenFor, setLogsOpenFor] = useState<AdminSource | null>(null);
+  const [logs, setLogs] = useState<SourceIngestionLogEntry[]>([]);
+  const [logsLoading, setLogsLoading] = useState(false);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -139,6 +147,18 @@ export function AdminSourcesPage() {
     }
   };
 
+  const handleViewLogs = async (source: AdminSource) => {
+    setLogsOpenFor(source);
+    setLogsLoading(true);
+    try {
+      setLogs(await sourcesApi.getLogs(source.id));
+    } catch {
+      setLogs([]);
+    } finally {
+      setLogsLoading(false);
+    }
+  };
+
   if (loading) return <p className={adminStyles.status}>Loading sources...</p>;
 
   return (
@@ -197,6 +217,15 @@ export function AdminSourcesPage() {
               </div>
             </div>
 
+            <div className={styles.diagnostics}>
+              <div><span>Last sync</span><strong>{source.lastSyncStatus ?? source.metrics.connectionStatus}</strong></div>
+              <div><span>Last success</span><strong>{source.lastSuccessfulIngestionAt ? new Date(source.lastSuccessfulIngestionAt).toLocaleString() : 'Never'}</strong></div>
+              <div><span>Last message ID</span><strong>{source.lastScannedTelegramMessageId ?? '—'}</strong></div>
+              {source.lastIngestionError && (
+                <div className={styles.errorLine}><span>Last error</span><strong>{source.lastIngestionError}</strong></div>
+              )}
+            </div>
+
             <div className={styles.metaRow}>
               <span>Trust: {trustLabel(source.trustLevel)} ({source.trustScore})</span>
               <span>
@@ -212,6 +241,7 @@ export function AdminSourcesPage() {
               <button type="button" className={adminStyles.btn} onClick={() => void handleToggle(source)}>
                 {source.ingestionEnabled ? 'Disable' : 'Enable'}
               </button>
+              <button type="button" className={adminStyles.btn} onClick={() => void handleViewLogs(source)}>View logs</button>
               <button type="button" className={adminStyles.btnDanger} onClick={() => void handleDelete(source)}>
                 Delete
               </button>
@@ -278,6 +308,30 @@ export function AdminSourcesPage() {
                 {saving ? 'Saving...' : 'Save source'}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {logsOpenFor && (
+        <div className={styles.modalBackdrop} role="presentation" onClick={() => setLogsOpenFor(null)}>
+          <div className={styles.modal} role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
+            <h3>Ingestion logs — {logsOpenFor.name}</h3>
+            {logsLoading ? (
+              <p className={styles.logHint}>Loading logs...</p>
+            ) : logs.length === 0 ? (
+              <p className={styles.logHint}>No ingestion logs yet.</p>
+            ) : (
+              <ul className={styles.logList}>
+                {logs.map((log) => (
+                  <li key={log.id} className={styles.logItem}>
+                    <span className={styles.logMeta}>{new Date(log.createdAt).toLocaleString()} · {log.stage} · {log.level}</span>
+                    <span>{log.message}</span>
+                    {log.details && <span className={styles.logDetails}>{log.details}</span>}
+                  </li>
+                ))}
+              </ul>
+            )}
+            <button type="button" className={adminStyles.btn} onClick={() => setLogsOpenFor(null)}>Close</button>
           </div>
         </div>
       )}

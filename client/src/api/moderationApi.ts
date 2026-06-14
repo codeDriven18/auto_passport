@@ -55,8 +55,8 @@ export const moderationApi = {
     rawMessageText: string;
     rawMediaUrls?: string[];
   }) =>
-    apiClient<{ candidate: JobCandidate; isDuplicate: boolean }>('/admin/moderation/ingest/telegram', {
-      method: 'POST',
-      body: data,
-    }),
+    apiClient<{ candidate: import('@/models/moderation').JobCandidate; isDuplicate: boolean }>(
+      '/admin/moderation/ingest/telegram',
+      { method: 'POST', body: data, timeoutMs: 60_000 },
+    ),
 };

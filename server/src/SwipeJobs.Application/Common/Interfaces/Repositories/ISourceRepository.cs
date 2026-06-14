@@ -9,4 +9,6 @@ public interface ISourceRepository : IRepository<Source>
     Task<Source?> GetFirstAsync(CancellationToken cancellationToken = default);
     Task<Source?> GetByExternalIdentifierAsync(string externalIdentifier, CancellationToken cancellationToken = default);
     Task<int> CountActiveIngestionEnabledAsync(CancellationToken cancellationToken = default);
+    Task<Source?> GetByChannelUrlAsync(string normalizedChannelUrl, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<SourceMetricsSnapshot>> GetMetricsSnapshotAsync(CancellationToken cancellationToken = default);
 }

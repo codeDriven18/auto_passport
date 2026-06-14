@@ -1,15 +1,11 @@
 import { IconChevronLeft, IconFile } from '@/components/icons/Icons';
 import { useCallback, useEffect, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
 import { ProfileAppPanel } from '@/components/profile/ProfileAppPanel';
-import { ProfileImageUpload } from '@/components/profile/ProfileImageUpload';
 import { ProfileSkeleton } from '@/components/ui/Skeleton';
 import { useToast } from '@/context/ToastContext';
 import { useProfile } from '@/hooks/useProfile';
 import {
-  emptyEducation,
-  emptyExperience,
-  emptySkill,
   formStateToPayload,
   profileToFormState,
   type ProfileFormState,
@@ -19,16 +15,15 @@ import type { ProfileVisibilityLevel, WorkArrangement } from '@/models/userProfi
 import styles from './ProfilePage.module.css';
 
 const SECTION_TITLES: Record<string, string> = {
-  details: 'Profile',
+  details: 'Basic details',
   resume: 'Resume',
-  skills: 'Skills',
-  experience: 'Experience',
-  education: 'Education',
   preferences: 'Job preferences',
   notifications: 'Notifications',
   privacy: 'Privacy',
   app: 'App',
 };
+
+const INFO_SECTIONS = new Set(['skills', 'experience', 'education']);
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -48,8 +43,6 @@ export function ProfileSectionPage() {
     loading,
     saving,
     updateProfile,
-    uploadAvatar,
-    removeAvatar,
     uploadResume,
     removeResume,
   } = useProfile();
@@ -84,7 +77,7 @@ export function ProfileSectionPage() {
     );
   }
 
-  if (!SECTION_TITLES[section]) {
+  if (!SECTION_TITLES[section] && !INFO_SECTIONS.has(section)) {
     return (
       <section className={styles.page}>
         <div className={styles.panel}>
@@ -93,6 +86,10 @@ export function ProfileSectionPage() {
         </div>
       </section>
     );
+  }
+
+  if (INFO_SECTIONS.has(section)) {
+    return <Navigate to="/profile/info" replace />;
   }
 
   const title = SECTION_TITLES[section];
@@ -109,20 +106,6 @@ export function ProfileSectionPage() {
       <div className={styles.panel}>
         {section === 'details' && (
           <>
-            <ProfileImageUpload
-              profile={profile}
-              uploading={saving}
-              uploadProgress={uploadProgress}
-              onUpload={async (file) => {
-                setUploadProgress(0);
-                await uploadAvatar(file, setUploadProgress);
-                showToast('Photo updated', 'success');
-              }}
-              onRemove={async () => {
-                await removeAvatar();
-                showToast('Photo removed', 'success');
-              }}
-            />
             <div className={styles.grid2}>
               <Field label="First name">
                 <input value={form.firstName} onChange={(e) => patchForm({ firstName: e.target.value })} />
@@ -140,9 +123,6 @@ export function ProfileSectionPage() {
             <Field label="Phone">
               <input value={form.phone} onChange={(e) => patchForm({ phone: e.target.value })} />
             </Field>
-            <Field label="About">
-              <textarea rows={5} value={form.bio} onChange={(e) => patchForm({ bio: e.target.value })} />
-            </Field>
             <Field label="LinkedIn">
               <input value={form.linkedInUrl} onChange={(e) => patchForm({ linkedInUrl: e.target.value })} />
             </Field>
@@ -153,7 +133,7 @@ export function ProfileSectionPage() {
               <input value={form.websiteUrl} onChange={(e) => patchForm({ websiteUrl: e.target.value })} />
             </Field>
             <button type="button" className={styles.saveBtn} disabled={saving} onClick={() => void save('Profile saved')}>
-              {saving ? 'Saving…' : 'Save profile'}
+              {saving ? 'Saving…' : 'Save details'}
             </button>
           </>
         )}
@@ -202,79 +182,6 @@ export function ProfileSectionPage() {
                 }
               }}>Remove resume</button>
             )}
-          </>
-        )}
-
-        {section === 'skills' && (
-          <>
-            {form.skills.map((sk, i) => (
-              <div key={i} className={styles.grid2}>
-                <input placeholder="Skill" value={sk.name} onChange={(e) => {
-                  const skills = [...form.skills];
-                  skills[i] = { ...sk, name: e.target.value };
-                  patchForm({ skills });
-                }} />
-                <input placeholder="Level" value={sk.level ?? ''} onChange={(e) => {
-                  const skills = [...form.skills];
-                  skills[i] = { ...sk, level: e.target.value };
-                  patchForm({ skills });
-                }} />
-              </div>
-            ))}
-            <button type="button" className={styles.ghostBtn} onClick={() => patchForm({ skills: [...form.skills, emptySkill()] })}>+ Add skill</button>
-            <button type="button" className={styles.saveBtn} disabled={saving} onClick={() => void save('Skills saved')}>{saving ? 'Saving…' : 'Save skills'}</button>
-          </>
-        )}
-
-        {section === 'experience' && (
-          <>
-            {form.experiences.map((ex, i) => (
-              <div key={i} className={styles.block}>
-                <input placeholder="Company" value={ex.company} onChange={(e) => {
-                  const experiences = [...form.experiences];
-                  experiences[i] = { ...ex, company: e.target.value };
-                  patchForm({ experiences });
-                }} />
-                <input placeholder="Title" value={ex.title} onChange={(e) => {
-                  const experiences = [...form.experiences];
-                  experiences[i] = { ...ex, title: e.target.value };
-                  patchForm({ experiences });
-                }} />
-                <textarea placeholder="Description" rows={2} value={ex.description ?? ''} onChange={(e) => {
-                  const experiences = [...form.experiences];
-                  experiences[i] = { ...ex, description: e.target.value };
-                  patchForm({ experiences });
-                }} />
-              </div>
-            ))}
-            <button type="button" className={styles.ghostBtn} onClick={() => patchForm({ experiences: [...form.experiences, emptyExperience()] })}>+ Add experience</button>
-            <button type="button" className={styles.saveBtn} disabled={saving} onClick={() => void save('Experience saved')}>{saving ? 'Saving…' : 'Save experience'}</button>
-          </>
-        )}
-
-        {section === 'education' && (
-          <>
-            {form.educations.map((ed, i) => (
-              <div key={i} className={styles.block}>
-                <input placeholder="Institution" value={ed.institution} onChange={(e) => {
-                  const educations = [...form.educations];
-                  educations[i] = { ...ed, institution: e.target.value };
-                  patchForm({ educations });
-                }} />
-                <input placeholder="Degree" value={ed.degree} onChange={(e) => {
-                  const educations = [...form.educations];
-                  educations[i] = { ...ed, degree: e.target.value };
-                  patchForm({ educations });
-                }} />
-                <input placeholder="Field of study" value={ed.fieldOfStudy ?? ''} onChange={(e) => {
-                  const educations = [...form.educations];
-                  educations[i] = { ...ed, fieldOfStudy: e.target.value };
-                  patchForm({ educations });
-                }} />
-              </div>
-            ))}
-            <button type="button" className={styles.ghostBtn} onClick={() => patchForm({ educations: [...form.educations, emptyEducation()] })}>+ Add education</button>
-            <button type="button" className={styles.saveBtn} disabled={saving} onClick={() => void save('Education saved')}>{saving ? 'Saving…' : 'Save education'}</button>
           </>
         )}
 

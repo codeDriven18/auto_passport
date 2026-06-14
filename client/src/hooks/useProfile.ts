@@ -15,6 +15,8 @@ export function useProfile() {
     updateProfile: ctx.updateProfile,
     uploadAvatar: ctx.uploadAvatar,
     removeAvatar: ctx.removeAvatar,
+    uploadBanner: ctx.uploadBanner,
+    removeBanner: ctx.removeBanner,
     uploadResume: ctx.uploadResume,
     removeResume: ctx.removeResume,
   };

@@ -17,9 +17,14 @@ public class Source : BaseEntity
     public bool IngestionEnabled { get; set; } = true;
     public SourceMonitorStatus MonitorStatus { get; set; } = SourceMonitorStatus.Active;
     public DateTime? SourceLastCheckedAt { get; set; }
+    public string? LastSyncStatus { get; set; }
+    public string? LastIngestionError { get; set; }
+    public DateTime? LastSuccessfulIngestionAt { get; set; }
+    public string? LastScannedTelegramMessageId { get; set; }
     public bool IsActive { get; set; } = true;
 
     public ICollection<Job> Jobs { get; set; } = new List<Job>();
     public ICollection<IngestionMessage> IngestionMessages { get; set; } = new List<IngestionMessage>();
     public ICollection<JobCandidate> JobCandidates { get; set; } = new List<JobCandidate>();
+    public ICollection<SourceIngestionLog> IngestionLogs { get; set; } = new List<SourceIngestionLog>();
 }

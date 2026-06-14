@@ -19,6 +19,7 @@ public class UserProfileConfiguration : IEntityTypeConfiguration<UserProfile>
         builder.Property(u => u.ResumeUrl).HasMaxLength(500);
         builder.Property(u => u.ResumeFileName).HasMaxLength(260);
         builder.Property(u => u.ProfileImageUrl).HasColumnType("text");
+        builder.Property(u => u.BannerUrl).HasColumnType("text");
         builder.Property(u => u.LinkedInUrl).HasMaxLength(500);
         builder.Property(u => u.GitHubUrl).HasMaxLength(500);
         builder.Property(u => u.WebsiteUrl).HasMaxLength(500);

@@ -1,0 +1,14 @@
+.contactLink {
+  color: var(--color-accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  font-weight: var(--weight-semibold);
+}
+
+.contactLink:hover {
+  opacity: 0.85;
+}
+
+.contactLink:active {
+  opacity: 0.7;
+}

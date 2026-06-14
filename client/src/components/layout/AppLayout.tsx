@@ -1,5 +1,5 @@
 import { Outlet, useLocation } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
 import { Navigation } from './Navigation';
 import { NotificationBell } from './NotificationBell';
 import { AppIcon } from '@/components/brand/AppIcon';
@@ -19,16 +19,20 @@ export function AppLayout() {
   const hideHeader = isSwipe || isWelcome || isAuthPage;
   const hideNav = isAuthPage;
   const isProfileHub = location.pathname === '/profile' || location.pathname.startsWith('/profile/');
+  const { scrollY } = useScroll();
+  const brandOpacity = useTransform(scrollY, [0, 72], [1, 0]);
 
   return (
     <div className={`${styles.layout} ${isStandalone ? styles.layoutStandalone : ''}`}>
       {!hideHeader && (
         <header className={`${styles.header} ${isStandalone ? styles.headerStandalone : ''}`}>
-          <div className={styles.brand}>
-            <AppIcon size="sm" />
+          <motion.div className={styles.brand}>
+            <motion.div style={{ opacity: brandOpacity }}>
+              <AppIcon size="sm" />
+            </motion.div>
             {!isStandalone && <span className={styles.title}>SwipeJobs</span>}
             {isStandalone && isProfileHub && <span className={styles.title}>Profile</span>}
-          </div>
+          </motion.div>
           <div className={styles.headerActions}>
             {isAuthenticated && <NotificationBell />}
           </div>

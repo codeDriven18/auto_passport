@@ -14,6 +14,7 @@ import { resolveJobImage } from '@/lib/resolveJobImage';
 import { JobHeroImage } from '@/components/jobs/JobHeroImage';
 import { CompanyLogo } from '@/components/jobs/CompanyLogo';
 import { JobShareMenu } from '@/components/jobs/JobShareMenu';
+import { ContactLinkText } from '@/components/ui/ContactLinkText';
 import { IconBookmark, IconVerified } from '@/components/icons/Icons';
 import styles from './SwipeJobCard.module.css';
 
@@ -93,7 +94,11 @@ export function SwipeJobCard({ job, interactive = true }: SwipeJobCardProps) {
           <p className={styles.location}>{getLocationLabel(job)}</p>
 
           {description && (
-            <p className={`${styles.description} copyable-content`}>{description}</p>
+            <ContactLinkText
+              text={description}
+              className={`${styles.description} copyable-content`}
+              as="p"
+            />
           )}
 
           {tags.length > 0 && (

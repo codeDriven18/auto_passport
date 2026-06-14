@@ -61,6 +61,46 @@ export async function removeProfileAvatar(): Promise<void> {
   }
 }
 
+export async function uploadProfileBanner(
+  file: File,
+  onProgress?: (percent: number) => void,
+): Promise<{ bannerUrl: string }> {
+  onProgress?.(10);
+
+  const formData = new FormData();
+  formData.append('file', file);
+
+  onProgress?.(40);
+
+  const url = `${API_CONFIG.baseUrl}/profiles/me/banner`;
+  const response = await authorizedFetch(url, { method: 'POST', body: formData });
+
+  onProgress?.(90);
+
+  if (!response.ok) {
+    const text = await response.text();
+    let message = 'Banner upload failed';
+    try {
+      const body = JSON.parse(text) as { error?: string };
+      if (body.error) message = body.error;
+    } catch {
+      /* ignore */
+    }
+    throw new Error(message);
+  }
+
+  onProgress?.(100);
+  return response.json() as Promise<{ bannerUrl: string }>;
+}
+
+export async function removeProfileBanner(): Promise<void> {
+  const url = `${API_CONFIG.baseUrl}/profiles/me/banner`;
+  const response = await authorizedFetch(url, { method: 'DELETE' });
+  if (!response.ok && response.status !== 204) {
+    throw new Error('Failed to remove banner');
+  }
+}
+
 export async function uploadProfileResume(
   file: File,
   onProgress?: (percent: number) => void,

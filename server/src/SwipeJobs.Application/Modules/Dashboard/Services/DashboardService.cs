@@ -89,14 +89,6 @@ public class DashboardService : IDashboardService
             return CreateEmptyDashboard();
         }
 
-        if (role is UserRole.Admin)
-        {
-            _logger.LogInformation(
-                "Dashboard skipped for admin userId={UserId}; returning empty payload",
-                userId);
-            return CreateEmptyDashboard();
-        }
-
         var profileId = profileIdClaim;
         if (!profileId.HasValue)
         {
@@ -151,50 +143,43 @@ public class DashboardService : IDashboardService
 
         try
         {
-            var interests = await _interestService.GetAsync(userProfileId, cancellationToken)
-                ?? await _interestService.RecalculateAsync(userProfileId, cancellationToken);
+            UserInterestDto? interests;
+            try
+            {
+                interests = await _interestService.GetAsync(userProfileId, cancellationToken)
+                    ?? await _interestService.RecalculateAsync(userProfileId, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(
+                    ex,
+                    "Dashboard interest calculation skipped for profileId={ProfileId}",
+                    userProfileId);
+                interests = null;
+            }
 
-            var savedJobsTask = _savedJobRepository.GetByUserProfileIdAsync(userProfileId, cancellationToken);
-            var applicationsTask = _applicationRepository.GetByUserProfileIdAsync(userProfileId, cancellationToken);
-            var recommendedTask = _recommendationService.GetRecommendedJobsAsync(userProfileId, SectionLimit, cancellationToken);
-            var trendingTask = _trendingService.GetTrendingJobsAsync(SectionLimit, cancellationToken);
-            var followedJobsTask = _companyFollowService.GetNewJobsFromFollowedAsync(userProfileId, SectionLimit, cancellationToken);
-            var viewedIdsTask = _activityService.GetRecentViewedJobIdsAsync(userProfileId, SectionLimit, cancellationToken);
-            var unreadTask = _notificationService.GetUnreadCountAsync(userProfileId, cancellationToken);
-            var lastSwipeSkippedTask = _activityRepository.GetLastActivityAtAsync(
+            // EF Core DbContext is not thread-safe — load sequentially, not in parallel.
+            var savedJobs = await _savedJobRepository.GetByUserProfileIdAsync(userProfileId, cancellationToken);
+            var applications = await _applicationRepository.GetByUserProfileIdAsync(userProfileId, cancellationToken);
+            var recommended = await _recommendationService.GetRecommendedJobsAsync(
+                userProfileId, SectionLimit, cancellationToken);
+            var trending = await _trendingService.GetTrendingJobsAsync(SectionLimit, cancellationToken);
+            var followedJobs = await _companyFollowService.GetNewJobsFromFollowedAsync(
+                userProfileId, SectionLimit, cancellationToken);
+            var viewedIds = await _activityService.GetRecentViewedJobIdsAsync(
+                userProfileId, SectionLimit, cancellationToken);
+            var unread = await _notificationService.GetUnreadCountAsync(userProfileId, cancellationToken);
+            var lastSwipeSkipped = await _activityRepository.GetLastActivityAtAsync(
                 userProfileId, ActivityType.JobSkipped, cancellationToken);
-            var lastSwipeSavedTask = _activityRepository.GetLastActivityAtAsync(
+            var lastSwipeSaved = await _activityRepository.GetLastActivityAtAsync(
                 userProfileId, ActivityType.JobSaved, cancellationToken);
-            var totalJobsTask = _jobRepository.SearchAsync(new JobQueryDto(
-                Search: null, Page: 1, PageSize: 1), cancellationToken);
-            var skippedCountTask = _activityRepository.CountByUserAndTypeAsync(
+            var (_, totalJobs) = await _jobRepository.SearchAsync(
+                new JobQueryDto(Search: null, Page: 1, PageSize: 1), cancellationToken);
+            var skippedCount = await _activityRepository.CountByUserAndTypeAsync(
                 userProfileId, ActivityType.JobSkipped, cancellationToken);
-            var notificationTask = MaybeGenerateNotificationsAsync(userProfileId, cancellationToken);
+            await MaybeGenerateNotificationsAsync(userProfileId, cancellationToken);
 
-            await Task.WhenAll(
-                savedJobsTask,
-                applicationsTask,
-                recommendedTask,
-                trendingTask,
-                followedJobsTask,
-                viewedIdsTask,
-                unreadTask,
-                lastSwipeSkippedTask,
-                lastSwipeSavedTask,
-                totalJobsTask,
-                skippedCountTask,
-                notificationTask);
-
-            var savedJobs = await savedJobsTask;
-            var applications = await applicationsTask;
-            var recommended = await recommendedTask;
-            var trending = await trendingTask;
-            var followedJobs = await followedJobsTask;
-            var viewedIds = await viewedIdsTask;
-            var unread = await unreadTask;
-            var lastSwipe = await lastSwipeSkippedTask ?? await lastSwipeSavedTask;
-            var (_, totalJobs) = await totalJobsTask;
-            var skippedCount = await skippedCountTask;
+            var lastSwipe = lastSwipeSkipped ?? lastSwipeSaved;
 
             var recentApplications = applications
                 .OrderByDescending(a => a.AppliedAt)

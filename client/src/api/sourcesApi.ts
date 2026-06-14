@@ -4,6 +4,7 @@ import type {
   AdminSource,
   CreateAdminSourceRequest,
   SourceConnectionTestResult,
+  SourceIngestionLogEntry,
   UpdateAdminSourceRequest,
 } from '@/models/source';
 
@@ -29,4 +30,7 @@ export const sourcesApi = {
 
   getDashboardIngestion: () =>
     apiClient<AdminDashboardIngestion>('/admin/sources/dashboard/ingestion'),
+
+  getLogs: (id: string, limit = 50) =>
+    apiClient<SourceIngestionLogEntry[]>(`/admin/sources/${id}/logs?limit=${limit}`),
 };

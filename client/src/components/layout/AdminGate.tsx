@@ -1,6 +1,8 @@
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
+import { getHomeRouteForRole } from '@/lib/authRoutes';
 import { UserRole } from '@/models/auth';
+import styles from './AdminGate.module.css';
 
 interface AdminGateProps {
   children: React.ReactNode;
@@ -11,7 +13,7 @@ export function AdminGate({ children }: AdminGateProps) {
   const location = useLocation();
 
   if (isLoading) {
-    return <p style={{ padding: '2rem', textAlign: 'center', color: 'var(--color-text-muted)' }}>Loading...</p>;
+    return <div className={styles.loading}>Loading admin console...</div>;
   }
 
   if (!isAuthenticated) {
@@ -19,7 +21,7 @@ export function AdminGate({ children }: AdminGateProps) {
   }
 
   if (user?.role !== UserRole.Admin) {
-    return <Navigate to="/" replace />;
+    return <Navigate to={getHomeRouteForRole(user?.role ?? UserRole.JobSeeker)} replace />;
   }
 
   return children;

@@ -143,6 +143,46 @@ public class ProfilesController : ControllerBase
     }
 
     [Authorize]
+    [HttpPost("me/banner")]
+    [RequestSizeLimit(768_000)]
+    public async Task<IActionResult> UploadBanner(IFormFile? file, CancellationToken cancellationToken)
+    {
+        if (file is null || file.Length == 0)
+            return BadRequest(new { error = "No image file provided." });
+
+        var userId = _currentUser.GetRequiredUserId();
+        try
+        {
+            await EnsureProfileAsync(userId, cancellationToken);
+
+            await using var stream = file.OpenReadStream();
+            var profile = await _profileService.UploadBannerAsync(
+                userId,
+                stream,
+                file.ContentType,
+                file.Length,
+                cancellationToken);
+
+            return profile is null
+                ? NotFound(new { error = "Profile not found." })
+                : Ok(new ProfileBannerUploadDto(profile.BannerUrl ?? string.Empty));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+    }
+
+    [Authorize]
+    [HttpDelete("me/banner")]
+    public async Task<IActionResult> RemoveBanner(CancellationToken cancellationToken)
+    {
+        var userId = _currentUser.GetRequiredUserId();
+        var profile = await _profileService.RemoveBannerAsync(userId, cancellationToken);
+        return profile is null ? NotFound() : NoContent();
+    }
+
+    [Authorize]
     [HttpPost("me/resume")]
     [RequestSizeLimit(5_242_880)]
     public async Task<IActionResult> UploadResume(IFormFile? file, CancellationToken cancellationToken)

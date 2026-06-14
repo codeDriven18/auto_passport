@@ -6,6 +6,8 @@ import { ApplicationCard } from '@/components/applications/ApplicationCard';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { JobCardSkeletonList } from '@/components/ui/Skeleton';
 import { PageHeader } from '@/components/ui/PageHeader';
+import { getFriendlyErrorMessage } from '@/lib/friendlyError';
+import { ApplicationStatus } from '@/models/enums';
 import type { JobApplication } from '@/models/application';
 import styles from './ApplicationsPage.module.css';
 
@@ -14,6 +16,8 @@ export function ApplicationsPage() {
   const [applications, setApplications] = useState<JobApplication[]>([]);
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
+  const [withdrawingId, setWithdrawingId] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
   const navigate = useNavigate();
 
   const load = () => {
@@ -34,6 +38,35 @@ export function ApplicationsPage() {
     if (!isAuthenticated) { setLoading(false); return; }
     load();
   }, [isAuthenticated, authLoading]);
+
+  const handleWithdraw = async (applicationId: string) => {
+    const confirmed = window.confirm('Withdraw this application? You can apply again later if the role is still open.');
+    if (!confirmed) return;
+
+    setActionError(null);
+    setWithdrawingId(applicationId);
+    try {
+      await applicationsApi.withdraw(applicationId);
+      setApplications((current) =>
+        current.map((app) =>
+          app.id === applicationId
+            ? {
+                ...app,
+                status: ApplicationStatus.Withdrawn,
+                statusHistory: [
+                  ...app.statusHistory,
+                  { status: ApplicationStatus.Withdrawn, changedAt: new Date().toISOString() },
+                ],
+              }
+            : app,
+        ),
+      );
+    } catch (error) {
+      setActionError(getFriendlyErrorMessage(error, 'Could not withdraw application'));
+    } finally {
+      setWithdrawingId(null);
+    }
+  };
 
   if (authLoading || loading) {
     return (
@@ -64,6 +97,7 @@ export function ApplicationsPage() {
   return (
     <section className={styles.page}>
       <PageHeader title="Applications" subtitle={`${applications.length} submission${applications.length !== 1 ? 's' : ''}`} />
+      {actionError && <p className={styles.error}>{actionError}</p>}
       {failed ? (
         <EmptyState
           illustration="applications"
@@ -89,6 +123,8 @@ export function ApplicationsPage() {
               application={app}
               index={index}
               onClick={() => navigate(`/jobs/${app.jobId}`)}
+              onWithdraw={handleWithdraw}
+              withdrawing={withdrawingId === app.id}
             />
           ))}
         </div>

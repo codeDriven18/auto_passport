@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SwipeJobs.Application.Common.Dtos;
 using SwipeJobs.Application.Common.Interfaces;
+using SwipeJobs.Application.Modules.Ingestion;
 using SwipeJobs.Application.Modules.Sources.Interfaces;
 using SwipeJobs.Domain.Enums;
 
@@ -40,8 +41,15 @@ public class AdminSourcesController : ControllerBase
     public async Task<IActionResult> Create([FromBody] CreateAdminSourceDto dto, CancellationToken cancellationToken)
     {
         RequireAdmin();
-        var source = await _adminSourceService.CreateAsync(dto, cancellationToken);
-        return CreatedAtAction(nameof(GetById), new { id = source.Id }, source);
+        try
+        {
+            var source = await _adminSourceService.CreateAsync(dto, cancellationToken);
+            return CreatedAtAction(nameof(GetById), new { id = source.Id }, source);
+        }
+        catch (IngestionPipelineException ex)
+        {
+            return UnprocessableEntity(new { error = ex.Message, code = ex.Code });
+        }
     }
 
     [HttpPut("{id:guid}")]
@@ -80,6 +88,13 @@ public class AdminSourcesController : ControllerBase
         {
             return NotFound();
         }
+    }
+
+    [HttpGet("{id:guid}/logs")]
+    public async Task<IActionResult> GetLogs(Guid id, [FromQuery] int limit = 50, CancellationToken cancellationToken = default)
+    {
+        RequireAdmin();
+        return Ok(await _adminSourceService.GetLogsAsync(id, limit, cancellationToken));
     }
 
     [HttpGet("dashboard/ingestion")]

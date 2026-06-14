@@ -96,3 +96,21 @@ public class JobReportConfiguration : IEntityTypeConfiguration<JobReport>
             .OnDelete(DeleteBehavior.Cascade);
     }
 }
+
+public class SourceIngestionLogConfiguration : IEntityTypeConfiguration<SourceIngestionLog>
+{
+    public void Configure(EntityTypeBuilder<SourceIngestionLog> builder)
+    {
+        builder.HasKey(x => x.Id);
+        builder.Property(x => x.Stage).IsRequired().HasMaxLength(100);
+        builder.Property(x => x.Level).IsRequired().HasMaxLength(20);
+        builder.Property(x => x.Message).IsRequired().HasMaxLength(1000);
+        builder.Property(x => x.Details).HasMaxLength(2000);
+        builder.HasIndex(x => new { x.SourceId, x.CreatedAt });
+
+        builder.HasOne(x => x.Source)
+            .WithMany(s => s.IngestionLogs)
+            .HasForeignKey(x => x.SourceId)
+            .OnDelete(DeleteBehavior.Cascade);
+    }
+}

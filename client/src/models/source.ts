@@ -21,7 +21,20 @@ export interface AdminSource {
   monitorStatus: number;
   sourceLastCheckedAt?: string | null;
   defaultExpirationDays: number;
+  lastSyncStatus?: string | null;
+  lastIngestionError?: string | null;
+  lastSuccessfulIngestionAt?: string | null;
+  lastScannedTelegramMessageId?: string | null;
   metrics: AdminSourceMetrics;
+  createdAt: string;
+}
+
+export interface SourceIngestionLogEntry {
+  id: string;
+  stage: string;
+  level: string;
+  message: string;
+  details?: string | null;
   createdAt: string;
 }
 

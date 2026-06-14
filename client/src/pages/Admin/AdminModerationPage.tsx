@@ -2,11 +2,13 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { moderationApi } from '@/api/moderationApi';
 import { sourcesApi } from '@/api/sourcesApi';
+import { getIngestionErrorMessage } from '@/lib/ingestionErrors';
 import { formatSalary } from '@/lib/jobFormat';
 import type { AdminSource } from '@/models/source';
 import { SourceType } from '@/models/enums';
 import type { JobCandidate } from '@/models/moderation';
 import { CandidateJobStatus } from '@/models/moderation';
+import { ContactLinkText } from '@/components/ui/ContactLinkText';
 import styles from './AdminModerationPage.module.css';
 import adminStyles from './AdminPage.module.css';
 
@@ -44,6 +46,16 @@ export function AdminModerationPage() {
   const [telegramSourceId, setTelegramSourceId] = useState<string | null>(null);
 
   const selected = queue.find((c) => c.id === selectedId) ?? null;
+
+  const loadQueue = useCallback(() => {
+    moderationApi.getQueue(CandidateJobStatus.PendingReview)
+      .then((q) => {
+        setQueue(q.items);
+        setPendingCount(q.pendingCount);
+        if (q.items.length > 0 && !selectedId) setSelectedId(q.items[0].id);
+      })
+      .catch(() => setQueue([]));
+  }, [selectedId]);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -85,7 +97,8 @@ export function AdminModerationPage() {
       notify(successMsg, 'success');
       setSelectedIds(new Set());
       setSelectedId(null);
-      load();
+      loadQueue();
+      moderationApi.getAnalytics().then(setAnalytics).catch(() => undefined);
     } catch {
       notify('Action failed.', 'error');
     } finally {
@@ -113,9 +126,10 @@ export function AdminModerationPage() {
       setIngestText('');
       setShowIngest(false);
       notify('Message ingested into moderation queue.', 'success');
-      load();
-    } catch {
-      notify('Source not found. Create it in Admin → Sources.', 'error');
+      loadQueue();
+      moderationApi.getAnalytics().then(setAnalytics).catch(() => undefined);
+    } catch (err) {
+      notify(getIngestionErrorMessage(err), 'error');
     } finally {
       setActionLoading(false);
     }
@@ -327,7 +341,13 @@ export function AdminModerationPage() {
                 {selected.isRemote ? 'Remote' : selected.location ?? selected.city}
                 {selected.employmentType && ` · ${selected.employmentType}`}
               </p>
-              {selected.description && <p className={styles.previewDesc}>{selected.description}</p>}
+              {selected.description && (
+                <ContactLinkText
+                  text={selected.description}
+                  className={styles.previewDesc}
+                  as="p"
+                />
+              )}
               {selected.skills.length > 0 && (
                 <div className={styles.skillRow}>
                   {selected.skills.map((s) => <span key={s} className={styles.skill}>{s}</span>)}

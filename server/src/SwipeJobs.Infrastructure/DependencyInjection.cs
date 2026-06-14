@@ -82,6 +82,7 @@ public static class DependencyInjection
         services.AddScoped<IIngestionMessageRepository, IngestionMessageRepository>();
         services.AddScoped<IJobCandidateRepository, JobCandidateRepository>();
         services.AddScoped<IJobReportRepository, JobReportRepository>();
+        services.AddScoped<ISourceIngestionLogRepository, SourceIngestionLogRepository>();
         services.AddScoped<IAuditLogService, Audit.AuditLogService>();
         services.AddScoped<IResumeStorageService, Storage.LocalResumeStorageService>();
         services.AddScoped<IDataSeeder, DataSeeder>();

@@ -54,6 +54,7 @@ public record UserProfileDto(
     DateTime? ResumeUploadedAt,
     string? Location,
     string? ProfileImageUrl,
+    string? BannerUrl,
     string? LinkedInUrl,
     string? GitHubUrl,
     string? WebsiteUrl,
@@ -129,6 +130,8 @@ public record UpdateUserProfileDto(
 public record ProfileCompletenessDto(bool IsComplete, IReadOnlyList<string> MissingFields, int CompletionPercentage);
 
 public record ProfileAvatarUploadDto(string ProfileImageUrl);
+
+public record ProfileBannerUploadDto(string BannerUrl);
 
 public record ProfileResumeUploadDto(string ResumeFileName, DateTime ResumeUploadedAt);
 

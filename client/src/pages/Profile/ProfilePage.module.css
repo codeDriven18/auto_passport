@@ -671,6 +671,64 @@
   text-align: center;
 }
 
+.infoEntryCard {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-5);
+  background: var(--color-surface-raised);
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--color-border-subtle);
+  box-shadow: var(--shadow-sm);
+  transition: border-color var(--duration-fast) var(--ease-out);
+}
+
+.infoEntryCard:hover {
+  border-color: var(--color-accent);
+}
+
+.infoEntryText {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.infoEntryTitle {
+  font-size: var(--text-base);
+  font-weight: var(--weight-extrabold);
+}
+
+.infoEntrySub {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  line-height: 1.4;
+}
+
+.infoEntryIcon {
+  flex-shrink: 0;
+  color: var(--color-text-muted);
+}
+
+.identityDetailsLink {
+  display: inline-block;
+  margin-top: var(--space-2);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-bold);
+  color: var(--color-text-muted);
+}
+
+.identityDetailsLink:hover {
+  color: var(--color-accent);
+}
+
+.infoBlockTitle {
+  font-size: var(--text-base);
+  font-weight: var(--weight-extrabold);
+  margin-bottom: var(--space-4);
+}
+
 .identitySection {
   padding: var(--space-5);
   background: var(--color-surface-raised);

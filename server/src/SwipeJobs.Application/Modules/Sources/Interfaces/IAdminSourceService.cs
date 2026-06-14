@@ -12,4 +12,5 @@ public interface IAdminSourceService
     Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken = default);
     Task<SourceConnectionTestResultDto> TestConnectionAsync(Guid id, CancellationToken cancellationToken = default);
     Task<AdminDashboardIngestionDto> GetDashboardIngestionAsync(CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<SourceIngestionLogDto>> GetLogsAsync(Guid sourceId, int limit = 50, CancellationToken cancellationToken = default);
 }

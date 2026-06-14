@@ -13,6 +13,7 @@ import { JobHeroImage } from '@/components/jobs/JobHeroImage';
 import { SourceBadge } from '@/components/jobs/SourceBadge';
 import { CompanyIdentityStrip } from '@/components/jobs/CompanyIdentityStrip';
 import { JobShareMenu } from '@/components/jobs/JobShareMenu';
+import { ContactLinkText } from '@/components/ui/ContactLinkText';
 import styles from './OpportunityCard.module.css';
 
 export interface OpportunityCardProps {
@@ -79,7 +80,11 @@ export function OpportunityCard({
           <p className={styles.location}>{locationLine}</p>
 
           {showDesc && (
-            <p className={`${styles.description} copyable-content`}>{description}</p>
+            <ContactLinkText
+              text={description}
+              className={`${styles.description} copyable-content`}
+              as="p"
+            />
           )}
 
           {tags.length > 0 && (

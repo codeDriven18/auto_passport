@@ -24,17 +24,17 @@ interface NavItem {
 }
 
 const guestItems: NavItem[] = [
-  { to: '/', label: 'Home', end: true, icon: <IconHome /> },
-  { to: '/swipe', label: 'Discover', icon: <IconDiscover /> },
-  { to: '/login', label: 'Sign in', icon: <IconSignIn /> },
+  { to: '/', label: 'home', end: true, icon: <IconHome /> },
+  { to: '/swipe', label: 'discover', icon: <IconDiscover /> },
+  { to: '/login', label: 'sign in', icon: <IconSignIn /> },
 ];
 
 const seekerItems: NavItem[] = [
-  { to: '/', label: 'Home', end: true, icon: <IconHome /> },
-  { to: '/swipe', label: 'Discover', icon: <IconDiscover /> },
-  { to: '/saved', label: 'Saved', icon: <IconSaved /> },
-  { to: '/applications', label: 'Applications', icon: <IconApplications /> },
-  { to: '/profile', label: 'Profile', avatar: true, icon: <IconProfile /> },
+  { to: '/', label: 'home', end: true, icon: <IconHome /> },
+  { to: '/swipe', label: 'discover', icon: <IconDiscover /> },
+  { to: '/saved', label: 'saved', icon: <IconSaved /> },
+  { to: '/applications', label: 'applied', icon: <IconApplications /> },
+  { to: '/profile', label: 'profile', avatar: true, icon: <IconProfile /> },
 ];
 
 export function Navigation() {

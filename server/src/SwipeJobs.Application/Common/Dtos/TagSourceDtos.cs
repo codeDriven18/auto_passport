@@ -54,7 +54,19 @@ public record AdminSourceDto(
     SourceMonitorStatus MonitorStatus,
     DateTime? SourceLastCheckedAt,
     int DefaultExpirationDays,
+    string? LastSyncStatus,
+    string? LastIngestionError,
+    DateTime? LastSuccessfulIngestionAt,
+    string? LastScannedTelegramMessageId,
     AdminSourceMetricsDto Metrics,
+    DateTime CreatedAt);
+
+public record SourceIngestionLogDto(
+    Guid Id,
+    string Stage,
+    string Level,
+    string Message,
+    string? Details,
     DateTime CreatedAt);
 
 public record CreateAdminSourceDto(

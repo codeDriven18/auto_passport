@@ -5,6 +5,7 @@ import { ApiError } from '@/api/client';
 import { useAuth } from '@/context/AuthContext';
 import { PasswordField } from '@/components/forms/PasswordField';
 import { AppIcon } from '@/components/brand/AppIcon';
+import { getPostLoginDestination } from '@/lib/authRoutes';
 import styles from './AuthPage.module.css';
 
 function getErrorMessage(error: unknown): string {
@@ -30,8 +31,8 @@ export function LoginPage() {
     setLoading(true);
     setError(null);
     try {
-      await login({ email, password });
-      navigate(from, { replace: true });
+      const user = await login({ email, password });
+      navigate(getPostLoginDestination(user.role, from), { replace: true });
     } catch (err) {
       setError(getErrorMessage(err));
     } finally {

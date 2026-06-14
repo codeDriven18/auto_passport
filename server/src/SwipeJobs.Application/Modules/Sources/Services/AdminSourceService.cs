@@ -3,6 +3,8 @@ using SwipeJobs.Application.Common;
 using SwipeJobs.Application.Common.Dtos;
 using SwipeJobs.Application.Common.Interfaces;
 using SwipeJobs.Application.Common.Interfaces.Repositories;
+using SwipeJobs.Application.Modules.Ingestion;
+using SwipeJobs.Application.Modules.Ingestion.Services;
 using SwipeJobs.Application.Modules.Sources.Interfaces;
 using SwipeJobs.Domain.Entities;
 using SwipeJobs.Domain.Enums;
@@ -18,42 +20,62 @@ public class AdminSourceService : IAdminSourceService
     private readonly ISourceRepository _sourceRepository;
     private readonly IIngestionMessageRepository _messageRepository;
     private readonly IJobCandidateRepository _candidateRepository;
+    private readonly ISourceIngestionLogger _ingestionLogger;
     private readonly IUnitOfWork _unitOfWork;
 
     public AdminSourceService(
         ISourceRepository sourceRepository,
         IIngestionMessageRepository messageRepository,
         IJobCandidateRepository candidateRepository,
+        ISourceIngestionLogger ingestionLogger,
         IUnitOfWork unitOfWork)
     {
         _sourceRepository = sourceRepository;
         _messageRepository = messageRepository;
         _candidateRepository = candidateRepository;
+        _ingestionLogger = ingestionLogger;
         _unitOfWork = unitOfWork;
     }
 
     public async Task<IReadOnlyList<AdminSourceDto>> GetAllWithMetricsAsync(CancellationToken cancellationToken = default)
     {
         var sources = await _sourceRepository.GetAllOrderedAsync(cancellationToken);
-        var results = new List<AdminSourceDto>(sources.Count);
+        var metrics = (await _sourceRepository.GetMetricsSnapshotAsync(cancellationToken))
+            .ToDictionary(m => m.SourceId);
 
-        foreach (var source in sources)
-        {
-            results.Add(await MapWithMetricsAsync(source, cancellationToken));
-        }
-
-        return results;
+        return sources
+            .Select(source => MapWithMetrics(source, metrics.GetValueOrDefault(source.Id)))
+            .ToList();
     }
 
     public async Task<AdminSourceDto?> GetWithMetricsAsync(Guid id, CancellationToken cancellationToken = default)
     {
         var source = await _sourceRepository.GetByIdAsync(id, cancellationToken);
-        return source is null ? null : await MapWithMetricsAsync(source, cancellationToken);
+        if (source is null) return null;
+
+        var metrics = (await _sourceRepository.GetMetricsSnapshotAsync(cancellationToken))
+            .FirstOrDefault(m => m.SourceId == id);
+
+        return MapWithMetrics(source, metrics);
     }
 
     public async Task<AdminSourceDto> CreateAsync(CreateAdminSourceDto dto, CancellationToken cancellationToken = default)
     {
-        var (channelName, channelUrl, externalId) = NormalizeTelegramFields(dto.Type, dto.ChannelUrl, dto.ChannelName, dto.ExternalIdentifier);
+        var (channelName, channelUrl, externalId) = NormalizeTelegramFields(
+            dto.Type, dto.ChannelUrl, dto.ChannelName, dto.ExternalIdentifier);
+
+        if (!string.IsNullOrWhiteSpace(channelUrl))
+        {
+            var normalizedUrl = NormalizeChannelUrl(channelUrl);
+            var duplicate = await _sourceRepository.GetByChannelUrlAsync(normalizedUrl, cancellationToken);
+            if (duplicate is not null)
+            {
+                throw new IngestionPipelineException(
+                    IngestionErrorCodes.DuplicateChannelUrl,
+                    $"A source already exists for channel URL {channelUrl}.");
+            }
+            channelUrl = normalizedUrl;
+        }
 
         var source = new Source
         {
@@ -68,11 +90,12 @@ public class AdminSourceService : IAdminSourceService
             IngestionEnabled = dto.IngestionEnabled,
             IsActive = true,
             MonitorStatus = SourceMonitorStatus.Active,
+            LastSyncStatus = "Created",
         };
 
         await _sourceRepository.AddAsync(source, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
-        return await MapWithMetricsAsync(source, cancellationToken);
+        return MapWithMetrics(source, null);
     }
 
     public async Task<AdminSourceDto?> UpdateAsync(Guid id, UpdateAdminSourceDto dto, CancellationToken cancellationToken = default)
@@ -80,7 +103,21 @@ public class AdminSourceService : IAdminSourceService
         var source = await _sourceRepository.GetByIdAsync(id, cancellationToken);
         if (source is null) return null;
 
-        var (channelName, channelUrl, externalId) = NormalizeTelegramFields(dto.Type, dto.ChannelUrl, dto.ChannelName, dto.ExternalIdentifier);
+        var (channelName, channelUrl, externalId) = NormalizeTelegramFields(
+            dto.Type, dto.ChannelUrl, dto.ChannelName, dto.ExternalIdentifier);
+
+        if (!string.IsNullOrWhiteSpace(channelUrl))
+        {
+            var normalizedUrl = NormalizeChannelUrl(channelUrl);
+            var duplicate = await _sourceRepository.GetByChannelUrlAsync(normalizedUrl, cancellationToken);
+            if (duplicate is not null && duplicate.Id != id)
+            {
+                throw new IngestionPipelineException(
+                    IngestionErrorCodes.DuplicateChannelUrl,
+                    $"Another source already uses channel URL {channelUrl}.");
+            }
+            channelUrl = normalizedUrl;
+        }
 
         source.Name = dto.Name.Trim();
         source.Type = dto.Type;
@@ -95,7 +132,7 @@ public class AdminSourceService : IAdminSourceService
 
         await _sourceRepository.UpdateAsync(source, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
-        return await MapWithMetricsAsync(source, cancellationToken);
+        return await GetWithMetricsAsync(id, cancellationToken);
     }
 
     public async Task<bool> SetEnabledAsync(Guid id, bool enabled, CancellationToken cancellationToken = default)
@@ -153,6 +190,7 @@ public class AdminSourceService : IAdminSourceService
         var messageCount = await _messageRepository.CountBySourceAsync(source.Id, cancellationToken);
 
         source.SourceLastCheckedAt = DateTime.UtcNow;
+        source.LastSyncStatus = string.IsNullOrWhiteSpace(handle) ? "Invalid URL" : "Configured";
         source.MonitorStatus = string.IsNullOrWhiteSpace(handle)
             ? SourceMonitorStatus.Unreachable
             : SourceMonitorStatus.Active;
@@ -185,12 +223,23 @@ public class AdminSourceService : IAdminSourceService
             await _candidateRepository.GetAverageConfidenceAsync(cancellationToken));
     }
 
-    private async Task<AdminSourceDto> MapWithMetricsAsync(Source source, CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<SourceIngestionLogDto>> GetLogsAsync(
+        Guid sourceId,
+        int limit = 50,
+        CancellationToken cancellationToken = default)
     {
-        var messages = await _messageRepository.CountBySourceAsync(source.Id, cancellationToken);
-        var jobs = await _candidateRepository.CountBySourceAsync(source.Id, cancellationToken);
-        var pending = await _candidateRepository.CountPendingBySourceAsync(source.Id, cancellationToken);
+        var logs = await _ingestionLogger.GetRecentAsync(sourceId, limit, cancellationToken);
+        return logs.Select(l => new SourceIngestionLogDto(
+            l.Id,
+            l.Stage,
+            l.Level,
+            l.Message,
+            l.Details,
+            l.CreatedAt)).ToList();
+    }
 
+    private static AdminSourceDto MapWithMetrics(Source source, SourceMetricsSnapshot? metrics)
+    {
         return new AdminSourceDto(
             source.Id,
             source.Name,
@@ -206,16 +255,23 @@ public class AdminSourceService : IAdminSourceService
             source.MonitorStatus,
             source.SourceLastCheckedAt,
             source.DefaultExpirationDays,
+            source.LastSyncStatus,
+            source.LastIngestionError,
+            source.LastSuccessfulIngestionAt,
+            source.LastScannedTelegramMessageId,
             new AdminSourceMetricsDto(
-                messages,
-                jobs,
-                pending,
+                metrics?.MessagesScanned ?? 0,
+                metrics?.JobsExtracted ?? 0,
+                metrics?.PendingModeration ?? 0,
                 ResolveConnectionStatus(source)),
             source.CreatedAt);
     }
 
     private static string ResolveConnectionStatus(Source source)
     {
+        if (!string.IsNullOrWhiteSpace(source.LastSyncStatus))
+            return source.LastSyncStatus;
+
         if (!source.IsActive || !source.IngestionEnabled)
             return "Disabled";
         if (source.Type == SourceType.Telegram && string.IsNullOrWhiteSpace(source.ChannelUrl))
@@ -231,6 +287,9 @@ public class AdminSourceService : IAdminSourceService
         };
     }
 
+    private static string NormalizeChannelUrl(string channelUrl)
+        => channelUrl.Trim().TrimEnd('/').ToLowerInvariant();
+
     private static (string? ChannelName, string? ChannelUrl, string? ExternalId) NormalizeTelegramFields(
         SourceType type,
         string? channelUrl,
@@ -240,7 +299,7 @@ public class AdminSourceService : IAdminSourceService
         if (type != SourceType.Telegram)
             return (channelName?.Trim(), channelUrl?.Trim(), externalIdentifier?.Trim());
 
-        var url = channelUrl?.Trim();
+        var url = string.IsNullOrWhiteSpace(channelUrl) ? null : NormalizeChannelUrl(channelUrl);
         var handle = string.IsNullOrWhiteSpace(url) ? null : ExtractTelegramHandle(url);
         var name = string.IsNullOrWhiteSpace(channelName) ? handle : channelName.Trim();
         var externalId = string.IsNullOrWhiteSpace(externalIdentifier) ? handle : externalIdentifier.Trim();

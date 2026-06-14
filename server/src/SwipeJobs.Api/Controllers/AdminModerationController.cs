@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using SwipeJobs.Application.Common.Dtos;
 using SwipeJobs.Application.Common.Interfaces;
 using SwipeJobs.Application.Common.Mapping;
+using SwipeJobs.Application.Modules.Ingestion;
 using SwipeJobs.Application.Modules.Ingestion.Services;
 using SwipeJobs.Domain.Enums;
 
@@ -100,12 +101,19 @@ public class AdminModerationController : ControllerBase
     public async Task<IActionResult> IngestTelegram([FromBody] TelegramIngestMessageDto dto, CancellationToken cancellationToken = default)
     {
         _currentUser.RequireRole(UserRole.Admin);
-        var (candidate, isDuplicate) = await _pipeline.ProcessTelegramMessageAsync(dto, cancellationToken);
-        return Ok(new
+        try
         {
-            candidate = IngestionMapper.ToCandidateDto(candidate),
-            isDuplicate,
-        });
+            var (candidate, isDuplicate) = await _pipeline.ProcessTelegramMessageAsync(dto, cancellationToken);
+            return Ok(new
+            {
+                candidate = IngestionMapper.ToCandidateDto(candidate),
+                isDuplicate,
+            });
+        }
+        catch (IngestionPipelineException ex)
+        {
+            return UnprocessableEntity(new { error = ex.Message, code = ex.Code });
+        }
     }
 
     [HttpPatch("jobs/{id:guid}/lifecycle")]

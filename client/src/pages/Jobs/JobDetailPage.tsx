@@ -26,6 +26,7 @@ import { CompanyLink } from '@/components/jobs/CompanyLink';
 import { CompanyLogo } from '@/components/jobs/CompanyLogo';
 import { Button } from '@/components/ui/Button';
 import { JobDetailSkeleton } from '@/components/ui/Skeleton';
+import { ContactLinkText } from '@/components/ui/ContactLinkText';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { useProfile } from '@/hooks/useProfile';
 import { useActivityTracking } from '@/hooks/useActivityTracking';
@@ -260,7 +261,7 @@ export function JobDetailPage() {
 
       <article className={`${styles.description} copyable-content`}>
         <h2 className={styles.sectionTitle}>About this role</h2>
-        <p className={styles.descriptionText}>{job.description}</p>
+        <ContactLinkText text={job.description} className={styles.descriptionText} as="p" />
         {job.sourceName && (
           <p className={styles.source}>Source: {job.sourceName}</p>
         )}

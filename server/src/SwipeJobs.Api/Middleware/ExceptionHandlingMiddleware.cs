@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Npgsql;
 using SwipeJobs.Api.Models;
+using SwipeJobs.Application.Modules.Ingestion;
 using SwipeJobs.Infrastructure.Auth;
 
 namespace SwipeJobs.Api.Middleware;
@@ -39,6 +40,13 @@ public class ExceptionHandlingMiddleware
         {
             LogCaughtException(context, ex, StatusCodes.Status400BadRequest);
             if (await TryWriteErrorAsync(context, StatusCodes.Status400BadRequest, ex.Message, "bad_request"))
+                return;
+            throw;
+        }
+        catch (IngestionPipelineException ex)
+        {
+            LogCaughtException(context, ex, StatusCodes.Status422UnprocessableEntity);
+            if (await TryWriteErrorAsync(context, StatusCodes.Status422UnprocessableEntity, ex.Message, ex.Code))
                 return;
             throw;
         }

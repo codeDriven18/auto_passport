@@ -33,17 +33,17 @@ export function DashboardPage() {
   const navigate = useNavigate();
   const { isAuthenticated, isLoading: authLoading, user } = useAuth();
   const role = parseUserRole(user?.role);
-  const isJobSeeker = role === UserRole.JobSeeker;
   const isEmployer = role === UserRole.Company;
-  const { profile, loading: profileLoading } = useProfile();
+  const shouldLoadDashboard = isAuthenticated && !isEmployer;
+  const { profile } = useProfile();
   const [dashboard, setDashboard] = useState<UserDashboard>(() => mergeDashboardWithEmpty(null));
   const [loading, setLoading] = useState(true);
   const [fetchFailed, setFetchFailed] = useState(false);
   const { collections } = useDiscoveryCollections(true);
 
   const loadDashboard = useCallback(async () => {
-    if (authLoading || profileLoading) return;
-    if (!isAuthenticated || !isJobSeeker) {
+    if (authLoading) return;
+    if (!shouldLoadDashboard) {
       setDashboard(mergeDashboardWithEmpty(null));
       setFetchFailed(false);
       setLoading(false);
@@ -62,7 +62,7 @@ export function DashboardPage() {
     } finally {
       setLoading(false);
     }
-  }, [authLoading, profileLoading, isAuthenticated, isJobSeeker]);
+  }, [authLoading, shouldLoadDashboard]);
 
   useEffect(() => {
     void loadDashboard();
@@ -72,10 +72,9 @@ export function DashboardPage() {
     ?? getProfileCompletionPercent(profile);
   const savedCount = dashboard.savedJobsCount ?? 0;
   const appsCount = dashboard.applicationsCount ?? 0;
-  const matchesToday = Math.min(
-    dashboard.recommendedJobs.length ?? 0,
-    dashboard.swipeRemainingEstimate ?? 12,
-  );
+  const matchesToday = dashboard.recommendedJobs.length > 0
+    ? dashboard.recommendedJobs.length
+    : dashboard.swipeRemainingEstimate ?? 0;
   const firstName = profile?.firstName?.trim() || 'there';
   const greeting = getTimeGreeting();
 
@@ -85,7 +84,7 @@ export function DashboardPage() {
     ...collections.remote,
   ], [dashboard, collections.remote]);
 
-  if (authLoading || (isAuthenticated && isJobSeeker && (profileLoading || loading))) {
+  if (authLoading || (shouldLoadDashboard && loading)) {
     return (
       <section className={styles.page}>
         <DashboardSkeleton />

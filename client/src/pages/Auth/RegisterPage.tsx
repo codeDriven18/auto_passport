@@ -6,6 +6,7 @@ import { useAuth } from '@/context/AuthContext';
 import { PasswordField } from '@/components/forms/PasswordField';
 import { AppIcon } from '@/components/brand/AppIcon';
 import type { AccountType } from '@/models/auth';
+import { getHomeRouteForRole } from '@/lib/authRoutes';
 import styles from './AuthPage.module.css';
 
 function getErrorMessage(error: unknown): string {
@@ -33,7 +34,7 @@ export function RegisterPage() {
     setLoading(true);
     setError(null);
     try {
-      await register({
+      const user = await register({
         email,
         password,
         firstName: firstName || undefined,
@@ -41,7 +42,7 @@ export function RegisterPage() {
         accountType,
         companyName: accountType === 'company' ? companyName : undefined,
       });
-      navigate(accountType === 'company' ? '/portal' : '/profile', { replace: true });
+      navigate(getHomeRouteForRole(user.role), { replace: true });
     } catch (err) {
       setError(getErrorMessage(err));
     } finally {

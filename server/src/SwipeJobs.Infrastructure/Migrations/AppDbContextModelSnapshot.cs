@@ -932,6 +932,21 @@ namespace SwipeJobs.Infrastructure.Migrations
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
 
+                    b.Property<string>("LastIngestionError")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("LastScannedTelegramMessageId")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTime?>("LastSuccessfulIngestionAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("LastSyncStatus")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
                     b.Property<string>("LogoUrl")
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");
@@ -960,11 +975,54 @@ namespace SwipeJobs.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("ChannelUrl");
+
                     b.HasIndex("ExternalIdentifier");
 
                     b.HasIndex("Type");
 
                     b.ToTable("Sources");
+                });
+
+            modelBuilder.Entity("SwipeJobs.Domain.Entities.SourceIngestionLog", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Details")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<string>("Level")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<Guid>("SourceId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Stage")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SourceId", "CreatedAt");
+
+                    b.ToTable("SourceIngestionLogs");
                 });
 
             modelBuilder.Entity("SwipeJobs.Domain.Entities.Tag", b =>
@@ -1123,6 +1181,9 @@ namespace SwipeJobs.Infrastructure.Migrations
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
+
+                    b.Property<string>("BannerUrl")
+                        .HasColumnType("text");
 
                     b.Property<string>("Bio")
                         .HasColumnType("text");
@@ -1484,6 +1545,17 @@ namespace SwipeJobs.Infrastructure.Migrations
                     b.Navigation("UserProfile");
                 });
 
+            modelBuilder.Entity("SwipeJobs.Domain.Entities.SourceIngestionLog", b =>
+                {
+                    b.HasOne("SwipeJobs.Domain.Entities.Source", "Source")
+                        .WithMany("IngestionLogs")
+                        .HasForeignKey("SourceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Source");
+                });
+
             modelBuilder.Entity("SwipeJobs.Domain.Entities.UserActivity", b =>
                 {
                     b.HasOne("SwipeJobs.Domain.Entities.Company", "Company")
@@ -1558,6 +1630,8 @@ namespace SwipeJobs.Infrastructure.Migrations
 
             modelBuilder.Entity("SwipeJobs.Domain.Entities.Source", b =>
                 {
+                    b.Navigation("IngestionLogs");
+
                     b.Navigation("IngestionMessages");
 
                     b.Navigation("JobCandidates");

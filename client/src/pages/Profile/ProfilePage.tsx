@@ -4,6 +4,7 @@ import { UserRole } from '@/models/auth';
 import { EmployerProfilePage } from './EmployerProfilePage';
 import { ProfileCompletePage } from './ProfileCompletePage';
 import { ProfileHubPage } from './ProfileHubPage';
+import { ProfileInfoPage } from './ProfileInfoPage';
 import { ProfileSectionPage } from './ProfileSectionPage';
 
 export function ProfilePage() {
@@ -16,6 +17,7 @@ export function ProfilePage() {
   return (
     <Routes>
       <Route index element={<ProfileHubPage />} />
+      <Route path="info" element={<ProfileInfoPage />} />
       <Route path="complete" element={<ProfileCompletePage />} />
       <Route path=":section" element={<ProfileSectionPage />} />
     </Routes>

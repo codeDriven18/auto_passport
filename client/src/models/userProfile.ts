@@ -42,6 +42,7 @@ export interface UserProfile {
   resumeUploadedAt?: string;
   location?: string;
   profileImageUrl?: string;
+  bannerUrl?: string;
   linkedInUrl?: string;
   gitHubUrl?: string;
   websiteUrl?: string;

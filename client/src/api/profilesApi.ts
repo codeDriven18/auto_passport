@@ -18,4 +18,4 @@ export const profilesApi = {
     apiClient<ProfileCompleteness>('/profiles/me/completeness'),
 };
 
-export { uploadProfileAvatar, removeProfileAvatar } from './profileUploadApi';
+export { uploadProfileAvatar, removeProfileAvatar, uploadProfileBanner, removeProfileBanner } from './profileUploadApi';

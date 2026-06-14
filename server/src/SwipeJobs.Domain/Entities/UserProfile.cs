@@ -21,6 +21,7 @@ public class UserProfile : BaseEntity
     public DateTime? ResumeUploadedAt { get; set; }
     public string? Location { get; set; }
     public string? ProfileImageUrl { get; set; }
+    public string? BannerUrl { get; set; }
     public string? LinkedInUrl { get; set; }
     public string? GitHubUrl { get; set; }
     public string? WebsiteUrl { get; set; }

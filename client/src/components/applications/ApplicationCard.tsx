@@ -4,7 +4,9 @@ import type { JobApplication } from '@/models/application';
 import { JobHeroImage } from '@/components/jobs/JobHeroImage';
 import { CompanyIdentityStrip } from '@/components/jobs/CompanyIdentityStrip';
 import { StatusBadge } from '@/components/ui/StatusBadge';
+import { Button } from '@/components/ui/Button';
 import { ApplicationStatusTimeline } from '@/components/applications/ApplicationStatusTimeline';
+import { canWithdrawApplication } from '@/lib/applicationHelpers';
 import { formatSalary } from '@/lib/jobFormat';
 import { getLocationLabel, getWorkType } from '@/lib/jobCardMeta';
 import { resolveJobImage } from '@/lib/resolveJobImage';
@@ -14,6 +16,8 @@ interface ApplicationCardProps {
   application: JobApplication;
   index?: number;
   onClick?: () => void;
+  onWithdraw?: (applicationId: string) => void;
+  withdrawing?: boolean;
 }
 
 function formatAppliedDate(iso: string): string {
@@ -24,9 +28,16 @@ function formatAppliedDate(iso: string): string {
   });
 }
 
-export function ApplicationCard({ application, index = 0, onClick }: ApplicationCardProps) {
+export function ApplicationCard({
+  application,
+  index = 0,
+  onClick,
+  onWithdraw,
+  withdrawing = false,
+}: ApplicationCardProps) {
   const job = application.job;
   const heroImage = useMemo(() => (job ? resolveJobImage(job) : null), [job]);
+  const showWithdraw = canWithdrawApplication(application.status) && Boolean(onWithdraw);
 
   if (!job || !heroImage) {
     return (
@@ -83,6 +94,25 @@ export function ApplicationCard({ application, index = 0, onClick }: Application
           statusHistory={application.statusHistory}
           appliedAt={application.appliedAt}
         />
+
+        {showWithdraw && (
+          <div className={styles.actions}>
+            <Button
+              type="button"
+              variant="ghost"
+              size="compact"
+              fullWidth
+              loading={withdrawing}
+              disabled={withdrawing}
+              onClick={(event) => {
+                event.stopPropagation();
+                onWithdraw?.(application.id);
+              }}
+            >
+              Withdraw application
+            </Button>
+          </div>
+        )}
       </div>
     </motion.article>
   );

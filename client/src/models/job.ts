@@ -35,6 +35,12 @@ export interface Job {
   sourceTrustScore?: number;
   tags: Tag[];
   trendingBadges?: string[];
+  displayTitle?: string;
+  displayCompany?: string;
+  displaySalary?: string;
+  displayLocation?: string;
+  displaySkills?: string[];
+  displaySummary?: string;
   createdAt: string;
   updatedAt?: string;
 }

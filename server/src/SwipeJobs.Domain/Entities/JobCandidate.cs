@@ -26,6 +26,14 @@ public class JobCandidate : BaseEntity
     /// <summary>JSON array of normalized skill names.</summary>
     public string? SkillsJson { get; set; }
 
+    public string? DisplayTitle { get; set; }
+    public string? DisplayCompany { get; set; }
+    public string? DisplaySalary { get; set; }
+    public string? DisplayLocation { get; set; }
+    /// <summary>JSON array of up to 5 card skill labels.</summary>
+    public string? DisplaySkillsJson { get; set; }
+    public string? DisplaySummary { get; set; }
+
     public ApplyMethodType ApplyMethod { get; set; } = ApplyMethodType.Unknown;
     public string? ApplyUrl { get; set; }
     public string? ApplyEmail { get; set; }

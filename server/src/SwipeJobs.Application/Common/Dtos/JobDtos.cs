@@ -36,6 +36,12 @@ public record JobDto(
     int SourceTrustScore,
     IReadOnlyList<TagDto> Tags,
     IReadOnlyList<string> TrendingBadges,
+    string? DisplayTitle,
+    string? DisplayCompany,
+    string? DisplaySalary,
+    string? DisplayLocation,
+    IReadOnlyList<string> DisplaySkills,
+    string? DisplaySummary,
     DateTime CreatedAt,
     DateTime? UpdatedAt);
 

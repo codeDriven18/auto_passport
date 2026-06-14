@@ -7,6 +7,7 @@ using SwipeJobs.Application.Common.Interfaces;
 using SwipeJobs.Application.Common.Interfaces.Repositories;
 using SwipeJobs.Application.Modules.Ingestion;
 using SwipeJobs.Application.Modules.Ingestion.Interfaces;
+using SwipeJobs.Application.Modules.Ingestion.Models;
 using SwipeJobs.Domain.Entities;
 using SwipeJobs.Domain.Enums;
 
@@ -19,6 +20,7 @@ public class IngestionPipelineService
     private readonly ISourceRepository _sourceRepository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IAiExtractionService _aiExtractionService;
+    private readonly IJobPreviewService _jobPreviewService;
     private readonly JobNormalizer _normalizer;
     private readonly JobQualityScoringService _qualityScoring;
     private readonly ISourceIngestionLogger _ingestionLogger;
@@ -30,6 +32,7 @@ public class IngestionPipelineService
         ISourceRepository sourceRepository,
         IUnitOfWork unitOfWork,
         IAiExtractionService aiExtractionService,
+        IJobPreviewService jobPreviewService,
         JobNormalizer normalizer,
         JobQualityScoringService qualityScoring,
         ISourceIngestionLogger ingestionLogger,
@@ -40,6 +43,7 @@ public class IngestionPipelineService
         _sourceRepository = sourceRepository;
         _unitOfWork = unitOfWork;
         _aiExtractionService = aiExtractionService;
+        _jobPreviewService = jobPreviewService;
         _normalizer = normalizer;
         _qualityScoring = qualityScoring;
         _ingestionLogger = ingestionLogger;
@@ -186,18 +190,35 @@ public class IngestionPipelineService
             }
 
             var normalized = _normalizer.Normalize(extracted);
-            if (string.IsNullOrWhiteSpace(normalized.CompanyName))
-            {
-                var fallbackCompany = dto.ChannelName ?? source.ChannelName ?? source.Name;
-                normalized = normalized with { CompanyName = fallbackCompany };
-            }
-            var (completeness, trust, spam) = _qualityScoring.Score(normalized, source.TrustScore, dto.RawMessageText);
+            var channelHint = dto.ChannelName ?? source.ChannelName ?? source.Name;
+
+            await Log(source.Id, "preview", "Info", "Job preview generation started.", null, cancellationToken);
+            var previewStarted = stopwatch.ElapsedMilliseconds;
+            var preview = await _jobPreviewService.GenerateAsync(
+                normalized,
+                channelHint,
+                normalized.Confidence,
+                cancellationToken);
+            var previewMs = stopwatch.ElapsedMilliseconds - previewStarted;
+            await Log(
+                source.Id,
+                "preview",
+                "Info",
+                $"Job preview completed in {previewMs}ms.",
+                preview.DisplayTitle,
+                cancellationToken);
+
+            var normalizedForScoring = normalized;
+            if (string.IsNullOrWhiteSpace(normalizedForScoring.CompanyName))
+                normalizedForScoring = normalizedForScoring with { CompanyName = channelHint };
+
+            var (completeness, trust, spam) = _qualityScoring.Score(normalizedForScoring, source.TrustScore, dto.RawMessageText);
 
             var fingerprint = JobContentFingerprint.ComputeForCandidate(
-                normalized.Title,
-                normalized.CompanyName,
-                normalized.City ?? normalized.Location,
-                normalized.ApplyUrl);
+                normalizedForScoring.Title,
+                normalizedForScoring.CompanyName,
+                normalizedForScoring.City ?? normalizedForScoring.Location,
+                normalizedForScoring.ApplyUrl);
 
             var existingCandidate = await _candidateRepository.FindByContentFingerprintAsync(fingerprint, cancellationToken);
             var isDuplicate = existingCandidate is not null &&
@@ -225,7 +246,8 @@ public class IngestionPipelineService
                     DuplicateGroupId = Guid.NewGuid(),
                     ContentFingerprint = fingerprint,
                 };
-                ApplyExtraction(candidate, normalized, completeness, trust, spam);
+                ApplyExtraction(candidate, normalizedForScoring, completeness, trust, spam);
+                ApplyPreview(candidate, preview);
                 candidate.MessageLinks.Add(new JobCandidateMessage
                 {
                     IngestionMessageId = message.Id,
@@ -366,5 +388,17 @@ public class IngestionPipelineService
         candidate.CompletenessScore = completeness;
         candidate.TrustScore = trust;
         candidate.SpamScore = spam;
+    }
+
+    internal static void ApplyPreview(JobCandidate candidate, JobPreviewResult preview)
+    {
+        candidate.DisplayTitle = preview.DisplayTitle;
+        candidate.DisplayCompany = preview.DisplayCompany;
+        candidate.DisplaySalary = preview.DisplaySalary;
+        candidate.DisplayLocation = preview.DisplayLocation;
+        candidate.DisplaySkillsJson = preview.DisplaySkills.Count > 0
+            ? JsonSerializer.Serialize(preview.DisplaySkills)
+            : null;
+        candidate.DisplaySummary = preview.DisplaySummary;
     }
 }

@@ -40,6 +40,12 @@ public class JobCandidateConfiguration : IEntityTypeConfiguration<JobCandidate>
         builder.Property(x => x.ApplyTelegram).HasMaxLength(100);
         builder.Property(x => x.ApplyPhone).HasMaxLength(50);
         builder.Property(x => x.RejectedReason).HasMaxLength(500);
+        builder.Property(x => x.DisplayTitle).HasMaxLength(60);
+        builder.Property(x => x.DisplayCompany).HasMaxLength(120);
+        builder.Property(x => x.DisplaySalary).HasMaxLength(80);
+        builder.Property(x => x.DisplayLocation).HasMaxLength(80);
+        builder.Property(x => x.DisplaySkillsJson).HasMaxLength(500);
+        builder.Property(x => x.DisplaySummary).HasMaxLength(180);
         builder.Property(x => x.SalaryMin).HasPrecision(18, 2);
         builder.Property(x => x.SalaryMax).HasPrecision(18, 2);
         builder.HasIndex(x => x.ContentFingerprint);

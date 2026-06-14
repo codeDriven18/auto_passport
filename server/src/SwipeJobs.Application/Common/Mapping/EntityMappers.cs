@@ -1,5 +1,8 @@
+using System.Text.Json;
 using SwipeJobs.Application.Common;
 using SwipeJobs.Application.Common.Dtos;
+using SwipeJobs.Application.Modules.Ingestion.Models;
+using SwipeJobs.Application.Modules.Ingestion.Services;
 using SwipeJobs.Domain.Entities;
 using ApplicationEntity = SwipeJobs.Domain.Entities.Application;
 
@@ -49,42 +52,97 @@ public static class JobMapper
 {
     public static JobDto ToDto(Job job) => ToDto(job, []);
 
-    public static JobDto ToDto(Job job, IReadOnlyList<string>? trendingBadges) => new(
-        job.Id,
-        job.Title,
-        job.Description,
-        job.CompanyId,
-        job.Company?.Name ?? string.Empty,
-        job.Company?.LogoUrl,
-        job.Company?.BannerUrl,
-        job.Company?.Slug,
-        job.Company?.Website,
-        job.Company?.LinkedInUrl,
-        job.Company?.Industry,
-        job.Company?.CompanySize,
-        job.Company?.Description,
-        job.Location,
-        job.City,
-        job.Category,
-        job.Level,
-        job.IsRemote,
-        job.IsActive,
-        job.IsArchived,
-        job.SalaryMin,
-        job.SalaryMax,
-        job.ExpiresAt,
-        job.ExternalUrl,
-        job.JobImageUrl,
-        job.AiGeneratedImageUrl,
-        job.SourceId,
-        job.Source?.Name,
-        job.Source?.LogoUrl,
-        SourceTrustHelper.ToLevel(job.Source?.TrustScore ?? 0),
-        job.Source?.TrustScore ?? 0,
-        job.JobTags?.Select(jt => TagMapper.ToDto(jt.Tag)).ToList() ?? [],
-        trendingBadges ?? [],
-        job.CreatedAt,
-        job.UpdatedAt);
+    public static JobDto ToDto(Job job, IReadOnlyList<string>? trendingBadges)
+    {
+        var preview = ResolveDisplayPreview(job);
+        return new JobDto(
+            job.Id,
+            job.Title,
+            job.Description,
+            job.CompanyId,
+            job.Company?.Name ?? string.Empty,
+            job.Company?.LogoUrl,
+            job.Company?.BannerUrl,
+            job.Company?.Slug,
+            job.Company?.Website,
+            job.Company?.LinkedInUrl,
+            job.Company?.Industry,
+            job.Company?.CompanySize,
+            job.Company?.Description,
+            job.Location,
+            job.City,
+            job.Category,
+            job.Level,
+            job.IsRemote,
+            job.IsActive,
+            job.IsArchived,
+            job.SalaryMin,
+            job.SalaryMax,
+            job.ExpiresAt,
+            job.ExternalUrl,
+            job.JobImageUrl,
+            job.AiGeneratedImageUrl,
+            job.SourceId,
+            job.Source?.Name,
+            job.Source?.LogoUrl,
+            SourceTrustHelper.ToLevel(job.Source?.TrustScore ?? 0),
+            job.Source?.TrustScore ?? 0,
+            job.JobTags?.Select(jt => TagMapper.ToDto(jt.Tag)).ToList() ?? [],
+            trendingBadges ?? [],
+            preview.DisplayTitle,
+            preview.DisplayCompany,
+            preview.DisplaySalary,
+            preview.DisplayLocation,
+            preview.DisplaySkills,
+            preview.DisplaySummary,
+            job.CreatedAt,
+            job.UpdatedAt);
+    }
+
+    private static JobPreviewResult ResolveDisplayPreview(Job job)
+    {
+        if (!string.IsNullOrWhiteSpace(job.DisplayTitle) && !string.IsNullOrWhiteSpace(job.DisplaySummary))
+        {
+            return JobPreviewTextSanitizer.EnforceLimits(new JobPreviewResult(
+                job.DisplayTitle,
+                job.DisplayCompany ?? JobPreviewTextSanitizer.CompanyNotSpecified,
+                job.DisplaySalary ?? "Not disclosed",
+                job.DisplayLocation ?? "Location not specified",
+                ParseDisplaySkills(job.DisplaySkillsJson),
+                job.DisplaySummary));
+        }
+
+        var tagSkills = job.JobTags?.Select(jt => jt.Tag.Name).ToList() ?? [];
+        return JobPreviewFallbackGenerator.FromJobFields(
+            job.Title,
+            job.Description,
+            job.Company?.Name ?? string.Empty,
+            job.SalaryMin,
+            job.SalaryMax,
+            job.Category,
+            job.IsRemote,
+            job.City,
+            job.Location,
+            tagSkills);
+    }
+
+    private static IReadOnlyList<string> ParseDisplaySkills(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json)) return [];
+
+        try
+        {
+            return JsonSerializer.Deserialize<List<string>>(json)?
+                .Where(s => !string.IsNullOrWhiteSpace(s))
+                .Select(s => s.Trim())
+                .Take(5)
+                .ToList() ?? [];
+        }
+        catch
+        {
+            return [];
+        }
+    }
 
     public static void ApplyCreate(Job job, CreateJobDto dto)
     {

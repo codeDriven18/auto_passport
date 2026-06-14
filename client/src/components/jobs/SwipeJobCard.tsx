@@ -1,20 +1,12 @@
 import { useMemo, useState } from 'react';
 import type { Job } from '@/models/job';
 import { SourceTrustLevel } from '@/models/enums';
-import { formatSalary } from '@/lib/jobFormat';
-import {
-  formatPostedTime,
-  getEmploymentType,
-  getExperienceLevel,
-  getLocationLabel,
-  getWorkType,
-  stripHtml,
-} from '@/lib/jobCardMeta';
+import { getSwipeJobPreview } from '@/lib/jobPreview';
+import { formatPostedTime } from '@/lib/jobCardMeta';
 import { resolveJobImage } from '@/lib/resolveJobImage';
 import { JobHeroImage } from '@/components/jobs/JobHeroImage';
 import { CompanyLogo } from '@/components/jobs/CompanyLogo';
 import { JobShareMenu } from '@/components/jobs/JobShareMenu';
-import { ContactLinkText } from '@/components/ui/ContactLinkText';
 import { IconBookmark, IconVerified } from '@/components/icons/Icons';
 import styles from './SwipeJobCard.module.css';
 
@@ -26,12 +18,8 @@ interface SwipeJobCardProps {
 export function SwipeJobCard({ job, interactive = true }: SwipeJobCardProps) {
   const [shareOpen, setShareOpen] = useState(false);
   const heroImage = useMemo(() => resolveJobImage(job), [job]);
-  const description = stripHtml(job.description);
-  const workType = getWorkType(job);
-  const employment = getEmploymentType(job);
-  const experience = getExperienceLevel(job);
+  const preview = useMemo(() => getSwipeJobPreview(job), [job]);
   const isTrustedSource = (job.sourceTrustLevel ?? SourceTrustLevel.Unknown) >= SourceTrustLevel.Verified;
-  const tags = job.tags.slice(0, 4);
 
   return (
     <>
@@ -39,7 +27,7 @@ export function SwipeJobCard({ job, interactive = true }: SwipeJobCardProps) {
         <div className={styles.hero}>
           <JobHeroImage
             image={heroImage}
-            alt={`${job.title} at ${job.company}`}
+            alt={`${preview.title} at ${preview.company}`}
             className={styles.heroImage}
             priority
           />
@@ -69,42 +57,25 @@ export function SwipeJobCard({ job, interactive = true }: SwipeJobCardProps) {
 
         <div className={styles.body}>
           <div className={styles.companyRow}>
-            <CompanyLogo name={job.company} logoUrl={job.companyLogoUrl} size="md" />
+            <CompanyLogo name={preview.company} logoUrl={job.companyLogoUrl} size="md" />
             <div className={styles.companyText}>
-              <span className={styles.companyName}>{job.company}</span>
-              <span className={styles.companyMeta}>
-                {[job.companyIndustry, job.companySize].filter(Boolean).join(' · ')}
-              </span>
+              <span className={styles.companyName}>{preview.company}</span>
             </div>
           </div>
 
-          <h2 className={styles.title}>{job.title}</h2>
+          <h2 className={styles.title}>{preview.title}</h2>
 
           <div className={styles.pills}>
-            <span className={styles.pillAccent}>
-              {formatSalary(job.salaryMin, job.salaryMax, job.category, job.externalUrl)}
-            </span>
-            <span className={styles.pill}>{workType}</span>
-            <span className={styles.pill}>{employment}</span>
-            {experience !== '—' && experience !== 'IT' && experience !== 'Gig' && (
-              <span className={styles.pill}>{experience}</span>
-            )}
+            <span className={styles.pillAccent}>{preview.salary}</span>
+            <span className={styles.pill}>{preview.location}</span>
           </div>
 
-          <p className={styles.location}>{getLocationLabel(job)}</p>
+          {preview.summary && <p className={styles.summary}>{preview.summary}</p>}
 
-          {description && (
-            <ContactLinkText
-              text={description}
-              className={`${styles.description} copyable-content`}
-              as="p"
-            />
-          )}
-
-          {tags.length > 0 && (
+          {preview.skills.length > 0 && (
             <div className={styles.tags}>
-              {tags.map((tag) => (
-                <span key={tag.id} className={styles.tag}>{tag.name}</span>
+              {preview.skills.map((skill) => (
+                <span key={skill} className={styles.tag}>{skill}</span>
               ))}
             </div>
           )}

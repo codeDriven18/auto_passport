@@ -7,6 +7,14 @@ public class Job : BaseEntity
 {
     public string Title { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
+
+    public string? DisplayTitle { get; set; }
+    public string? DisplayCompany { get; set; }
+    public string? DisplaySalary { get; set; }
+    public string? DisplayLocation { get; set; }
+    /// <summary>JSON array of up to 5 card skill labels.</summary>
+    public string? DisplaySkillsJson { get; set; }
+    public string? DisplaySummary { get; set; }
     public string? Location { get; set; }
     public string? City { get; set; }
     public decimal? SalaryMin { get; set; }

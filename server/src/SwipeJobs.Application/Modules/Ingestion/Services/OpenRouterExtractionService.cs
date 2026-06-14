@@ -139,6 +139,88 @@ public sealed class OpenRouterExtractionService : IJobExtractionProvider
         return lastResult ?? Failed(model, "OpenRouter extraction failed.", stopwatch.ElapsedMilliseconds);
     }
 
+    public async Task<JobPreviewGenerationResponse> GenerateJobPreviewAsync(
+        JobExtractionResult extraction,
+        string? channelHint,
+        int extractionConfidence,
+        CancellationToken cancellationToken = default)
+    {
+        var stopwatch = Stopwatch.StartNew();
+        var model = RequireConfiguredModel();
+
+        if (string.IsNullOrWhiteSpace(_options.ApiKey))
+        {
+            const string message = "AI:ApiKey is not configured.";
+            _logger.LogError("{Provider} preview blocked: {Message}", Provider, message);
+            return PreviewFailed(message, stopwatch.ElapsedMilliseconds);
+        }
+
+        var userMessage = JobPreviewRequestBuilder.BuildUserMessage(extraction, channelHint, extractionConfidence);
+        JobPreviewGenerationResponse? lastResult = null;
+
+        for (var attempt = 1; attempt <= 2; attempt++)
+        {
+            try
+            {
+                var (responseText, statusCode, _) =
+                    await CallOpenRouterPreviewAsync(userMessage, model, cancellationToken);
+
+                var parsed = JobPreviewJsonParser.Parse(responseText);
+                stopwatch.Stop();
+
+                _logger.LogInformation(
+                    "{Provider} preview succeeded. Model={Model}, Status={Status}, DurationMs={DurationMs}, Title={Title}",
+                    Provider,
+                    model,
+                    statusCode,
+                    stopwatch.ElapsedMilliseconds,
+                    parsed.DisplayTitle);
+
+                return new JobPreviewGenerationResponse(
+                    parsed,
+                    true,
+                    null,
+                    stopwatch.ElapsedMilliseconds,
+                    statusCode);
+            }
+            catch (AiProviderExtractionException ex)
+            {
+                stopwatch.Stop();
+                var friendly = AiProviderErrorClassifier.ToFriendlyMessage(Provider, ex.StatusCode, ex.Message);
+
+                _logger.LogWarning(
+                    ex,
+                    "{Provider} preview API call failed. Model={Model}, Status={Status}, DurationMs={DurationMs}",
+                    Provider,
+                    model,
+                    ex.StatusCode,
+                    stopwatch.ElapsedMilliseconds);
+
+                lastResult = PreviewFailed(friendly, stopwatch.ElapsedMilliseconds, ex.StatusCode);
+                if (ex.IsRateLimited || attempt >= 2)
+                    return lastResult;
+
+                stopwatch.Restart();
+            }
+            catch (Exception ex)
+            {
+                stopwatch.Stop();
+                _logger.LogWarning(ex, "{Provider} preview failed. Model={Model}, Attempt={Attempt}", Provider, model, attempt);
+
+                lastResult = PreviewFailed(
+                    AiProviderErrorClassifier.ToFriendlyMessage(Provider, null, ex.Message),
+                    stopwatch.ElapsedMilliseconds);
+
+                if (attempt >= 2)
+                    return lastResult;
+
+                stopwatch.Restart();
+            }
+        }
+
+        return lastResult ?? PreviewFailed("OpenRouter preview failed.", stopwatch.ElapsedMilliseconds);
+    }
+
     private string RequireConfiguredModel()
     {
         var model = _options.Model?.Trim();
@@ -239,8 +321,70 @@ public sealed class OpenRouterExtractionService : IJobExtractionProvider
         return (text, statusCode, requestBytes);
     }
 
+    private async Task<(string Text, int StatusCode, int RequestBytes)> CallOpenRouterPreviewAsync(
+        string userMessage,
+        string model,
+        CancellationToken cancellationToken)
+    {
+        const string endpoint = "chat/completions";
+
+        var request = new OpenRouterChatRequest
+        {
+            Model = model,
+            Messages =
+            [
+                new OpenRouterMessage { Role = "system", Content = JobPreviewPrompt.SystemPrompt },
+                new OpenRouterMessage { Role = "user", Content = userMessage },
+            ],
+            Temperature = 0.2,
+            ResponseFormat = new OpenRouterResponseFormat { Type = "json_object" },
+        };
+
+        var requestJson = JsonSerializer.Serialize(request, JsonOptions);
+        var requestBytes = Encoding.UTF8.GetByteCount(requestJson);
+
+        using var httpRequest = new HttpRequestMessage(HttpMethod.Post, endpoint);
+        httpRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _options.ApiKey);
+        httpRequest.Headers.TryAddWithoutValidation("HTTP-Referer", "https://swipejobs.app");
+        httpRequest.Headers.TryAddWithoutValidation("X-Title", "SwipeJobs");
+        httpRequest.Content = JsonContent.Create(request);
+
+        using var response = await _httpClient.SendAsync(httpRequest, cancellationToken);
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
+        var statusCode = (int)response.StatusCode;
+        var retryAfter = AiHttpExtractionHelpers.ParseRetryAfterSeconds(response);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            var apiMessage = AiHttpExtractionHelpers.TryParseJsonErrorMessage(body) ?? $"HTTP {statusCode}";
+            throw new AiProviderExtractionException(
+                Provider,
+                statusCode,
+                AiProviderErrorClassifier.ToLogMessage(Provider, statusCode, apiMessage),
+                body,
+                requestBytes,
+                retryAfter.HasValue ? TimeSpan.FromSeconds(retryAfter.Value) : null);
+        }
+
+        var openRouterResponse = JsonSerializer.Deserialize<OpenRouterChatResponse>(body, JsonOptions)
+            ?? throw new InvalidOperationException("OpenRouter returned an empty response envelope.");
+
+        var text = openRouterResponse.Choices?
+            .FirstOrDefault()?
+            .Message?
+            .Content;
+
+        if (string.IsNullOrWhiteSpace(text))
+            throw new InvalidOperationException("OpenRouter returned no text content.");
+
+        return (text, statusCode, requestBytes);
+    }
+
     private AiExtractionResponse Failed(string model, string error, long elapsedMs) =>
         new(null, _options.Provider, model, Provider, false, error, elapsedMs);
+
+    private static JobPreviewGenerationResponse PreviewFailed(string error, long elapsedMs, int? statusCode = null) =>
+        new(null, false, error, elapsedMs, statusCode);
 
     private sealed class OpenRouterChatRequest
     {

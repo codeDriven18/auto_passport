@@ -10,6 +10,12 @@ public class JobConfiguration : IEntityTypeConfiguration<Job>
     {
         builder.HasKey(j => j.Id);
         builder.Property(j => j.Title).IsRequired().HasMaxLength(300);
+        builder.Property(j => j.DisplayTitle).HasMaxLength(60);
+        builder.Property(j => j.DisplayCompany).HasMaxLength(120);
+        builder.Property(j => j.DisplaySalary).HasMaxLength(80);
+        builder.Property(j => j.DisplayLocation).HasMaxLength(80);
+        builder.Property(j => j.DisplaySkillsJson).HasMaxLength(500);
+        builder.Property(j => j.DisplaySummary).HasMaxLength(180);
         builder.Property(j => j.Location).HasMaxLength(200);
         builder.Property(j => j.City).HasMaxLength(100);
         builder.Property(j => j.SalaryMin).HasPrecision(18, 2);

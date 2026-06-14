@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
 using SwipeJobs.Application.Common;
@@ -6,6 +7,7 @@ using SwipeJobs.Application.Common.Interfaces;
 using SwipeJobs.Application.Common.Interfaces.Repositories;
 using SwipeJobs.Application.Common.Mapping;
 using SwipeJobs.Application.Modules.Ingestion;
+using SwipeJobs.Application.Modules.Ingestion.Models;
 using SwipeJobs.Domain.Entities;
 using SwipeJobs.Domain.Enums;
 
@@ -128,11 +130,20 @@ public class JobPublishService : IJobPublishService
 
         var now = DateTime.UtcNow;
         var expiresAt = now.AddDays(Math.Clamp(source.DefaultExpirationDays, 7, 90));
+        var preview = ResolvePreview(candidate, companyName!);
 
         var job = new Job
         {
             Title = candidate.Title!.Trim(),
             Description = candidate.Description?.Trim() ?? candidate.Title!,
+            DisplayTitle = preview.DisplayTitle,
+            DisplayCompany = preview.DisplayCompany,
+            DisplaySalary = preview.DisplaySalary,
+            DisplayLocation = preview.DisplayLocation,
+            DisplaySkillsJson = preview.DisplaySkills.Count > 0
+                ? JsonSerializer.Serialize(preview.DisplaySkills)
+                : null,
+            DisplaySummary = preview.DisplaySummary,
             CompanyId = company.Id,
             Location = candidate.Location,
             City = candidate.City,
@@ -201,5 +212,49 @@ public class JobPublishService : IJobPublishService
         await _companyRepository.AddAsync(company, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         return company;
+    }
+
+    private static JobPreviewResult ResolvePreview(JobCandidate candidate, string companyName)
+    {
+        if (!string.IsNullOrWhiteSpace(candidate.DisplayTitle) && !string.IsNullOrWhiteSpace(candidate.DisplaySummary))
+        {
+            return JobPreviewTextSanitizer.EnforceLimits(new JobPreviewResult(
+                candidate.DisplayTitle,
+                candidate.DisplayCompany ?? JobPreviewTextSanitizer.CompanyNotSpecified,
+                candidate.DisplaySalary ?? "Not disclosed",
+                candidate.DisplayLocation ?? "Location not specified",
+                ParseSkillsJson(candidate.DisplaySkillsJson),
+                candidate.DisplaySummary));
+        }
+
+        return JobPreviewFallbackGenerator.FromJobFields(
+            candidate.Title!,
+            candidate.Description ?? candidate.Title!,
+            companyName,
+            candidate.SalaryMin,
+            candidate.SalaryMax,
+            candidate.Category,
+            candidate.IsRemote,
+            candidate.City,
+            candidate.Location,
+            ParseSkillsJson(candidate.SkillsJson));
+    }
+
+    private static IReadOnlyList<string> ParseSkillsJson(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json)) return [];
+
+        try
+        {
+            return JsonSerializer.Deserialize<List<string>>(json)?
+                .Where(s => !string.IsNullOrWhiteSpace(s))
+                .Select(s => s.Trim())
+                .Take(5)
+                .ToList() ?? [];
+        }
+        catch
+        {
+            return [];
+        }
     }
 }

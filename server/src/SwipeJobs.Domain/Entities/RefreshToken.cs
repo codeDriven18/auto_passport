@@ -10,4 +10,9 @@ public class RefreshToken : BaseEntity
     public string TokenHash { get; set; } = string.Empty;
     public DateTime ExpiresAt { get; set; }
     public DateTime? RevokedAt { get; set; }
+    public string? CreatedByIp { get; set; }
+    public string? RevokedByIp { get; set; }
+    public string? DeviceInfo { get; set; }
+    public bool IsRememberMe { get; set; }
+    public DateTime LastActivityAt { get; set; }
 }

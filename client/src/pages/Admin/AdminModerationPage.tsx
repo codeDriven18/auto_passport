@@ -4,6 +4,7 @@ import { moderationApi } from '@/api/moderationApi';
 import { sourcesApi } from '@/api/sourcesApi';
 import { getIngestionErrorMessage } from '@/lib/ingestionErrors';
 import { getModerationErrorMessage } from '@/lib/moderationErrors';
+import { sanitizeCandidateCardTitle } from '@/lib/jobPreview';
 import { formatSalary } from '@/lib/jobFormat';
 import type { AdminSource } from '@/models/source';
 import { SourceType } from '@/models/enums';
@@ -328,7 +329,7 @@ export function AdminModerationPage() {
                     type="checkbox"
                     checked={selectedIds.has(candidate.id)}
                     onChange={() => toggleSelected(candidate.id)}
-                    aria-label={`Select ${candidate.title ?? 'candidate'}`}
+                    aria-label={`Select ${sanitizeCandidateCardTitle(candidate.title, candidate.companyName)}`}
                   />
                   <button type="button" className={styles.cardBodyBtn} onClick={() => setSelectedId(candidate.id)}>
                     <div className={styles.cardScores}>
@@ -338,7 +339,9 @@ export function AdminModerationPage() {
                         <span className={styles.dupBadge}>{candidate.sourceCount} sources</span>
                       )}
                     </div>
-                    <h3 className={styles.cardTitle}>{candidate.title ?? 'Untitled role'}</h3>
+                    <h3 className={styles.cardTitle}>
+                      {sanitizeCandidateCardTitle(candidate.title, candidate.companyName)}
+                    </h3>
                     <p className={styles.cardCompany}>{candidate.companyName ?? 'Unknown company'}</p>
                     <p className={styles.cardMeta}>{candidate.sourceName}</p>
                   </button>

@@ -1,10 +1,12 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
+using SwipeJobs.Application.Common.Auth;
 using SwipeJobs.Application.Common.Dtos;
 using SwipeJobs.Application.Common.Interfaces;
 using SwipeJobs.Application.Common.Interfaces.Repositories;
 using SwipeJobs.Application.Modules.Auth.Interfaces;
+using SwipeJobs.Api.Extensions;
 using SwipeJobs.Infrastructure.Auth;
 using System.Security.Claims;
 using System.Text.Json;
@@ -35,6 +37,9 @@ public class AuthController : ControllerBase
         _jsonSerializerOptions = jsonOptions.Value.JsonSerializerOptions;
     }
 
+    private AuthClientInfo ClientInfo(bool rememberMe = false) =>
+        new(HttpContext.GetClientIpAddress(), HttpContext.GetDeviceInfo(), rememberMe);
+
     [AllowAnonymous]
     [HttpPost("register")]
     public async Task<IActionResult> Register([FromBody] RegisterDto dto, CancellationToken cancellationToken)
@@ -46,7 +51,7 @@ public class AuthController : ControllerBase
 
         try
         {
-            var result = await _authService.RegisterAsync(dto, cancellationToken);
+            var result = await _authService.RegisterAsync(dto, ClientInfo(), cancellationToken);
             RegisterFlowDiagnostics.LogPhaseComplete(
                 _logger,
                 "controller-register",
@@ -90,12 +95,13 @@ public class AuthController : ControllerBase
     {
         try
         {
-            var result = await _authService.LoginAsync(dto, cancellationToken);
+            var result = await _authService.LoginAsync(dto, ClientInfo(dto.RememberMe), cancellationToken);
             _logger.LogInformation(
-                "AuthController.Login succeeded userId={UserId} email={Email} role={Role}",
+                "AuthController.Login succeeded userId={UserId} email={Email} role={Role} rememberMe={RememberMe}",
                 result.User.Id,
                 result.User.Email,
-                result.User.Role);
+                result.User.Role,
+                dto.RememberMe);
             return Ok(result);
         }
         catch (UnauthorizedAccessException ex)
@@ -114,11 +120,11 @@ public class AuthController : ControllerBase
 
         try
         {
-            var result = await _authService.RefreshAsync(dto.RefreshToken ?? string.Empty, cancellationToken);
+            var result = await _authService.RefreshAsync(dto.RefreshToken ?? string.Empty, ClientInfo(), cancellationToken);
             _logger.LogInformation(
-                "POST /api/auth/refresh succeeded userId={UserId} newRefreshLength={RefreshLength}",
+                "POST /api/auth/refresh succeeded userId={UserId} sessionId={SessionId}",
                 result.User.Id,
-                result.RefreshToken.Length);
+                result.SessionId);
             return Ok(result);
         }
         catch (UnauthorizedAccessException ex)
@@ -132,8 +138,44 @@ public class AuthController : ControllerBase
     [HttpPost("logout")]
     public async Task<IActionResult> Logout([FromBody] LogoutDto dto, CancellationToken cancellationToken)
     {
-        await _authService.LogoutAsync(dto.RefreshToken, cancellationToken);
+        await _authService.LogoutAsync(dto.RefreshToken, ClientInfo(), cancellationToken);
         return NoContent();
+    }
+
+    [Authorize]
+    [HttpPost("logout-all")]
+    public async Task<IActionResult> LogoutAll(CancellationToken cancellationToken)
+    {
+        await _authService.LogoutAllAsync(_currentUser.GetRequiredUserId(), ClientInfo(), cancellationToken);
+        return NoContent();
+    }
+
+    [Authorize]
+    [HttpGet("sessions")]
+    public async Task<IActionResult> Sessions([FromQuery] string? refreshToken, CancellationToken cancellationToken)
+    {
+        var userId = _currentUser.GetRequiredUserId();
+        var sessions = await _authService.GetSessionsAsync(userId, refreshToken, cancellationToken);
+        return Ok(sessions);
+    }
+
+    [Authorize]
+    [HttpDelete("sessions/{sessionId:guid}")]
+    public async Task<IActionResult> RevokeSession(Guid sessionId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _authService.RevokeSessionAsync(
+                _currentUser.GetRequiredUserId(),
+                sessionId,
+                ClientInfo(),
+                cancellationToken);
+            return NoContent();
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound(new { error = "Session not found." });
+        }
     }
 
     [AllowAnonymous]
@@ -150,7 +192,7 @@ public class AuthController : ControllerBase
     {
         try
         {
-            await _authService.ChangePasswordAsync(_currentUser.GetRequiredUserId(), dto, cancellationToken);
+            await _authService.ChangePasswordAsync(_currentUser.GetRequiredUserId(), dto, ClientInfo(), cancellationToken);
             return NoContent();
         }
         catch (InvalidOperationException ex)

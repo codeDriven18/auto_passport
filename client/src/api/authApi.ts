@@ -1,10 +1,12 @@
 import { apiClient } from './client';
+import { getRefreshToken } from '@/lib/authStorage';
 import type {
   AuthResponse,
   AuthUser,
   ChangePasswordRequest,
   LoginRequest,
   RegisterRequest,
+  UserSession,
 } from '@/models/auth';
 
 export const authApi = {
@@ -27,6 +29,17 @@ export const authApi = {
       body: { refreshToken },
       skipAuth: true,
     }),
+
+  logoutAll: () => apiClient<void>('/auth/logout-all', { method: 'POST' }),
+
+  getSessions: () => {
+    const refreshToken = getRefreshToken();
+    const query = refreshToken ? `?refreshToken=${encodeURIComponent(refreshToken)}` : '';
+    return apiClient<UserSession[]>(`/auth/sessions${query}`);
+  },
+
+  revokeSession: (sessionId: string) =>
+    apiClient<void>(`/auth/sessions/${sessionId}`, { method: 'DELETE' }),
 
   forgotPassword: (email: string) =>
     apiClient<{ message: string }>('/auth/forgot-password', {

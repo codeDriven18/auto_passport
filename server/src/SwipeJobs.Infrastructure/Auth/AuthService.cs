@@ -2,6 +2,7 @@ using System.Text.RegularExpressions;
 using BCrypt.Net;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using SwipeJobs.Application.Common.Auth;
 using SwipeJobs.Application.Common.Dtos;
 using SwipeJobs.Application.Common.Interfaces;
 using SwipeJobs.Application.Common.Interfaces.Repositories;
@@ -13,8 +14,6 @@ namespace SwipeJobs.Infrastructure.Auth;
 
 public class AuthService : IAuthService
 {
-    private const int RefreshTokenDays = 7;
-
     private readonly IUserRepository _userRepository;
     private readonly IUserProfileRepository _profileRepository;
     private readonly ICompanyRepository _companyRepository;
@@ -50,7 +49,7 @@ public class AuthService : IAuthService
         _configuration = configuration;
     }
 
-    public async Task<AuthResponseDto> RegisterAsync(RegisterDto dto, CancellationToken cancellationToken = default)
+    public async Task<AuthResponseDto> RegisterAsync(RegisterDto dto, AuthClientInfo client, CancellationToken cancellationToken = default)
     {
         RegisterFlowDiagnostics.LogPhaseStart(
             _logger,
@@ -176,7 +175,7 @@ public class AuthService : IAuthService
 
             var response = await RunRegisterPhaseAsync(
                 "issue-tokens",
-                async () => await IssueTokensAsync(user, profile, membership, cancellationToken),
+                async () => await IssueTokensAsync(user, profile, membership, client, cancellationToken),
                 cancellationToken);
 
             RegisterFlowDiagnostics.LogPhaseComplete(_logger, "register-entry", $"userId={user.Id}");
@@ -189,7 +188,7 @@ public class AuthService : IAuthService
         }
     }
 
-    public async Task<AuthResponseDto> LoginAsync(LoginDto dto, CancellationToken cancellationToken = default)
+    public async Task<AuthResponseDto> LoginAsync(LoginDto dto, AuthClientInfo client, CancellationToken cancellationToken = default)
     {
         var email = dto.Email.Trim().ToLower();
         var user = await _userRepository.GetByEmailAsync(email, cancellationToken);
@@ -236,10 +235,15 @@ public class AuthService : IAuthService
                 cancellationToken);
         }
 
-        return await IssueTokensAsync(fullUser, fullUser.Profile, fullUser.CompanyMembership, cancellationToken);
+        return await IssueTokensAsync(
+            fullUser,
+            fullUser.Profile,
+            fullUser.CompanyMembership,
+            client with { RememberMe = dto.RememberMe },
+            cancellationToken);
     }
 
-    public async Task<AuthResponseDto> RefreshAsync(string refreshToken, CancellationToken cancellationToken = default)
+    public async Task<AuthResponseDto> RefreshAsync(string refreshToken, AuthClientInfo client, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(refreshToken))
         {
@@ -258,7 +262,22 @@ public class AuthService : IAuthService
         if (stored is null)
         {
             var revoked = await _refreshTokenRepository.GetByTokenHashIncludingRevokedAsync(hash, cancellationToken);
-            if (revoked is not null)
+            if (revoked is not null && revoked.RevokedAt is not null)
+            {
+                _logger.LogWarning(
+                    "Refresh token reuse detected userId={UserId}; revoking all sessions",
+                    revoked.UserId);
+                await _refreshTokenRepository.RevokeAllForUserAsync(revoked.UserId, client.IpAddress, cancellationToken);
+                await _unitOfWork.SaveChangesAsync(cancellationToken);
+                await _auditLogService.LogAsync(
+                    AuditAction.RefreshTokenRevoked,
+                    AuditEntityType.User,
+                    revoked.UserId,
+                    "All sessions revoked after refresh token reuse",
+                    actorUserId: revoked.UserId,
+                    cancellationToken: cancellationToken);
+            }
+            else if (revoked is not null)
             {
                 _logger.LogWarning(
                     "Refresh rejected: token revoked userId={UserId} revokedAt={RevokedAt} expired={Expired}",
@@ -285,7 +304,9 @@ public class AuthService : IAuthService
             throw new UnauthorizedAccessException("Refresh token expired.");
         }
 
+        stored.LastActivityAt = DateTime.UtcNow;
         stored.RevokedAt = DateTime.UtcNow;
+        stored.RevokedByIp = client.IpAddress;
         await _refreshTokenRepository.UpdateAsync(stored, cancellationToken);
 
         var user = await _userRepository.GetByIdWithMembershipAsync(stored.UserId, cancellationToken)
@@ -305,17 +326,31 @@ public class AuthService : IAuthService
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
+        await _auditLogService.LogAsync(
+            AuditAction.RefreshTokenRotated,
+            AuditEntityType.User,
+            user.Id,
+            "Refresh token rotated",
+            actorUserId: user.Id,
+            cancellationToken: cancellationToken);
+
         _logger.LogInformation("Refresh succeeded userId={UserId} rotating token", user.Id);
-        return await IssueTokensAsync(user, user.Profile, user.CompanyMembership, cancellationToken);
+        var rotationClient = client with
+        {
+            RememberMe = stored.IsRememberMe,
+            DeviceInfo = client.DeviceInfo ?? stored.DeviceInfo,
+        };
+        return await IssueTokensAsync(user, user.Profile, user.CompanyMembership, rotationClient, cancellationToken);
     }
 
-    public async Task LogoutAsync(string refreshToken, CancellationToken cancellationToken = default)
+    public async Task LogoutAsync(string refreshToken, AuthClientInfo client, CancellationToken cancellationToken = default)
     {
         var hash = _tokenService.HashToken(refreshToken);
         var stored = await _refreshTokenRepository.GetByTokenHashAsync(hash, cancellationToken);
         if (stored is null) return;
 
         stored.RevokedAt = DateTime.UtcNow;
+        stored.RevokedByIp = client.IpAddress;
         await _refreshTokenRepository.UpdateAsync(stored, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
@@ -326,12 +361,79 @@ public class AuthService : IAuthService
             "User logged out",
             actorUserId: stored.UserId,
             cancellationToken: cancellationToken);
+
+        _logger.LogInformation("Session revoked on logout userId={UserId} sessionId={SessionId}", stored.UserId, stored.Id);
+    }
+
+    public async Task LogoutAllAsync(Guid userId, AuthClientInfo client, CancellationToken cancellationToken = default)
+    {
+        await _refreshTokenRepository.RevokeAllForUserAsync(userId, client.IpAddress, cancellationToken);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        await _auditLogService.LogAsync(
+            AuditAction.LogoutAll,
+            AuditEntityType.User,
+            userId,
+            "All sessions revoked",
+            actorUserId: userId,
+            cancellationToken: cancellationToken);
+
+        _logger.LogInformation("All sessions revoked userId={UserId}", userId);
+    }
+
+    public async Task<IReadOnlyList<UserSessionDto>> GetSessionsAsync(
+        Guid userId,
+        string? currentRefreshToken,
+        CancellationToken cancellationToken = default)
+    {
+        var sessions = await _refreshTokenRepository.GetActiveByUserIdAsync(userId, cancellationToken);
+        string? currentHash = null;
+        if (!string.IsNullOrWhiteSpace(currentRefreshToken))
+            currentHash = _tokenService.HashToken(currentRefreshToken);
+
+        return sessions.Select(session => new UserSessionDto(
+            session.Id,
+            FormatDeviceInfo(session.DeviceInfo),
+            session.CreatedByIp,
+            session.CreatedAt,
+            session.LastActivityAt,
+            session.ExpiresAt,
+            session.IsRememberMe,
+            currentHash is not null && session.TokenHash == currentHash)).ToList();
+    }
+
+    public async Task RevokeSessionAsync(
+        Guid userId,
+        Guid sessionId,
+        AuthClientInfo client,
+        CancellationToken cancellationToken = default)
+    {
+        var session = await _refreshTokenRepository.GetByIdForUserAsync(sessionId, userId, cancellationToken)
+            ?? throw new KeyNotFoundException("Session not found.");
+
+        if (session.RevokedAt is not null)
+            return;
+
+        session.RevokedAt = DateTime.UtcNow;
+        session.RevokedByIp = client.IpAddress;
+        await _refreshTokenRepository.UpdateAsync(session, cancellationToken);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        await _auditLogService.LogAsync(
+            AuditAction.SessionRevoked,
+            AuditEntityType.User,
+            userId,
+            $"Session {sessionId} revoked",
+            actorUserId: userId,
+            cancellationToken: cancellationToken);
+
+        _logger.LogInformation("Session revoked userId={UserId} sessionId={SessionId}", userId, sessionId);
     }
 
     public Task ForgotPasswordAsync(ForgotPasswordDto dto, CancellationToken cancellationToken = default)
         => Task.CompletedTask;
 
-    public async Task ChangePasswordAsync(Guid userId, ChangePasswordDto dto, CancellationToken cancellationToken = default)
+    public async Task ChangePasswordAsync(Guid userId, ChangePasswordDto dto, AuthClientInfo client, CancellationToken cancellationToken = default)
     {
         var user = await _userRepository.GetByIdAsync(userId, cancellationToken)
             ?? throw new KeyNotFoundException("User not found.");
@@ -344,7 +446,7 @@ public class AuthService : IAuthService
 
         user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.NewPassword);
         await _userRepository.UpdateAsync(user, cancellationToken);
-        await _refreshTokenRepository.RevokeAllForUserAsync(userId, cancellationToken);
+        await _refreshTokenRepository.RevokeAllForUserAsync(userId, client.IpAddress, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
     }
 
@@ -414,27 +516,28 @@ public class AuthService : IAuthService
     }
 
     private async Task<AuthResponseDto> IssueTokensAsync(
-        User user, UserProfile? profile, CompanyMember? membership, CancellationToken cancellationToken)
+        User user,
+        UserProfile? profile,
+        CompanyMember? membership,
+        AuthClientInfo client,
+        CancellationToken cancellationToken)
     {
-        _logger.LogWarning(
-            "Auth tokens: generating refresh token for userId={UserId} email={Email}",
-            user.Id,
-            user.Email);
-
+        var now = DateTime.UtcNow;
         var refreshPlain = _tokenService.GenerateRefreshToken();
-        _logger.LogWarning(
-            "Auth tokens: refresh token generated (length={Length}), hashing for storage",
-            refreshPlain.Length);
+        var refreshDays = GetRefreshTokenDays(user.Role, client.RememberMe);
 
         var refreshEntity = new RefreshToken
         {
             UserId = user.Id,
             TokenHash = _tokenService.HashToken(refreshPlain),
-            ExpiresAt = DateTime.UtcNow.AddDays(RefreshTokenDays),
+            ExpiresAt = now.AddDays(refreshDays),
+            CreatedByIp = client.IpAddress,
+            DeviceInfo = client.DeviceInfo,
+            IsRememberMe = client.RememberMe,
+            LastActivityAt = now,
         };
 
         await _refreshTokenRepository.AddAsync(refreshEntity, cancellationToken);
-        _logger.LogWarning("Auth tokens: SaveChangesAsync (refresh token) for userId={UserId}", user.Id);
         try
         {
             await _unitOfWork.SaveChangesAsync(cancellationToken);
@@ -447,13 +550,6 @@ public class AuthService : IAuthService
                 ex);
             throw;
         }
-
-        _logger.LogWarning(
-            "Auth tokens: generating access token for userId={UserId} profileId={ProfileId} companyId={CompanyId} role={Role}",
-            user.Id,
-            profile?.Id,
-            membership?.CompanyId,
-            user.Role);
 
         string accessToken;
         try
@@ -474,15 +570,27 @@ public class AuthService : IAuthService
             throw;
         }
 
-        _logger.LogWarning(
-            "Auth tokens: access token generated (length={Length}) for userId={UserId}",
-            accessToken.Length,
-            user.Id);
+        await _auditLogService.LogAsync(
+            AuditAction.RefreshTokenIssued,
+            AuditEntityType.User,
+            user.Id,
+            $"Refresh token issued ({refreshDays}d, rememberMe={client.RememberMe})",
+            actorUserId: user.Id,
+            actorEmail: user.Email,
+            cancellationToken: cancellationToken);
+
+        _logger.LogInformation(
+            "Auth session issued userId={UserId} sessionId={SessionId} refreshDays={RefreshDays} rememberMe={RememberMe}",
+            user.Id,
+            refreshEntity.Id,
+            refreshDays,
+            client.RememberMe);
 
         return new AuthResponseDto(
             accessToken,
             refreshPlain,
             _tokenService.GetAccessTokenExpirySeconds(),
+            refreshEntity.Id,
             new AuthUserDto(
                 user.Id,
                 user.Email,
@@ -491,6 +599,21 @@ public class AuthService : IAuthService
                 membership?.CompanyId,
                 membership?.Company?.Name,
                 membership?.Company?.Status));
+    }
+
+    private static int GetRefreshTokenDays(UserRole role, bool rememberMe) =>
+        role == UserRole.Admin
+            ? AuthSessionOptions.AdminRefreshTokenDays
+            : rememberMe
+                ? AuthSessionOptions.RememberMeRefreshTokenDays
+                : AuthSessionOptions.UserRefreshTokenDays;
+
+    private static string FormatDeviceInfo(string? deviceInfo)
+    {
+        if (string.IsNullOrWhiteSpace(deviceInfo))
+            return "Unknown device";
+
+        return deviceInfo.Length <= 80 ? deviceInfo : deviceInfo[..77] + "...";
     }
 
     private async Task RunRegisterPhaseAsync(

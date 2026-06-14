@@ -1,0 +1,23 @@
+.tableWrap {
+  overflow-x: auto;
+}
+
+.currentBadge,
+.rememberBadge {
+  display: inline-flex;
+  margin-left: 0.5rem;
+  padding: 0.1rem 0.45rem;
+  border-radius: var(--radius-full);
+  font-size: 0.65rem;
+  font-weight: var(--weight-bold);
+}
+
+.currentBadge {
+  background: color-mix(in srgb, var(--color-accent) 18%, var(--color-bg));
+  color: var(--color-text);
+}
+
+.rememberBadge {
+  background: color-mix(in srgb, var(--color-info, #2563eb) 12%, var(--color-bg));
+  color: var(--color-info, #2563eb);
+}

@@ -24,6 +24,7 @@ export interface AuthResponse {
   accessToken: string;
   refreshToken: string;
   expiresInSeconds: number;
+  sessionId: string;
   user: AuthUser;
 }
 
@@ -41,6 +42,18 @@ export interface RegisterRequest {
 export interface LoginRequest {
   email: string;
   password: string;
+  rememberMe?: boolean;
+}
+
+export interface UserSession {
+  id: string;
+  deviceInfo: string;
+  ipAddress?: string;
+  createdAt: string;
+  lastActivityAt: string;
+  expiresAt: string;
+  isRememberMe: boolean;
+  isCurrent: boolean;
 }
 
 export interface ChangePasswordRequest {

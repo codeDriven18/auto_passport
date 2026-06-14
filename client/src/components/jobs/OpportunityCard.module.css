@@ -3,17 +3,18 @@
   flex-direction: column;
   height: 100%;
   min-height: 0;
+  max-width: 100%;
   background: var(--color-surface-raised);
   border-radius: var(--radius-2xl);
   overflow: hidden;
   border: 1px solid var(--color-border-subtle);
   box-shadow: var(--shadow-md);
+  word-break: break-word;
 }
 
 .hero {
   position: relative;
   flex-shrink: 0;
-  min-height: 9.5rem;
   overflow: hidden;
 }
 
@@ -35,7 +36,16 @@
   pointer-events: none;
 }
 
-.heroOverlay a {
+.heroOverlayTop {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-2);
+  pointer-events: auto;
+}
+
+.heroOverlay a,
+.heroOverlay button {
   pointer-events: auto;
 }
 
@@ -43,41 +53,131 @@
   align-self: flex-start;
 }
 
-.swipe .hero {
-  min-height: 8.5rem;
+.heroTop {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: var(--space-4);
+  pointer-events: none;
+}
+
+.sourceBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  max-width: calc(100% - 3.5rem);
+  padding: 0.35rem 0.65rem;
+  border-radius: var(--radius-full);
+  background: rgba(0, 0, 0, 0.58);
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: var(--weight-semibold);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sourceIcon {
+  color: #4ade80;
+  flex-shrink: 0;
+}
+
+.heroAction {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: var(--radius-full);
+  background: rgba(0, 0, 0, 0.58);
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.discover .hero,
+.compact .hero {
+  min-height: 9rem;
 }
 
 .compact .hero {
-  min-height: 7rem;
+  min-height: 7.5rem;
+}
+
+.swipe .hero {
+  flex: 0 0 44%;
+  min-height: 9.5rem;
+  max-height: 20rem;
 }
 
 .body {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
-  padding: var(--space-5);
+  gap: var(--space-2);
+  padding: var(--space-4) var(--space-5) var(--space-5);
   flex: 1;
   min-height: 0;
+  overflow: hidden;
+}
+
+.swipe .body {
+  margin-top: calc(-1 * var(--space-3));
+  position: relative;
+  z-index: 3;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--color-surface-raised) 0%, transparent) 0%,
+    var(--color-surface-raised) 16%
+  );
+}
+
+.companyRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.companyText {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+  flex: 1;
+}
+
+.companyName,
+.companyLine {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-bold);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.companyLine {
+  color: var(--color-text-muted);
 }
 
 .title {
-  font-size: clamp(1.25rem, 4.5vw, 1.5rem);
+  font-size: clamp(1.125rem, 4.2vw, 1.45rem);
   font-weight: var(--weight-extrabold);
   letter-spacing: var(--tracking-tight);
   line-height: var(--leading-tight);
-}
-
-.salary {
-  font-size: var(--text-xl);
-  font-weight: var(--weight-extrabold);
-  color: var(--color-accent);
-  letter-spacing: var(--tracking-snug);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .pills {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-2);
+  max-width: 100%;
 }
 
 .pill,
@@ -86,6 +186,10 @@
   border-radius: var(--radius-full);
   font-size: var(--text-xs);
   font-weight: var(--weight-bold);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .pill {
@@ -97,48 +201,85 @@
 .pillAccent {
   background: color-mix(in srgb, var(--color-accent) 18%, var(--color-bg));
   border: 1px solid color-mix(in srgb, var(--color-accent) 35%, transparent);
+  color: var(--color-text);
+}
+
+.summary {
+  font-size: var(--text-sm);
+  line-height: var(--leading-snug);
+  color: var(--color-text-muted);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin: 0;
+}
+
+.tags {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: var(--space-1);
+  margin-top: auto;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.tag {
+  flex-shrink: 0;
+  padding: 0.3rem 0.6rem;
+  border-radius: var(--radius-full);
+  font-size: 0.65rem;
+  font-weight: var(--weight-bold);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border-subtle);
+  color: var(--color-text-muted);
+  max-width: 7rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tagLine {
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
 }
 
 .footer {
   display: flex;
+  align-items: center;
   justify-content: space-between;
   gap: var(--space-2);
   padding-top: var(--space-2);
   border-top: 1px solid var(--color-border-subtle);
   font-size: var(--text-xs);
   color: var(--color-text-subtle);
+  min-width: 0;
 }
 
-.location {
-  font-size: var(--text-sm);
-  font-weight: var(--weight-semibold);
-  color: var(--color-text-muted);
-}
-
-.description {
-  font-size: var(--text-sm);
-  line-height: var(--leading-relaxed);
-  color: var(--color-text-muted);
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
+.footerSource {
   overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
 }
 
-.tags {
+.footerTime {
+  flex-shrink: 0;
+}
+
+.footerExtra {
   display: flex;
-  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
   gap: var(--space-2);
-  margin-top: auto;
-}
-
-.tag {
-  padding: 0.35rem 0.7rem;
-  border-radius: var(--radius-full);
   font-size: var(--text-xs);
-  font-weight: var(--weight-bold);
-  background: var(--color-bg);
-  border: 1px solid var(--color-border-subtle);
+  color: var(--color-text-muted);
+  min-width: 0;
 }
 
 .actions {
@@ -196,11 +337,14 @@
   flex: 1 1 100%;
 }
 
-.swipe .body {
-  padding: var(--space-4) var(--space-5) var(--space-5);
-  gap: var(--space-2);
+.swipe {
+  box-shadow: var(--shadow-lg);
 }
 
-.swipe .tags {
+.compact .summary {
+  -webkit-line-clamp: 2;
+}
+
+.compact .pills .pill:nth-child(n + 3) {
   display: none;
 }

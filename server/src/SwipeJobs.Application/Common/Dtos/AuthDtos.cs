@@ -10,7 +10,7 @@ public record RegisterDto(
     string? AccountType,
     string? CompanyName);
 
-public record LoginDto(string Email, string Password);
+public record LoginDto(string Email, string Password, bool RememberMe = false);
 
 public record RefreshTokenDto(string RefreshToken);
 
@@ -31,6 +31,17 @@ public record AuthResponseDto(
     string AccessToken,
     string RefreshToken,
     int ExpiresInSeconds,
+    Guid SessionId,
     AuthUserDto User);
+
+public record UserSessionDto(
+    Guid Id,
+    string DeviceInfo,
+    string? IpAddress,
+    DateTime CreatedAt,
+    DateTime LastActivityAt,
+    DateTime ExpiresAt,
+    bool IsRememberMe,
+    bool IsCurrent);
 
 public record ChangePasswordDto(string CurrentPassword, string NewPassword);

@@ -67,6 +67,10 @@ export function IconFilter(props: IconProps) {
   return <svg {...base(props)}><path d="M4 6h16M7 12h10M10 18h4" /></svg>;
 }
 
+export function IconMenu(props: IconProps) {
+  return <svg {...base(props)}><path d="M4 7h16M4 12h16M4 17h16" /></svg>;
+}
+
 export function IconSearch(props: IconProps) {
   return <svg {...base(props)}><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>;
 }

@@ -1,19 +1,15 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import type { Job } from '@/models/job';
-import { formatSalary } from '@/lib/jobFormat';
-import {
-  formatPostedTime,
-  getEmploymentType,
-  getLocationLabel,
-  getWorkType,
-  stripHtml,
-} from '@/lib/jobCardMeta';
+import { SourceTrustLevel } from '@/models/enums';
+import { getJobCardPreview } from '@/lib/jobPreview';
+import { formatPostedTime, getEmploymentType, getWorkType } from '@/lib/jobCardMeta';
 import { resolveJobImage } from '@/lib/resolveJobImage';
 import { JobHeroImage } from '@/components/jobs/JobHeroImage';
 import { SourceBadge } from '@/components/jobs/SourceBadge';
 import { CompanyIdentityStrip } from '@/components/jobs/CompanyIdentityStrip';
+import { CompanyLogo } from '@/components/jobs/CompanyLogo';
 import { JobShareMenu } from '@/components/jobs/JobShareMenu';
-import { ContactLinkText } from '@/components/ui/ContactLinkText';
+import { IconBookmark, IconVerified } from '@/components/icons/Icons';
 import styles from './OpportunityCard.module.css';
 
 export interface OpportunityCardProps {
@@ -26,7 +22,9 @@ export interface OpportunityCardProps {
   onLearnMore?: () => void;
   onSave?: (e: React.MouseEvent) => void;
   onApply?: (e: React.MouseEvent) => void;
-  showDescription?: boolean;
+  heroBadge?: ReactNode;
+  heroAction?: ReactNode;
+  footerExtra?: ReactNode;
 }
 
 export function OpportunityCard({
@@ -39,18 +37,19 @@ export function OpportunityCard({
   onLearnMore,
   onSave,
   onApply,
-  showDescription = true,
+  heroBadge,
+  heroAction,
+  footerExtra,
 }: OpportunityCardProps) {
   const [shareOpen, setShareOpen] = useState(false);
   const heroImage = useMemo(() => resolveJobImage(job), [job]);
-  const description = stripHtml(job.description);
+  const preview = useMemo(() => getJobCardPreview(job), [job]);
+  const isTrustedSource =
+    (job.sourceTrustLevel ?? SourceTrustLevel.Unknown) >= SourceTrustLevel.Verified;
   const workType = getWorkType(job);
   const employment = getEmploymentType(job);
-  const locationLine = `${getLocationLabel(job)} · ${workType}`;
-  const tagLimit = variant === 'swipe' ? 3 : variant === 'compact' ? 2 : 3;
-  const tags = job.tags.slice(0, tagLimit);
   const showActions = variant === 'discover' && interactive;
-  const showDesc = showDescription && variant === 'discover' && description;
+  const isSwipe = variant === 'swipe';
 
   return (
     <>
@@ -58,48 +57,109 @@ export function OpportunityCard({
         <div className={styles.hero} aria-hidden={!interactive}>
           <JobHeroImage
             image={heroImage}
-            alt={`${job.title} at ${job.company}`}
+            alt={`${preview.title} at ${preview.company}`}
             className={styles.heroImage}
-            priority={variant === 'swipe'}
+            priority={isSwipe}
           />
-          <div className={styles.heroOverlay}>
-            <SourceBadge job={job} className={styles.source} />
-            <CompanyIdentityStrip job={job} variant="compact" onDark />
-          </div>
+
+          {isSwipe ? (
+            <div className={styles.heroTop}>
+              {job.sourceName && (
+                <span className={styles.sourceBadge}>
+                  {isTrustedSource && (
+                    <IconVerified size={14} className={styles.sourceIcon} />
+                  )}
+                  {job.sourceName}
+                </span>
+              )}
+              {interactive && !heroAction && (
+                <button
+                  type="button"
+                  className={styles.heroAction}
+                  aria-label="Share job"
+                  onPointerDown={(event) => event.stopPropagation()}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    setShareOpen(true);
+                  }}
+                >
+                  <IconBookmark size={18} />
+                </button>
+              )}
+              {heroAction}
+            </div>
+          ) : (
+            <div className={styles.heroOverlay}>
+              <div className={styles.heroOverlayTop}>
+                {heroBadge}
+                {heroAction}
+              </div>
+              <SourceBadge job={job} className={styles.source} />
+              <CompanyIdentityStrip job={job} variant="compact" onDark />
+            </div>
+          )}
         </div>
 
         <div className={styles.body}>
-          <h3 className={styles.title}>{job.title}</h3>
-          <div className={styles.pills}>
-            <span className={styles.pillAccent}>
-              {formatSalary(job.salaryMin, job.salaryMax, job.category, job.externalUrl)}
-            </span>
-            <span className={styles.pill}>{workType}</span>
-            <span className={styles.pill}>{employment}</span>
-          </div>
-          <p className={styles.location}>{locationLine}</p>
-
-          {showDesc && (
-            <ContactLinkText
-              text={description}
-              className={`${styles.description} copyable-content`}
-              as="p"
-            />
-          )}
-
-          {tags.length > 0 && (
-            <div className={styles.tags}>
-              {tags.map((tag) => (
-                <span key={tag.id} className={styles.tag}>{tag.name}</span>
-              ))}
+          {isSwipe && (
+            <div className={styles.companyRow}>
+              <CompanyLogo
+                name={preview.company}
+                logoUrl={job.companyLogoUrl}
+                size="md"
+              />
+              <div className={styles.companyText}>
+                <span className={styles.companyName}>{preview.company}</span>
+              </div>
             </div>
           )}
 
-          {variant === 'discover' && (
+          {!isSwipe && (
+            <p className={styles.companyLine}>{preview.company}</p>
+          )}
+
+          <h3 className={styles.title}>{preview.title}</h3>
+
+          <div className={styles.pills}>
+            <span className={styles.pillAccent}>{preview.salary}</span>
+            <span className={styles.pill}>{preview.location}</span>
+            {variant === 'discover' && (
+              <>
+                <span className={styles.pill}>{workType}</span>
+                <span className={styles.pill}>{employment}</span>
+              </>
+            )}
+          </div>
+
+          {preview.summary && (
+            <p className={styles.summary}>{preview.summary}</p>
+          )}
+
+          {preview.skills.length > 0 && (
+            <div className={styles.tags} title={preview.tagsLine}>
+              {isSwipe ? (
+                preview.skills.map((skill) => (
+                  <span key={skill} className={styles.tag}>{skill}</span>
+                ))
+              ) : (
+                <span className={styles.tagLine}>{preview.tagsLine}</span>
+              )}
+            </div>
+          )}
+
+          {(variant === 'discover' || isSwipe) && (
             <footer className={styles.footer}>
-              {job.sourceName && <span>Source: {job.sourceName}</span>}
-              <span>{formatPostedTime(job.createdAt)}</span>
+              {job.sourceName && (
+                <span className={styles.footerSource}>Source: {job.sourceName}</span>
+              )}
+              <span className={styles.footerTime}>
+                {formatPostedTime(job.createdAt)}
+              </span>
             </footer>
+          )}
+
+          {footerExtra && (
+            <div className={styles.footerExtra}>{footerExtra}</div>
           )}
 
           {showActions && (
@@ -107,8 +167,8 @@ export function OpportunityCard({
               <button
                 type="button"
                 className={styles.actionGhost}
-                onClick={(e) => {
-                  e.stopPropagation();
+                onClick={(event) => {
+                  event.stopPropagation();
                   onLearnMore?.();
                 }}
               >
@@ -118,9 +178,9 @@ export function OpportunityCard({
                 <button
                   type="button"
                   className={saved ? styles.actionSaved : styles.actionGhost}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onSave(e);
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onSave(event);
                   }}
                 >
                   {saved ? 'Saved' : 'Save'}
@@ -129,8 +189,8 @@ export function OpportunityCard({
               <button
                 type="button"
                 className={styles.actionGhost}
-                onClick={(e) => {
-                  e.stopPropagation();
+                onClick={(event) => {
+                  event.stopPropagation();
                   setShareOpen(true);
                 }}
               >
@@ -141,9 +201,9 @@ export function OpportunityCard({
                   type="button"
                   className={applied ? styles.actionDone : styles.actionPrimary}
                   disabled={applied || applying}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onApply(e);
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onApply(event);
                   }}
                 >
                   {applied ? 'Applied' : applying ? 'Applying…' : 'Apply'}

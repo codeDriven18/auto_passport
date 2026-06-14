@@ -150,3 +150,10 @@ button:focus:not(:focus-visible),
 a:focus:not(:focus-visible) {
   outline: none;
 }
+
+/* Mobile-safe text containment for card surfaces */
+article,
+.cardSurface {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}

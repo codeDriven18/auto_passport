@@ -7,12 +7,19 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { applyAuthResponse, refreshAuthSession } from '@/api/client';
+import {
+  applyAuthResponse,
+  refreshAuthSessionDetailed,
+  scheduleProactiveTokenRefresh,
+  stopProactiveTokenRefresh,
+} from '@/api/client';
 import { authApi } from '@/api/authApi';
 import {
   clearAuthSession,
   getRefreshToken,
   getStoredAuthUser,
+  hasAuthSession,
+  isAccessTokenExpired,
   type StoredAuthUser,
 } from '@/lib/authStorage';
 import { toStoredAuthUser } from '@/lib/authUser';
@@ -59,31 +66,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      const ok = await refreshAuthSession();
-      if (cancelled) return;
-
-      if (!ok) {
-        setUser(null);
-        setIsLoading(false);
-        return;
-      }
-
       setUser(getStoredAuthUser());
-      try {
-        const me = await authApi.me();
-        if (!cancelled) {
-          setUser(toStoredAuthUser(me));
+
+      const needsRefresh = !getStoredAuthUser() || isAccessTokenExpired();
+      if (needsRefresh) {
+        const result = await refreshAuthSessionDetailed();
+        if (cancelled) return;
+
+        if (result === 'rejected') {
+          setUser(null);
+          setIsLoading(false);
+          return;
         }
-      } catch {
-        /* stored user is enough */
-      } finally {
-        if (!cancelled) setIsLoading(false);
+
+        if (result === 'success') {
+          setUser(getStoredAuthUser());
+        }
       }
+
+      if (hasAuthSession()) {
+        scheduleProactiveTokenRefresh();
+        try {
+          const me = await authApi.me();
+          if (!cancelled) {
+            setUser(toStoredAuthUser(me));
+          }
+        } catch {
+          /* keep stored session */
+        }
+      }
+
+      if (!cancelled) setIsLoading(false);
     }
 
     void bootstrap();
+
     return () => {
       cancelled = true;
+      stopProactiveTokenRefresh();
     };
   }, []);
 
@@ -104,6 +124,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const logout = useCallback(async () => {
+    stopProactiveTokenRefresh();
     const refreshToken = getRefreshToken();
     if (refreshToken) {
       try {
@@ -119,7 +140,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const value = useMemo<AuthContextValue>(
     () => ({
       user,
-      isAuthenticated: Boolean(user && getRefreshToken()),
+      isAuthenticated: Boolean(getRefreshToken() && (user || getStoredAuthUser())),
       isLoading,
       login,
       register,

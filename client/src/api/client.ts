@@ -2,11 +2,14 @@ import { API_CONFIG } from './config';
 import {
   clearAuthSession,
   getAccessToken,
+  getAccessTokenExpiresAt,
   getRefreshToken,
+  isAccessTokenExpired,
   setAuthSession,
   updateStoredAuthUser,
   type StoredAuthUser,
 } from '@/lib/authStorage';
+import { ACCESS_REFRESH_BUFFER_MS, type RefreshResult } from '@/lib/authSessionConstants';
 import { toStoredAuthUser } from '@/lib/authUser';
 import type { AuthResponse } from '@/models/auth';
 
@@ -27,10 +30,17 @@ interface RequestOptions extends Omit<RequestInit, 'body'> {
   timeoutMs?: number;
 }
 
-let refreshPromise: Promise<boolean> | null = null;
+let refreshPromise: Promise<RefreshResult> | null = null;
+let proactiveRefreshTimer: number | null = null;
 
 function persistAuthResponse(response: AuthResponse) {
-  setAuthSession(response.accessToken, response.refreshToken, toStoredAuthUser(response.user));
+  setAuthSession(
+    response.accessToken,
+    response.refreshToken,
+    toStoredAuthUser(response.user),
+    response.expiresInSeconds,
+    response.sessionId,
+  );
 }
 
 function parseResponseBody(text: string): unknown {
@@ -50,9 +60,9 @@ async function readJsonResponse<T>(response: Response): Promise<T> {
   return JSON.parse(text) as T;
 }
 
-async function tryRefreshTokens(): Promise<boolean> {
+async function tryRefreshTokens(): Promise<RefreshResult> {
   let refreshToken = getRefreshToken();
-  if (!refreshToken) return false;
+  if (!refreshToken) return 'rejected';
 
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
@@ -67,19 +77,22 @@ async function tryRefreshTokens(): Promise<boolean> {
       if (response.ok) {
         const data = await readJsonResponse<AuthResponse>(response);
         persistAuthResponse(data);
-        return true;
+        return 'success';
       }
 
-      if (response.status === 401 && attempt === 0) {
-        const latest = getRefreshToken();
-        if (latest && latest !== refreshToken) {
-          refreshToken = latest;
-          continue;
+      if (response.status === 401) {
+        if (attempt === 0) {
+          const latest = getRefreshToken();
+          if (latest && latest !== refreshToken) {
+            refreshToken = latest;
+            continue;
+          }
         }
+        clearAuthSession();
+        return 'rejected';
       }
 
-      clearAuthSession();
-      return false;
+      return 'transient';
     } catch {
       if (attempt === 0) {
         const latest = getRefreshToken();
@@ -88,20 +101,72 @@ async function tryRefreshTokens(): Promise<boolean> {
           continue;
         }
       }
-      return false;
+      return 'transient';
     }
   }
 
-  return false;
+  return 'transient';
 }
 
 export async function refreshAuthSession(): Promise<boolean> {
+  const result = await refreshAuthSessionDetailed();
+  return result === 'success';
+}
+
+export async function refreshAuthSessionDetailed(): Promise<RefreshResult> {
   if (!refreshPromise) {
     refreshPromise = tryRefreshTokens().finally(() => {
       refreshPromise = null;
     });
   }
   return refreshPromise;
+}
+
+export async function ensureValidAccessToken(): Promise<boolean> {
+  if (!getRefreshToken()) return false;
+
+  const accessToken = getAccessToken();
+  if (accessToken && !isAccessTokenExpired(ACCESS_REFRESH_BUFFER_MS)) {
+    return true;
+  }
+
+  const result = await refreshAuthSessionDetailed();
+  return result === 'success';
+}
+
+export function scheduleProactiveTokenRefresh(onRefresh?: () => void) {
+  if (proactiveRefreshTimer !== null) {
+    window.clearTimeout(proactiveRefreshTimer);
+    proactiveRefreshTimer = null;
+  }
+
+  if (!getRefreshToken()) return;
+
+  const expiresAt = getAccessTokenExpiresAt();
+  const delay = expiresAt
+    ? Math.max(5_000, expiresAt - Date.now() - ACCESS_REFRESH_BUFFER_MS)
+    : 5 * 60_000;
+
+  proactiveRefreshTimer = window.setTimeout(() => {
+    void refreshAuthSessionDetailed().then((result) => {
+      if (result === 'success') {
+        onRefresh?.();
+        scheduleProactiveTokenRefresh(onRefresh);
+        return;
+      }
+
+      if (result === 'transient') {
+        scheduleProactiveTokenRefresh(onRefresh);
+      }
+    });
+  }, delay);
+}
+
+export function stopProactiveTokenRefresh() {
+  if (proactiveRefreshTimer !== null) {
+    window.clearTimeout(proactiveRefreshTimer);
+    proactiveRefreshTimer = null;
+  }
 }
 
 export async function apiClient<T>(
@@ -132,6 +197,10 @@ export async function apiClient<T>(
       body: body !== undefined ? JSON.stringify(body) : undefined,
       signal: AbortSignal.timeout(requestTimeout),
     });
+
+  if (!skipAuth && getRefreshToken() && (!getAccessToken() || isAccessTokenExpired())) {
+    await refreshAuthSession();
+  }
 
   let response = await execute();
 
@@ -181,6 +250,10 @@ export async function apiClientBlob(endpoint: string): Promise<Blob> {
       signal: AbortSignal.timeout(API_CONFIG.timeout),
     });
 
+  if (getRefreshToken() && (!getAccessToken() || isAccessTokenExpired())) {
+    await refreshAuthSession();
+  }
+
   let response = await execute();
 
   if (response.status === 401 && getRefreshToken()) {
@@ -200,6 +273,7 @@ export async function apiClientBlob(endpoint: string): Promise<Blob> {
 
 export function applyAuthResponse(response: AuthResponse) {
   persistAuthResponse(response);
+  scheduleProactiveTokenRefresh();
 }
 
 export function syncAuthUserProfileId(profileId: string) {

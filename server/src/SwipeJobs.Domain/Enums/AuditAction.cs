@@ -16,4 +16,9 @@ public enum AuditAction
     CompanyStatusChanged = 11,
     NotificationCreated = 12,
     AdminAction = 13,
+    SessionRevoked = 14,
+    RefreshTokenIssued = 15,
+    RefreshTokenRotated = 16,
+    RefreshTokenRevoked = 17,
+    LogoutAll = 18,
 }

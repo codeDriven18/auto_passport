@@ -16,6 +16,7 @@ import { ApiError } from '@/api/client';
 import { applicationsApi } from '@/api/applicationsApi';
 import { jobsApi } from '@/api/jobsApi';
 import { savedJobsApi } from '@/api/savedJobsApi';
+import { getJobCardPreview } from '@/lib/jobPreview';
 import { formatSalary } from '@/lib/jobFormat';
 import {
   blocksNewApplication,
@@ -142,6 +143,7 @@ export function JobDetailPage() {
   };
 
   const heroImage = useMemo(() => (job ? resolveJobImage(job) : null), [job]);
+  const cardPreview = useMemo(() => (job ? getJobCardPreview(job) : null), [job]);
 
   const pageMeta = useMemo(() => {
     if (!job || !id) return null;
@@ -203,7 +205,7 @@ export function JobDetailPage() {
         <div className={styles.heroTop}>
           <CompanyLogo name={job.company} logoUrl={job.companyLogoUrl} size="lg" />
           <div className={styles.heroText}>
-            <h1 className={styles.title}>{job.title}</h1>
+            <h1 className={styles.title}>{cardPreview?.title ?? job.title}</h1>
             <CompanyLink name={job.company} slug={job.companySlug} className={styles.companyLink} />
           </div>
         </div>
@@ -218,12 +220,12 @@ export function JobDetailPage() {
           <div className={styles.metaItem}>
             <span className={styles.metaLabel}>Salary</span>
             <span className={styles.metaValue}>
-              {formatSalary(job.salaryMin, job.salaryMax, job.category, job.externalUrl)}
+              {cardPreview?.salary ?? formatSalary(job.salaryMin, job.salaryMax, job.category, job.externalUrl)}
             </span>
           </div>
           <div className={styles.metaItem}>
             <span className={styles.metaLabel}>Location</span>
-            <span className={styles.metaValue}>{job.city ?? job.location ?? 'Flexible'}</span>
+            <span className={styles.metaValue}>{cardPreview?.location ?? (job.city ?? job.location ?? 'Flexible')}</span>
           </div>
         </div>
 

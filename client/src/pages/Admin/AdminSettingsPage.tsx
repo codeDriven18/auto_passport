@@ -17,6 +17,13 @@ export function AdminSettingsPage() {
           <ThemeAppearancePicker />
         </div>
         <div className={styles.reportCard}>
+          <h3>Security</h3>
+          <p>Review active sessions, revoke devices, and sign out everywhere.</p>
+          <Link to="/admin/settings/security" className={styles.btnPrimary} style={{ display: 'inline-block', marginTop: '0.75rem' }}>
+            Manage sessions
+          </Link>
+        </div>
+        <div className={styles.reportCard}>
           <h3>Seeded admin account</h3>
           <p>In development, admin credentials come from <code>appsettings.Development.json</code>. In production, set <code>Admin__Email</code> and <code>Admin__Password</code> environment variables on Azure App Service.</p>
         </div>

@@ -1,6 +1,6 @@
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Outlet } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { AuthGate } from '@/components/layout/AuthGate';
+import { UserAppGate } from '@/components/layout/UserAppGate';
 import { AdminGate } from '@/components/layout/AdminGate';
 import { AdminLayout } from '@/components/layout/AdminLayout';
 import { PortalGate } from '@/components/layout/PortalGate';
@@ -35,6 +35,7 @@ import { AdminNotificationsPage } from '@/pages/Admin/AdminNotificationsPage';
 import { AdminApplicationsPage } from '@/pages/Admin/AdminApplicationsPage';
 import { AdminReportsPage } from '@/pages/Admin/AdminReportsPage';
 import { AdminSettingsPage } from '@/pages/Admin/AdminSettingsPage';
+import { AdminSecurityPage } from '@/pages/Admin/AdminSecurityPage';
 import { AdminAuditPage } from '@/pages/Admin/AdminAuditPage';
 import { AdminCompanyApprovalsPage } from '@/pages/Admin/AdminCompanyApprovalsPage';
 import { AdminModerationPage } from '@/pages/Admin/AdminModerationPage';
@@ -82,6 +83,7 @@ export function AppRouter() {
           <Route path="system/ai" element={<AdminAiPage />} />
           <Route path="notifications" element={<AdminNotificationsPage />} />
           <Route path="settings" element={<AdminSettingsPage />} />
+          <Route path="settings/security" element={<AdminSecurityPage />} />
         </Route>
 
         <Route
@@ -103,17 +105,19 @@ export function AppRouter() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-          <Route path="/" element={<DashboardPage />} />
-          <Route path="/companies/:slug" element={<CompanyPage />} />
-          <Route path="/swipe" element={<SwipePage />} />
-          <Route path="/jobs" element={<JobsPage />} />
-          <Route path="/jobs/:id" element={<JobDetailPage />} />
           <Route path="/p/:id" element={<PublicProfilePage />} />
-          <Route path="/saved" element={<SavedPage />} />
-          <Route path="/applications" element={<ApplicationsPage />} />
-          <Route path="/settings" element={<SettingsPage />} />
-          <Route path="/profile/*" element={<AuthGate><ProfilePage /></AuthGate>} />
-          <Route path="/account" element={<AuthGate><AccountSettingsPage /></AuthGate>} />
+          <Route element={<UserAppGate><Outlet /></UserAppGate>}>
+            <Route path="/" element={<DashboardPage />} />
+            <Route path="/companies/:slug" element={<CompanyPage />} />
+            <Route path="/swipe" element={<SwipePage />} />
+            <Route path="/jobs" element={<JobsPage />} />
+            <Route path="/jobs/:id" element={<JobDetailPage />} />
+            <Route path="/saved" element={<SavedPage />} />
+            <Route path="/applications" element={<ApplicationsPage />} />
+            <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/profile/*" element={<ProfilePage />} />
+            <Route path="/account" element={<AccountSettingsPage />} />
+          </Route>
         </Route>
       </Routes>
     </OnboardingGate>

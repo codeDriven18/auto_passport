@@ -23,6 +23,7 @@ export function LoginPage() {
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -31,7 +32,7 @@ export function LoginPage() {
     setLoading(true);
     setError(null);
     try {
-      const user = await login({ email, password });
+      const user = await login({ email, password, rememberMe });
       navigate(getPostLoginDestination(user.role, from), { replace: true });
     } catch (err) {
       setError(getErrorMessage(err));
@@ -75,6 +76,15 @@ export function LoginPage() {
             inputClassName={styles.input}
           />
         </div>
+
+        <label className={styles.rememberRow}>
+          <input
+            type="checkbox"
+            checked={rememberMe}
+            onChange={(e) => setRememberMe(e.target.checked)}
+          />
+          <span>Keep me signed in for 90 days</span>
+        </label>
 
         <Link to="/forgot-password" className={styles.forgot}>Forgot password?</Link>
 

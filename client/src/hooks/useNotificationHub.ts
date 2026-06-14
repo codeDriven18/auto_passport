@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import * as signalR from '@microsoft/signalr';
 import { getAccessToken } from '@/lib/authStorage';
+import { ensureValidAccessToken } from '@/api/client';
 import { useAuth } from '@/context/AuthContext';
 import type { AppNotification } from '@/models/personalization';
 import { HUB_CONFIG } from '@/api/hubConfig';
@@ -151,6 +152,8 @@ class NotificationHubConnection {
 
   private async ensureStarted(): Promise<void> {
     if (this.refCount === 0 || this.stopping) return;
+
+    await ensureValidAccessToken();
 
     const connection = this.getOrCreateConnection();
     const state = connection.state;

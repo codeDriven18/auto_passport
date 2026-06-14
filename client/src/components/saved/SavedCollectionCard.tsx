@@ -1,12 +1,7 @@
-import { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import type { Job } from '@/models/job';
 import { IconBookmark } from '@/components/icons/Icons';
-import { JobHeroImage } from '@/components/jobs/JobHeroImage';
-import { CompanyIdentityStrip } from '@/components/jobs/CompanyIdentityStrip';
-import { formatSalary } from '@/lib/jobFormat';
-import { getEmploymentType, getLocationLabel, getWorkType } from '@/lib/jobCardMeta';
-import { resolveJobImage } from '@/lib/resolveJobImage';
+import { OpportunityCard } from '@/components/jobs/OpportunityCard';
 import styles from './SavedCollectionCard.module.css';
 
 interface SavedCollectionCardProps {
@@ -36,14 +31,8 @@ export function SavedCollectionCard({
   onClick,
   onUnsave,
 }: SavedCollectionCardProps) {
-  const heroImage = useMemo(() => resolveJobImage(job), [job]);
-  const workType = getWorkType(job);
-  const employment = getEmploymentType(job);
-  const locationLine = `${getLocationLabel(job)} · ${workType}`;
-
   return (
-    <motion.article
-      className={styles.card}
+    <motion.div
       onClick={onClick}
       role="button"
       tabIndex={0}
@@ -53,43 +42,31 @@ export function SavedCollectionCard({
       transition={{ duration: 0.28, delay: index * 0.05, ease: [0.22, 1, 0.36, 1] }}
       whileHover={{ y: -3 }}
       whileTap={{ scale: 0.99 }}
+      className={styles.wrap}
     >
-      <div className={styles.hero}>
-        <JobHeroImage
-          image={heroImage}
-          alt={`${job.title} at ${job.company}`}
-          className={styles.heroImage}
-        />
-        <div className={styles.heroOverlay}>
-          <div className={styles.heroTop}>
-            {applied && <span className={styles.appliedBadge}>Applied</span>}
-            {onUnsave && !applied && (
-              <button
-                type="button"
-                className={styles.unsave}
-                onClick={onUnsave}
-                aria-label="Remove from collection"
-              >
-                <IconBookmark size={18} />
-              </button>
-            )}
-          </div>
-          <CompanyIdentityStrip job={job} variant="compact" onDark />
-        </div>
-      </div>
-
-      <div className={styles.body}>
-        <h3 className={styles.title}>{job.title}</h3>
-        <p className={styles.salary}>
-          {formatSalary(job.salaryMin, job.salaryMax, job.category, job.externalUrl)}
-        </p>
-        <p className={styles.company}>{job.company}</p>
-        <p className={styles.location}>{locationLine}</p>
-        <div className={styles.metaRow}>
-          {savedAt && <span className={styles.savedDate}>{formatSavedDate(savedAt)}</span>}
-          <span className={styles.pill}>{employment}</span>
-        </div>
-      </div>
-    </motion.article>
+      <OpportunityCard
+        job={job}
+        variant="compact"
+        interactive={false}
+        heroBadge={applied ? <span className={styles.appliedBadge}>Applied</span> : undefined}
+        heroAction={
+          onUnsave && !applied ? (
+            <button
+              type="button"
+              className={styles.unsave}
+              onClick={onUnsave}
+              aria-label="Remove from collection"
+            >
+              <IconBookmark size={18} />
+            </button>
+          ) : undefined
+        }
+        footerExtra={
+          savedAt ? (
+            <span className={styles.savedDate}>{formatSavedDate(savedAt)}</span>
+          ) : undefined
+        }
+      />
+    </motion.div>
   );
 }

@@ -14,5 +14,7 @@ public interface IRefreshTokenRepository : IRepository<RefreshToken>
 {
     Task<RefreshToken?> GetByTokenHashAsync(string tokenHash, CancellationToken cancellationToken = default);
     Task<RefreshToken?> GetByTokenHashIncludingRevokedAsync(string tokenHash, CancellationToken cancellationToken = default);
-    Task RevokeAllForUserAsync(Guid userId, CancellationToken cancellationToken = default);
+    Task<RefreshToken?> GetByIdForUserAsync(Guid id, Guid userId, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<RefreshToken>> GetActiveByUserIdAsync(Guid userId, CancellationToken cancellationToken = default);
+    Task RevokeAllForUserAsync(Guid userId, string? revokedByIp = null, CancellationToken cancellationToken = default);
 }

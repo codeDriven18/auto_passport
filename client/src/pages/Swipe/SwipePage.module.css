@@ -8,10 +8,10 @@
   margin-bottom: calc(-1 * (var(--nav-height) + var(--space-6)));
   padding:
     max(var(--space-4), env(safe-area-inset-top))
-    max(var(--space-5), env(safe-area-inset-right))
+    max(var(--space-4), env(safe-area-inset-right))
     0
-    max(var(--space-5), env(safe-area-inset-left));
-  overflow: visible;
+    max(var(--space-4), env(safe-area-inset-left));
+  overflow: hidden;
 }
 
 .backdrop {
@@ -27,17 +27,28 @@
 .header {
   position: relative;
   z-index: 2;
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-  min-height: 2.75rem;
-  margin-bottom: var(--space-3);
+  gap: var(--space-2);
+  min-height: 3rem;
+  margin-bottom: var(--space-2);
   flex-shrink: 0;
   padding-inline: var(--space-1);
 }
 
-.filterBtn {
+.headerStart,
+.headerEnd {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.headerEnd {
+  justify-content: flex-end;
+}
+
+.headerBtn {
   position: relative;
   display: flex;
   align-items: center;
@@ -50,9 +61,16 @@
   border-radius: var(--radius-full);
   box-shadow: var(--shadow-sm);
   color: var(--color-text);
+  transition:
+    transform var(--duration-fast) var(--ease-out),
+    box-shadow var(--duration-fast) var(--ease-out);
 }
 
-.filterBtn svg {
+.headerBtn:active {
+  transform: scale(0.94);
+}
+
+.headerBtn svg {
   width: 1.25rem;
   height: 1.25rem;
 }
@@ -77,11 +95,14 @@
 
 .deckCount {
   font-size: var(--text-sm);
-  font-weight: var(--weight-semibold);
-  color: var(--color-text-muted);
+  font-weight: var(--weight-bold);
+  color: var(--color-text);
   white-space: nowrap;
-  flex-shrink: 0;
-  padding-right: var(--space-1);
+  text-align: center;
+  padding: 0.35rem 0.75rem;
+  border-radius: var(--radius-full);
+  background: var(--color-surface-overlay);
+  border: 1px solid var(--color-border-subtle);
 }
 
 .stage {
@@ -89,8 +110,8 @@
   flex: 1;
   min-height: 0;
   z-index: 1;
-  margin-bottom: var(--space-3);
-  overflow: visible;
+  margin-bottom: var(--space-1);
+  overflow: hidden;
 }
 
 .skeletonCard {
@@ -105,13 +126,13 @@
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  gap: var(--space-8);
-  padding: var(--space-5) var(--space-6) calc(var(--space-5) + env(safe-area-inset-bottom));
-  margin: 0 calc(-1 * var(--space-5));
+  gap: clamp(var(--space-5), 6vw, var(--space-8));
+  padding: var(--space-4) var(--space-4) calc(var(--space-4) + env(safe-area-inset-bottom));
+  margin: 0 calc(-1 * var(--space-4));
   background: linear-gradient(
     to top,
-    color-mix(in srgb, var(--color-bg) 92%, transparent) 0%,
-    color-mix(in srgb, var(--color-bg) 70%, transparent) 55%,
+    color-mix(in srgb, var(--color-bg) 94%, transparent) 0%,
+    color-mix(in srgb, var(--color-bg) 72%, transparent) 55%,
     transparent 100%
   );
   flex-shrink: 0;
@@ -119,50 +140,63 @@
 
 .dockBtn {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 0.35rem;
   border-radius: var(--radius-full);
-  border: none;
+  border: 1px solid var(--color-border-subtle);
   box-shadow: var(--shadow-md);
   background: var(--color-surface-raised);
   color: var(--color-text-muted);
   transition:
     box-shadow var(--duration-fast) var(--ease-out),
-    background-color var(--duration-fast) var(--ease-out);
+    background-color var(--duration-fast) var(--ease-out),
+    transform var(--duration-fast) var(--ease-out);
 }
 
 .dockBtn svg {
-  width: 1.5rem;
-  height: 1.5rem;
+  flex-shrink: 0;
+}
+
+.dockLabel {
+  font-size: 0.625rem;
+  font-weight: var(--weight-bold);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--color-text-subtle);
+}
+
+.dockLabelPrimary {
+  color: #0a0a0a;
 }
 
 .passBtn {
-  width: 3.75rem;
-  height: 3.75rem;
+  width: 4rem;
+  height: 4rem;
   color: var(--color-danger);
-  border: 1px solid color-mix(in srgb, var(--color-danger) 20%, var(--color-border));
+  border-color: color-mix(in srgb, var(--color-danger) 22%, var(--color-border));
+  background: color-mix(in srgb, var(--color-danger) 6%, var(--color-surface-raised));
 }
 
 .saveBtn {
-  width: 3.25rem;
-  height: 3.25rem;
-  margin-bottom: 0.35rem;
+  width: 3.75rem;
+  height: 3.75rem;
+  margin-bottom: 0.25rem;
   color: #e53935;
-  border: 1px solid color-mix(in srgb, #e53935 18%, var(--color-border));
+  border-color: color-mix(in srgb, #e53935 20%, var(--color-border));
+  background: color-mix(in srgb, #e53935 5%, var(--color-surface-raised));
 }
 
 .applyBtn {
-  width: 4.5rem;
-  height: 4.5rem;
+  width: 4.75rem;
+  height: 4.75rem;
   background: var(--color-accent);
   color: #0a0a0a;
-  box-shadow: var(--shadow-lg);
-  border: 1px solid color-mix(in srgb, var(--color-accent) 70%, #000);
-}
-
-.applyBtn svg {
-  width: 1.75rem;
-  height: 1.75rem;
+  box-shadow:
+    var(--shadow-lg),
+    0 0 0 4px color-mix(in srgb, var(--color-accent) 22%, transparent);
+  border-color: color-mix(in srgb, var(--color-accent) 70%, #000);
 }
 
 .toastWrap {
@@ -174,7 +208,7 @@
 
 .toast {
   position: fixed;
-  bottom: calc(var(--nav-height) + 7.5rem + env(safe-area-inset-bottom));
+  bottom: calc(var(--nav-height) + 8rem + env(safe-area-inset-bottom));
   left: 50%;
   transform: translateX(-50%);
   padding: var(--space-3) var(--space-6);
@@ -207,8 +241,26 @@
 [data-theme='dark'] .dock {
   background: linear-gradient(
     to top,
-    color-mix(in srgb, var(--color-bg) 95%, transparent) 0%,
-    color-mix(in srgb, var(--color-bg) 75%, transparent) 55%,
+    color-mix(in srgb, var(--color-bg) 96%, transparent) 0%,
+    color-mix(in srgb, var(--color-bg) 78%, transparent) 55%,
     transparent 100%
   );
+}
+
+@media (max-width: 380px) {
+  .dockLabel {
+    display: none;
+  }
+
+  .passBtn,
+  .saveBtn,
+  .applyBtn {
+    width: 3.5rem;
+    height: 3.5rem;
+  }
+
+  .applyBtn {
+    width: 4.25rem;
+    height: 4.25rem;
+  }
 }

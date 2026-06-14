@@ -11,7 +11,7 @@ import {
   type PremiumSwipeDeckHandle,
   type SwipeDirection,
 } from '@/components/swipe/PremiumSwipeDeck';
-import { IconArrowRight, IconBookmark, IconFilter, IconX } from '@/components/icons/Icons';
+import { IconArrowRight, IconBookmark, IconFilter, IconMenu, IconSearch, IconX } from '@/components/icons/Icons';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { FilterDrawer } from '@/components/ui/FilterDrawer';
@@ -154,20 +154,42 @@ export function SwipePage() {
       <div className={styles.backdrop} aria-hidden />
 
       <header className={styles.header}>
-        <button
-          type="button"
-          className={styles.filterBtn}
-          onClick={openFilters}
-          aria-label="Filters"
-        >
-          <IconFilter size={20} />
-          {filters.activeFilterCount > 0 && (
-            <span className={styles.filterCount}>{filters.activeFilterCount}</span>
-          )}
-        </button>
+        <div className={styles.headerStart}>
+          <button
+            type="button"
+            className={styles.headerBtn}
+            onClick={() => navigate('/jobs')}
+            aria-label="Browse jobs"
+          >
+            <IconMenu size={20} />
+          </button>
+          <button
+            type="button"
+            className={styles.headerBtn}
+            onClick={() => navigate('/jobs')}
+            aria-label="Search jobs"
+          >
+            <IconSearch size={20} />
+          </button>
+        </div>
+
         <span className={styles.deckCount}>
           {loading ? '…' : `${queue.length} left`}
         </span>
+
+        <div className={styles.headerEnd}>
+          <button
+            type="button"
+            className={styles.headerBtn}
+            onClick={openFilters}
+            aria-label="Filters"
+          >
+            <IconFilter size={20} />
+            {filters.activeFilterCount > 0 && (
+              <span className={styles.filterCount}>{filters.activeFilterCount}</span>
+            )}
+          </button>
+        </div>
       </header>
 
       <div className={styles.stage}>
@@ -198,29 +220,35 @@ export function SwipePage() {
           <motion.button
             type="button"
             className={`${styles.dockBtn} ${styles.passBtn}`}
-            whileTap={{ scale: 0.94 }}
+            whileTap={{ scale: 0.92 }}
+            whileHover={{ y: -2 }}
             onClick={() => deckRef.current?.dismiss('pass')}
             aria-label="Pass"
           >
-            <IconX size={24} />
+            <IconX size={22} />
+            <span className={styles.dockLabel}>Pass</span>
           </motion.button>
           <motion.button
             type="button"
             className={`${styles.dockBtn} ${styles.saveBtn}`}
-            whileTap={{ scale: 0.94 }}
+            whileTap={{ scale: 0.92 }}
+            whileHover={{ y: -2 }}
             onClick={() => deckRef.current?.dismiss('save')}
             aria-label="Save"
           >
-            <IconBookmark size={22} />
+            <IconBookmark size={20} />
+            <span className={styles.dockLabel}>Save</span>
           </motion.button>
           <motion.button
             type="button"
             className={`${styles.dockBtn} ${styles.applyBtn}`}
             whileTap={{ scale: 0.94 }}
+            whileHover={{ y: -3 }}
             onClick={() => deckRef.current?.dismiss('apply')}
             aria-label="Apply"
           >
-            <IconArrowRight size={28} />
+            <IconArrowRight size={26} />
+            <span className={`${styles.dockLabel} ${styles.dockLabelPrimary}`}>Apply</span>
           </motion.button>
         </div>
       )}

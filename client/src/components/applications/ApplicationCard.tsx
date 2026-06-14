@@ -7,8 +7,8 @@ import { StatusBadge } from '@/components/ui/StatusBadge';
 import { Button } from '@/components/ui/Button';
 import { ApplicationStatusTimeline } from '@/components/applications/ApplicationStatusTimeline';
 import { canWithdrawApplication } from '@/lib/applicationHelpers';
-import { formatSalary } from '@/lib/jobFormat';
-import { getLocationLabel, getWorkType } from '@/lib/jobCardMeta';
+import { getJobCardPreview } from '@/lib/jobPreview';
+import { getWorkType } from '@/lib/jobCardMeta';
 import { resolveJobImage } from '@/lib/resolveJobImage';
 import styles from './ApplicationCard.module.css';
 
@@ -37,9 +37,10 @@ export function ApplicationCard({
 }: ApplicationCardProps) {
   const job = application.job;
   const heroImage = useMemo(() => (job ? resolveJobImage(job) : null), [job]);
+  const preview = useMemo(() => (job ? getJobCardPreview(job) : null), [job]);
   const showWithdraw = canWithdrawApplication(application.status) && Boolean(onWithdraw);
 
-  if (!job || !heroImage) {
+  if (!job || !heroImage || !preview) {
     return (
       <article className={styles.card} onClick={onClick} role="button" tabIndex={0}>
         <div className={styles.fallbackBody}>
@@ -51,7 +52,7 @@ export function ApplicationCard({
   }
 
   const workType = getWorkType(job);
-  const locationLine = `${getLocationLabel(job)} · ${workType}`;
+  const locationLine = `${preview.location} · ${workType}`;
 
   return (
     <motion.article
@@ -69,7 +70,7 @@ export function ApplicationCard({
       <div className={styles.hero}>
         <JobHeroImage
           image={heroImage}
-          alt={`${job.title} at ${job.company}`}
+          alt={`${preview.title} at ${preview.company}`}
           className={styles.heroImage}
         />
         <div className={styles.heroOverlay}>
@@ -81,11 +82,9 @@ export function ApplicationCard({
       </div>
 
       <div className={styles.body}>
-        <h3 className={styles.title}>{job.title}</h3>
-        <p className={styles.salary}>
-          {formatSalary(job.salaryMin, job.salaryMax, job.category, job.externalUrl)}
-        </p>
-        <p className={styles.company}>{job.company}</p>
+        <h3 className={styles.title}>{preview.title}</h3>
+        <p className={styles.salary}>{preview.salary}</p>
+        <p className={styles.company}>{preview.company}</p>
         <p className={styles.location}>{locationLine}</p>
         <p className={styles.appliedDate}>Applied {formatAppliedDate(application.appliedAt)}</p>
 

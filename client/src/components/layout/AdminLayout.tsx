@@ -56,6 +56,7 @@ const pageTitles: Record<string, string> = {
   '/admin/system/ai': 'AI',
   '/admin/notifications': 'Notifications',
   '/admin/settings': 'Settings',
+  '/admin/settings/security': 'Security',
 };
 
 export function AdminLayout() {

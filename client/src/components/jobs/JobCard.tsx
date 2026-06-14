@@ -6,7 +6,6 @@ interface JobCardProps extends Omit<OpportunityCardProps, 'variant'> {
   onClick?: () => void;
   onSaveToggle?: (e: React.MouseEvent) => void;
   onQuickApply?: (e: React.MouseEvent) => void;
-  showDescription?: boolean;
 }
 
 export function JobCard({
@@ -18,7 +17,6 @@ export function JobCard({
   onSaveToggle,
   onQuickApply,
   applying,
-  showDescription = true,
 }: JobCardProps) {
   return (
     <motion.div
@@ -38,7 +36,6 @@ export function JobCard({
         saved={saved}
         applied={applied}
         applying={applying}
-        showDescription={showDescription}
         onLearnMore={onClick}
         onSave={onSaveToggle}
         onApply={onQuickApply}

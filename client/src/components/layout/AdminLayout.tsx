@@ -9,6 +9,7 @@ import {
   IconChevronLeft,
   IconClipboard,
   IconFileText,
+  IconFilter,
   IconGrid,
   IconList,
   IconSettings,
@@ -19,6 +20,7 @@ import styles from './AdminLayout.module.css';
 
 const navItems: { to: string; label: string; icon: ReactNode; end?: boolean }[] = [
   { to: '/admin', label: 'Dashboard', icon: <IconGrid size={18} />, end: true },
+  { to: '/admin/moderation', label: 'Moderation', icon: <IconFilter size={18} /> },
   { to: '/admin/jobs', label: 'Jobs', icon: <IconList size={18} /> },
   { to: '/admin/companies', label: 'Companies', icon: <IconBuilding size={18} /> },
   { to: '/admin/company-approvals', label: 'Approvals', icon: <IconApplications size={18} /> },
@@ -33,6 +35,7 @@ const navItems: { to: string; label: string; icon: ReactNode; end?: boolean }[] 
 
 const pageTitles: Record<string, string> = {
   '/admin': 'Admin Dashboard',
+  '/admin/moderation': 'Job Moderation',
   '/admin/jobs': 'Job Management',
   '/admin/companies': 'Company Management',
   '/admin/company-approvals': 'Company Approvals',

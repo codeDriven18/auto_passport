@@ -15,4 +15,8 @@ public class SourceRepository : Repository<Source>, ISourceRepository
 
     public async Task<Source?> GetFirstAsync(CancellationToken cancellationToken = default)
         => await DbSet.AsNoTracking().FirstOrDefaultAsync(cancellationToken);
+
+    public async Task<Source?> GetByExternalIdentifierAsync(string externalIdentifier, CancellationToken cancellationToken = default)
+        => await DbSet.AsNoTracking()
+            .FirstOrDefaultAsync(s => s.ExternalIdentifier == externalIdentifier, cancellationToken);
 }

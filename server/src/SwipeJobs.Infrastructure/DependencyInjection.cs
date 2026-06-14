@@ -79,6 +79,9 @@ public static class DependencyInjection
         services.AddScoped<IApplicationRepository, ApplicationRepository>();
         services.AddScoped<ISavedJobRepository, SavedJobRepository>();
         services.AddScoped<IAuditLogRepository, AuditLogRepository>();
+        services.AddScoped<IIngestionMessageRepository, IngestionMessageRepository>();
+        services.AddScoped<IJobCandidateRepository, JobCandidateRepository>();
+        services.AddScoped<IJobReportRepository, JobReportRepository>();
         services.AddScoped<IAuditLogService, Audit.AuditLogService>();
         services.AddScoped<IResumeStorageService, Storage.LocalResumeStorageService>();
         services.AddScoped<IDataSeeder, DataSeeder>();

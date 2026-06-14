@@ -20,6 +20,11 @@ public class JobConfiguration : IEntityTypeConfiguration<Job>
         builder.Property(j => j.ContentFingerprint).HasMaxLength(64);
         builder.Property(j => j.ExternalSourceKey).HasMaxLength(500);
 
+        builder.Property(j => j.LifecycleStatus).HasConversion<int>();
+        builder.HasIndex(j => j.LifecycleStatus);
+        builder.HasIndex(j => j.PostedAt);
+        builder.HasIndex(j => j.ExpiresAt);
+
         builder.HasIndex(j => j.ContentFingerprint);
         builder.HasIndex(j => new { j.SourceId, j.ExternalSourceKey });
 

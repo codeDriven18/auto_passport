@@ -15,6 +15,13 @@ public class CompanyRepository : Repository<Company>, ICompanyRepository
             .AsNoTracking()
             .FirstOrDefaultAsync(c => c.Slug == slug && c.IsActive && c.Status == Domain.Enums.CompanyStatus.Approved, cancellationToken);
 
+    public async Task<Company?> FindByNameAsync(string name, CancellationToken cancellationToken = default)
+    {
+        var normalized = name.Trim().ToLowerInvariant();
+        return await DbSet
+            .FirstOrDefaultAsync(c => c.Name.ToLower() == normalized, cancellationToken);
+    }
+
     public async Task<IReadOnlyList<Company>> GetAllActiveAsync(CancellationToken cancellationToken = default)
         => await DbSet
             .AsNoTracking()

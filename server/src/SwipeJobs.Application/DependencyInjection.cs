@@ -45,6 +45,13 @@ public static class DependencyInjection
         services.AddScoped<ISavedJobService, SavedJobService>();
         services.AddScoped<ITagService, TagService>();
         services.AddScoped<ISourceService, SourceService>();
+        services.AddScoped<JobExtractionService>();
+        services.AddScoped<JobNormalizer>();
+        services.AddScoped<JobQualityScoringService>();
+        services.AddScoped<IngestionPipelineService>();
+        services.AddScoped<IJobPublishService, JobPublishService>();
+        services.AddScoped<IModerationService, ModerationService>();
+        services.AddScoped<IJobLifecycleService, JobLifecycleService>();
         services.AddScoped<JobIngestionService>();
 
         return services;

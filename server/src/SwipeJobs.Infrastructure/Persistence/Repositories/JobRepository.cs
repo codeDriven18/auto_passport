@@ -21,7 +21,11 @@ public class JobRepository : Repository<Job>, IJobRepository
         JobQueryDto query,
         CancellationToken cancellationToken = default)
     {
-        var q = BuildQuery().Where(j => j.IsActive && !j.IsArchived);
+        var q = BuildQuery().Where(j =>
+            j.IsActive &&
+            !j.IsArchived &&
+            j.LifecycleStatus == Domain.Enums.JobLifecycleStatus.Published &&
+            (j.ExpiresAt == null || j.ExpiresAt > DateTime.UtcNow));
 
         if (!string.IsNullOrWhiteSpace(query.Search))
         {

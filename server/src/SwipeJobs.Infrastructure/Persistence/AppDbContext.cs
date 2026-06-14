@@ -28,6 +28,10 @@ public class AppDbContext : DbContext
     public DbSet<Domain.Entities.Application> Applications => Set<Domain.Entities.Application>();
     public DbSet<SavedJob> SavedJobs => Set<SavedJob>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
+    public DbSet<IngestionMessage> IngestionMessages => Set<IngestionMessage>();
+    public DbSet<JobCandidate> JobCandidates => Set<JobCandidate>();
+    public DbSet<JobCandidateMessage> JobCandidateMessages => Set<JobCandidateMessage>();
+    public DbSet<JobReport> JobReports => Set<JobReport>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

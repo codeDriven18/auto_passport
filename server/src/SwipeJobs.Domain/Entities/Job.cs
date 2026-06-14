@@ -16,7 +16,14 @@ public class Job : BaseEntity
     public bool IsRemote { get; set; }
     public bool IsActive { get; set; } = true;
     public bool IsArchived { get; set; }
+    public JobLifecycleStatus LifecycleStatus { get; set; } = JobLifecycleStatus.Published;
+    public DateTime? PostedAt { get; set; }
     public DateTime? ExpiresAt { get; set; }
+    public Guid? CandidateJobId { get; set; }
+    public Guid? ApprovedByUserId { get; set; }
+    public Guid? PublishedByUserId { get; set; }
+    public DateTime? ApprovedAt { get; set; }
+    public DateTime? PublishedAt { get; set; }
     public string? ExternalUrl { get; set; }
     public string? JobImageUrl { get; set; }
     public string? AiGeneratedImageUrl { get; set; }

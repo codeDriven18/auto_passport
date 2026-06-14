@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
+using SwipeJobs.Api.HostedServices;
 using SwipeJobs.Api.Extensions;
 using SwipeJobs.Api.Filters;
 using SwipeJobs.Api.Hubs;
@@ -20,11 +21,13 @@ try
     builder.ConfigureAzureListening();
 
     builder.Services.AddApplication();
+    builder.Services.AddAiExtraction(builder.Configuration);
     builder.Services.AddInfrastructure(builder.Configuration);
     builder.Services.AddMemoryCache();
     builder.Services.AddHttpContextAccessor();
     builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
     builder.Services.AddSingleton<INotificationPublisher, SignalRNotificationPublisher>();
+    builder.Services.AddHostedService<JobExpirationHostedService>();
 
     builder.Services.AddResponseCompression(options =>
     {

@@ -3,7 +3,7 @@ import styles from './UserAvatar.module.css';
 
 interface UserAvatarProps {
   profile?: Pick<UserProfile, 'firstName' | 'lastName' | 'email' | 'profileImageUrl'> | null;
-  size?: 'sm' | 'md' | 'lg' | 'xl';
+  size?: 'sm' | 'md' | 'lg' | 'hub' | 'xl';
   className?: string;
 }
 
@@ -11,6 +11,7 @@ const sizeClass = {
   sm: styles.sm,
   md: styles.md,
   lg: styles.lg,
+  hub: styles.hub,
   xl: styles.xl,
 } as const;
 

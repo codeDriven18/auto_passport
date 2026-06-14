@@ -41,6 +41,8 @@ public interface INotificationService
     Task<int> GetUnreadCountAsync(Guid userProfileId, CancellationToken cancellationToken = default);
     Task<bool> MarkReadAsync(Guid id, Guid userProfileId, CancellationToken cancellationToken = default);
     Task MarkAllReadAsync(Guid userProfileId, CancellationToken cancellationToken = default);
+    Task<bool> DismissAsync(Guid id, Guid userProfileId, CancellationToken cancellationToken = default);
+    Task DismissAllAsync(Guid userProfileId, CancellationToken cancellationToken = default);
     Task GenerateForDashboardAsync(Guid userProfileId, CancellationToken cancellationToken = default);
     Task<NotificationDto> CreateAsync(Guid userProfileId, string title, string message, CancellationToken cancellationToken = default);
     Task NotifyApplicationStatusChangedAsync(

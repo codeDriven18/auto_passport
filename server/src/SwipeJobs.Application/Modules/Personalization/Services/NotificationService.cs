@@ -67,6 +67,21 @@ public class NotificationService : INotificationService
         await _unitOfWork.SaveChangesAsync(cancellationToken);
     }
 
+    public async Task<bool> DismissAsync(Guid id, Guid userProfileId, CancellationToken cancellationToken = default)
+    {
+        var notification = await _notificationRepository.GetByIdAsync(id, cancellationToken);
+        if (notification is null || notification.UserProfileId != userProfileId) return false;
+
+        await _notificationRepository.DeleteAsync(notification, cancellationToken);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        return true;
+    }
+
+    public async Task DismissAllAsync(Guid userProfileId, CancellationToken cancellationToken = default)
+    {
+        await _notificationRepository.DeleteAllForUserAsync(userProfileId, cancellationToken);
+    }
+
     public async Task GenerateForDashboardAsync(Guid userProfileId, CancellationToken cancellationToken = default)
     {
         var profile = await _profileRepository.GetByIdWithDetailsAsync(userProfileId, cancellationToken);

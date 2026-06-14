@@ -1,15 +1,20 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import type { Job } from '@/models/job';
-import { SourceTrustLevel } from '@/models/enums';
 import { getJobCardPreview } from '@/lib/jobPreview';
-import { formatPostedTime, getEmploymentType, getWorkType } from '@/lib/jobCardMeta';
+import {
+  formatPostedTime,
+  getEmploymentType,
+  getJobBreadcrumb,
+  getLevelBadgeLabel,
+  getWorkType,
+} from '@/lib/jobCardMeta';
 import { resolveJobImage } from '@/lib/resolveJobImage';
 import { JobHeroImage } from '@/components/jobs/JobHeroImage';
 import { SourceBadge } from '@/components/jobs/SourceBadge';
 import { CompanyIdentityStrip } from '@/components/jobs/CompanyIdentityStrip';
 import { CompanyLogo } from '@/components/jobs/CompanyLogo';
 import { JobShareMenu } from '@/components/jobs/JobShareMenu';
-import { IconBookmark, IconVerified } from '@/components/icons/Icons';
+import { IconBookmark, IconMapPin } from '@/components/icons/Icons';
 import styles from './OpportunityCard.module.css';
 
 export interface OpportunityCardProps {
@@ -44,12 +49,77 @@ export function OpportunityCard({
   const [shareOpen, setShareOpen] = useState(false);
   const heroImage = useMemo(() => resolveJobImage(job), [job]);
   const preview = useMemo(() => getJobCardPreview(job), [job]);
-  const isTrustedSource =
-    (job.sourceTrustLevel ?? SourceTrustLevel.Unknown) >= SourceTrustLevel.Verified;
   const workType = getWorkType(job);
   const employment = getEmploymentType(job);
+  const levelBadge = getLevelBadgeLabel(job);
+  const breadcrumb = getJobBreadcrumb(job);
   const showActions = variant === 'discover' && interactive;
   const isSwipe = variant === 'swipe';
+
+  if (isSwipe) {
+    return (
+      <>
+        <article className={`${styles.card} ${styles.swipe}`}>
+          <div className={styles.swipeInner}>
+            <div className={styles.swipeTop}>
+              <span className={styles.breadcrumb} title={breadcrumb}>{breadcrumb}</span>
+              {interactive && !heroAction && (
+                <button
+                  type="button"
+                  className={styles.swipeBookmark}
+                  aria-label="Save job"
+                  onPointerDown={(event) => event.stopPropagation()}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    setShareOpen(true);
+                  }}
+                >
+                  <IconBookmark size={20} />
+                </button>
+              )}
+              {heroAction}
+            </div>
+
+            <CompanyLogo
+              name={preview.company}
+              logoUrl={job.companyLogoUrl}
+              size="xl"
+              className={styles.swipeLogo}
+            />
+
+            <h3 className={styles.title}>{preview.title}</h3>
+            <p className={styles.swipeCompany}>{preview.company}</p>
+
+            <p className={styles.locationRow}>
+              <IconMapPin size={15} className={styles.locationIcon} />
+              <span>{preview.location} · {workType}</span>
+            </p>
+
+            <p className={styles.salaryLine}>{preview.salary}</p>
+
+            {preview.skills.length > 0 && (
+              <div className={styles.swipeTags} title={preview.tagsLine}>
+                {preview.skills.map((skill) => (
+                  <span key={skill} className={styles.swipeTag}>{skill}</span>
+                ))}
+              </div>
+            )}
+
+            {preview.summary && (
+              <p className={styles.summary}>{preview.summary}</p>
+            )}
+
+            <div className={styles.swipeMeta}>
+              {levelBadge && <span className={styles.levelBadge}>{levelBadge}</span>}
+              <span className={styles.typeBadge}>{employment}</span>
+            </div>
+          </div>
+        </article>
+
+        <JobShareMenu job={job} open={shareOpen} onClose={() => setShareOpen(false)} />
+      </>
+    );
+  }
 
   return (
     <>
@@ -59,65 +129,19 @@ export function OpportunityCard({
             image={heroImage}
             alt={`${preview.title} at ${preview.company}`}
             className={styles.heroImage}
-            priority={isSwipe}
           />
-
-          {isSwipe ? (
-            <div className={styles.heroTop}>
-              {job.sourceName && (
-                <span className={styles.sourceBadge}>
-                  {isTrustedSource && (
-                    <IconVerified size={14} className={styles.sourceIcon} />
-                  )}
-                  {job.sourceName}
-                </span>
-              )}
-              {interactive && !heroAction && (
-                <button
-                  type="button"
-                  className={styles.heroAction}
-                  aria-label="Share job"
-                  onPointerDown={(event) => event.stopPropagation()}
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    setShareOpen(true);
-                  }}
-                >
-                  <IconBookmark size={18} />
-                </button>
-              )}
+          <div className={styles.heroOverlay}>
+            <div className={styles.heroOverlayTop}>
+              {heroBadge}
               {heroAction}
             </div>
-          ) : (
-            <div className={styles.heroOverlay}>
-              <div className={styles.heroOverlayTop}>
-                {heroBadge}
-                {heroAction}
-              </div>
-              <SourceBadge job={job} className={styles.source} />
-              <CompanyIdentityStrip job={job} variant="compact" onDark />
-            </div>
-          )}
+            <SourceBadge job={job} className={styles.source} />
+            <CompanyIdentityStrip job={job} variant="compact" onDark />
+          </div>
         </div>
 
         <div className={styles.body}>
-          {isSwipe && (
-            <div className={styles.companyRow}>
-              <CompanyLogo
-                name={preview.company}
-                logoUrl={job.companyLogoUrl}
-                size="md"
-              />
-              <div className={styles.companyText}>
-                <span className={styles.companyName}>{preview.company}</span>
-              </div>
-            </div>
-          )}
-
-          {!isSwipe && (
-            <p className={styles.companyLine}>{preview.company}</p>
-          )}
-
+          <p className={styles.companyLine}>{preview.company}</p>
           <h3 className={styles.title}>{preview.title}</h3>
 
           <div className={styles.pills}>
@@ -137,17 +161,11 @@ export function OpportunityCard({
 
           {preview.skills.length > 0 && (
             <div className={styles.tags} title={preview.tagsLine}>
-              {isSwipe ? (
-                preview.skills.map((skill) => (
-                  <span key={skill} className={styles.tag}>{skill}</span>
-                ))
-              ) : (
-                <span className={styles.tagLine}>{preview.tagsLine}</span>
-              )}
+              <span className={styles.tagLine}>{preview.tagsLine}</span>
             </div>
           )}
 
-          {(variant === 'discover' || isSwipe) && (
+          {variant === 'discover' && (
             <footer className={styles.footer}>
               {job.sourceName && (
                 <span className={styles.footerSource}>Source: {job.sourceName}</span>

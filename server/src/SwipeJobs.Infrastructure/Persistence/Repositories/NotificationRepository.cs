@@ -34,6 +34,9 @@ public class NotificationRepository : Repository<Notification>, INotificationRep
         }
     }
 
+    public Task DeleteAllForUserAsync(Guid userProfileId, CancellationToken cancellationToken = default)
+        => DbSet.Where(n => n.UserProfileId == userProfileId).ExecuteDeleteAsync(cancellationToken);
+
     public async Task<bool> ExistsAsync(
         Guid userProfileId, string title, Guid? relatedJobId, CancellationToken cancellationToken = default)
         => await DbSet.AnyAsync(

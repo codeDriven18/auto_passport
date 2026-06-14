@@ -15,6 +15,7 @@ import {
 } from 'framer-motion';
 import type { Job } from '@/models/job';
 import { SwipeJobCard } from '@/components/jobs/SwipeJobCard';
+import { IconHeart, IconX } from '@/components/icons/Icons';
 import {
   STACK_LAYERS,
   STACK_STYLE,
@@ -173,18 +174,30 @@ export const PremiumSwipeDeck = forwardRef<PremiumSwipeDeckHandle, PremiumSwipeD
           >
             {!isExiting && (
               <>
-                <motion.span
+                <motion.div
+                  className={styles.passOverlay}
+                  style={{ opacity: passOpacity }}
+                  aria-hidden
+                />
+                <motion.div
+                  className={styles.applyOverlay}
+                  style={{ opacity: applyOpacity }}
+                  aria-hidden
+                />
+                <motion.div
                   className={`${styles.stamp} ${styles.stampPass}`}
                   style={{ opacity: passOpacity }}
                 >
-                  PASS
-                </motion.span>
-                <motion.span
+                  <IconX size={28} />
+                  <span>NOPE</span>
+                </motion.div>
+                <motion.div
                   className={`${styles.stamp} ${styles.stampApply}`}
                   style={{ opacity: applyOpacity }}
                 >
-                  APPLY
-                </motion.span>
+                  <IconHeart size={28} />
+                  <span>LIKE</span>
+                </motion.div>
                 <motion.span
                   className={`${styles.stamp} ${styles.stampSave}`}
                   style={{ opacity: saveOpacity }}

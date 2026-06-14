@@ -1,6 +1,9 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { sourcesApi } from '@/api/sourcesApi';
+import { IconRefresh } from '@/components/icons/Icons';
+import { useRelativeLastUpdated } from '@/hooks/useRelativeLastUpdated';
+import { useToast } from '@/context/ToastContext';
 import type {
   AdminSource,
   AiExtractionQueueMetrics,
@@ -28,7 +31,7 @@ const EMPTY_FORM: CreateAdminSourceRequest = {
   ingestionEnabled: true,
 };
 
-const POLL_INTERVAL_MS = 20_000;
+const POLL_INTERVAL_MS = 30_000;
 
 function trustLabel(level: SourceTrustLevel) {
   return SourceTrustLevelLabels[level] ?? 'Standard';
@@ -60,25 +63,33 @@ export function AdminSourcesPage() {
   const [logsOpenFor, setLogsOpenFor] = useState<AdminSource | null>(null);
   const [logs, setLogs] = useState<SourceIngestionLogEntry[]>([]);
   const [logsLoading, setLogsLoading] = useState(false);
+  const refreshInFlightRef = useRef(false);
+  const { markUpdated, label: lastUpdatedLabel } = useRelativeLastUpdated();
+  const { showToast } = useToast();
 
-  const refresh = useCallback((silent = false) => {
+  const refresh = useCallback(async (silent = false): Promise<boolean> => {
+    if (refreshInFlightRef.current) return false;
+    refreshInFlightRef.current = true;
     if (!silent) setRefreshing(true);
-    return Promise.all([
-      sourcesApi.list(),
-      sourcesApi.getExtractionQueueMetrics().catch(() => null),
-    ])
-      .then(([nextSources, metrics]) => {
-        setSources(nextSources);
-        setQueueMetrics(metrics);
-      })
-      .catch(() => {
-        if (!silent) setSources([]);
-      })
-      .finally(() => {
-        setInitialLoading(false);
-        if (!silent) setRefreshing(false);
-      });
-  }, []);
+
+    try {
+      const [nextSources, metrics] = await Promise.all([
+        sourcesApi.list(),
+        sourcesApi.getExtractionQueueMetrics().catch(() => null),
+      ]);
+      setSources(nextSources);
+      setQueueMetrics(metrics);
+      markUpdated();
+      return true;
+    } catch {
+      if (!silent) setSources([]);
+      return false;
+    } finally {
+      refreshInFlightRef.current = false;
+      setInitialLoading(false);
+      if (!silent) setRefreshing(false);
+    }
+  }, [markUpdated]);
 
   useEffect(() => {
     void refresh();
@@ -203,10 +214,26 @@ export function AdminSourcesPage() {
           <h2 className={adminStyles.pageTitle}>Sources</h2>
           <p className={adminStyles.pageSubtitle}>
             Manage Telegram channels and external feeds before they enter moderation.
-            {refreshing ? ' Refreshing…' : ''}
+            {lastUpdatedLabel && <> · {lastUpdatedLabel}</>}
           </p>
         </div>
         <div className={adminStyles.actions}>
+          <button
+            type="button"
+            className={adminStyles.btn}
+            onClick={() => {
+              if (refreshInFlightRef.current || refreshing) return;
+              void refresh(false).then((ok) => {
+                if (ok) showToast('Sources refreshed', 'success');
+                else showToast('Refresh failed — check your connection', 'error');
+              });
+            }}
+            disabled={refreshing}
+            aria-label="Refresh sources"
+          >
+            <IconRefresh size={16} className={refreshing ? styles.refreshSpin : undefined} />
+            Refresh
+          </button>
           <button type="button" className={adminStyles.btnPrimary} onClick={() => openCreate()}>
             Add source
           </button>

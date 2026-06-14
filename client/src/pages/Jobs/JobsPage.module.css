@@ -14,12 +14,13 @@
 .search {
   flex: 1;
   min-width: 140px;
-  padding: 0.875rem 1.125rem;
+  padding: 0.75rem 1rem;
   border: none;
   border-radius: var(--radius-xl);
   background: var(--color-surface-raised);
   color: var(--color-text);
-  font-size: var(--text-base);
+  font-size: var(--text-body);
+  font-weight: var(--weight-normal);
   box-shadow: var(--shadow-sm);
 }
 
@@ -27,12 +28,12 @@
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  padding: 0.875rem 1.125rem;
+  padding: 0.75rem 1rem;
   border: none;
   border-radius: var(--radius-xl);
   background: var(--color-surface-raised);
-  font-weight: var(--weight-semibold);
-  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  font-size: var(--text-body);
   box-shadow: var(--shadow-sm);
   color: var(--color-text);
 }

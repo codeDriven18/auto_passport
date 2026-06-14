@@ -10,4 +10,8 @@ export const notificationsApi = {
     apiClient<void>(`/notifications/${id}/read`, { method: 'PATCH' }),
   markAllRead: () =>
     apiClient<void>('/notifications/me/read-all', { method: 'PATCH' }),
+  dismiss: (id: string) =>
+    apiClient<void>(`/notifications/${id}`, { method: 'DELETE' }),
+  dismissAll: () =>
+    apiClient<void>('/notifications/me', { method: 'DELETE' }),
 };

@@ -9,7 +9,7 @@
 }
 
 .header {
-  padding: var(--space-5) var(--space-6);
+  padding: var(--space-4) var(--space-5);
   background: transparent;
   position: sticky;
   top: 0;
@@ -29,9 +29,9 @@
 }
 
 .title {
-  font-size: var(--text-xl);
-  font-weight: var(--weight-extrabold);
-  letter-spacing: var(--tracking-tight);
+  font-size: var(--text-section);
+  font-weight: var(--weight-bold);
+  letter-spacing: var(--tracking-snug);
 }
 
 .headerActions {
@@ -46,7 +46,7 @@
 
 .main {
   flex: 1;
-  padding: 0 var(--space-6) var(--space-6);
+  padding: 0 var(--space-5) var(--space-6);
   padding-bottom: calc(var(--nav-height) + var(--space-6));
 }
 

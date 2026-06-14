@@ -145,6 +145,21 @@ public class NotificationsController : ControllerBase
         await _notificationService.MarkAllReadAsync(_currentUser.GetRequiredProfileId(), cancellationToken);
         return NoContent();
     }
+
+    [HttpDelete("{id:guid}")]
+    public async Task<IActionResult> Dismiss(Guid id, CancellationToken cancellationToken)
+    {
+        var ok = await _notificationService.DismissAsync(
+            id, _currentUser.GetRequiredProfileId(), cancellationToken);
+        return ok ? NoContent() : NotFound();
+    }
+
+    [HttpDelete("me")]
+    public async Task<IActionResult> DismissAll(CancellationToken cancellationToken)
+    {
+        await _notificationService.DismissAllAsync(_currentUser.GetRequiredProfileId(), cancellationToken);
+        return NoContent();
+    }
 }
 
 [ApiController]

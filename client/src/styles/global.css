@@ -63,8 +63,10 @@ body {
   background-color: var(--color-bg);
   color: var(--color-text);
   line-height: var(--leading-normal);
-  font-size: var(--text-base);
+  font-size: var(--text-body);
+  font-weight: var(--weight-normal);
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   transition: background-color var(--duration-base) var(--ease-out), color var(--duration-base) var(--ease-out);
   -webkit-user-select: none;
   user-select: none;

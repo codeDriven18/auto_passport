@@ -1,6 +1,20 @@
 import type { Job } from '@/models/job';
 import { JobCategory, JobCategoryLabels, JobLevel, JobLevelLabels } from '@/models/enums';
 
+export function getJobBreadcrumb(job: Job): string {
+  const parts: string[] = [JobCategoryLabels[job.category]];
+  for (const tag of job.tags.slice(0, 3)) {
+    const name = tag.name.trim();
+    if (name && !parts.includes(name)) parts.push(name);
+  }
+  return parts.join(' / ');
+}
+
+export function getLevelBadgeLabel(job: Job): string | null {
+  if (job.level === JobLevel.NotApplicable) return null;
+  return JobLevelLabels[job.level].toUpperCase();
+}
+
 export type WorkType = 'Remote' | 'Hybrid' | 'On-site';
 
 export function getWorkType(job: Job): WorkType {

@@ -1,11 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
-import { IconChevronLeft } from '@/components/icons/Icons';
+import { IconChevronLeft, IconCheck } from '@/components/icons/Icons';
 import { JobShareMenu } from '@/components/jobs/JobShareMenu';
-import { JobHeroImage } from '@/components/jobs/JobHeroImage';
-import { SourceBadge } from '@/components/jobs/SourceBadge';
-import { CompanyIdentityStrip } from '@/components/jobs/CompanyIdentityStrip';
+import { CompanyLogo } from '@/components/jobs/CompanyLogo';
 import { resolveJobImage } from '@/lib/resolveJobImage';
 import { getJobCanonicalUrl, resolveShareImageUrl } from '@/lib/shareUrls';
+import { parseJobDescriptionSections } from '@/lib/jobDescriptionSections';
 import { getFriendlyErrorMessage } from '@/lib/friendlyError';
 import { usePageMeta } from '@/hooks/usePageMeta';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -18,21 +17,20 @@ import { jobsApi } from '@/api/jobsApi';
 import { savedJobsApi } from '@/api/savedJobsApi';
 import { getJobCardPreview } from '@/lib/jobPreview';
 import { formatSalary } from '@/lib/jobFormat';
+import { getWorkType } from '@/lib/jobCardMeta';
 import {
   blocksNewApplication,
   canReapplyToJob,
   getLatestApplicationForJob,
 } from '@/lib/applicationHelpers';
 import { CompanyLink } from '@/components/jobs/CompanyLink';
-import { CompanyLogo } from '@/components/jobs/CompanyLogo';
 import { Button } from '@/components/ui/Button';
 import { JobDetailSkeleton } from '@/components/ui/Skeleton';
 import { ContactLinkText } from '@/components/ui/ContactLinkText';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { useProfile } from '@/hooks/useProfile';
 import { useActivityTracking } from '@/hooks/useActivityTracking';
-import { ApplicationStatus, JobCategoryLabels, JobLevelLabels } from '@/models/enums';
-import { TrendingBadges } from '@/components/ui/TrendingBadge';
+import { ApplicationStatus } from '@/models/enums';
 import type { JobApplication } from '@/models/application';
 import type { Job } from '@/models/job';
 import styles from './JobDetailPage.module.css';
@@ -139,11 +137,15 @@ export function JobDetailPage() {
     if (applying) return 'Submitting…';
     if (isRejected || isWithdrawn) return 'Apply Again';
     if (isBlocked) return 'Applied';
-    return 'Quick Apply';
+    return 'Apply Now';
   };
 
   const heroImage = useMemo(() => (job ? resolveJobImage(job) : null), [job]);
   const cardPreview = useMemo(() => (job ? getJobCardPreview(job) : null), [job]);
+  const descriptionSections = useMemo(
+    () => (job ? parseJobDescriptionSections(job.description) : { summary: '', requirements: [] }),
+    [job],
+  );
 
   const pageMeta = useMemo(() => {
     if (!job || !id) return null;
@@ -184,56 +186,58 @@ export function JobDetailPage() {
 
   return (
     <section className={styles.page}>
-      <button type="button" className={styles.back} onClick={() => navigate(-1)}>
-        <IconChevronLeft size={18} /> Back
-      </button>
+      <header className={styles.toolbar}>
+        <button type="button" className={styles.toolbarBtn} onClick={() => navigate(-1)} aria-label="Back">
+          <IconChevronLeft size={22} />
+        </button>
+        <div className={styles.toolbarActions}>
+          <motion.button
+            type="button"
+            className={saved ? styles.toolbarBtnActive : styles.toolbarBtn}
+            onClick={() => void handleSave()}
+            aria-label={saved ? 'Unsave job' : 'Save job'}
+            whileTap={{ scale: 0.92 }}
+          >
+            <svg viewBox="0 0 24 24" fill={saved ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" aria-hidden>
+              <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </motion.button>
+          <motion.button
+            type="button"
+            className={styles.toolbarBtn}
+            onClick={() => setShareOpen(true)}
+            aria-label="Share job"
+            whileTap={{ scale: 0.92 }}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+              <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8M16 6l-4-4-4 4M12 2v13" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </motion.button>
+        </div>
+      </header>
 
       <header className={styles.hero}>
-        <div className={styles.heroBanner}>
-          {heroImage && (
-            <JobHeroImage
-              image={heroImage}
-              alt={`${job.title} at ${job.company}`}
-              className={styles.heroBannerImage}
-              priority
-            />
-          )}
-          <div className={styles.heroBannerMeta}>
-            <SourceBadge job={job} />
-          </div>
-        </div>
         <div className={styles.heroTop}>
-          <CompanyLogo name={job.company} logoUrl={job.companyLogoUrl} size="lg" />
+          <CompanyLogo name={job.company} logoUrl={job.companyLogoUrl} size="xl" />
           <div className={styles.heroText}>
             <h1 className={styles.title}>{cardPreview?.title ?? job.title}</h1>
             <CompanyLink name={job.company} slug={job.companySlug} className={styles.companyLink} />
-          </div>
-        </div>
-
-        <div className={styles.companySection}>
-          <CompanyIdentityStrip job={job} variant="detail" />
-        </div>
-
-        <TrendingBadges badges={job.trendingBadges} />
-
-        <div className={styles.heroMeta}>
-          <div className={styles.metaItem}>
-            <span className={styles.metaLabel}>Salary</span>
-            <span className={styles.metaValue}>
+            <p className={styles.heroLocation}>
+              {cardPreview?.location ?? (job.city ?? job.location ?? 'Flexible')} · {getWorkType(job)}
+            </p>
+            <p className={styles.heroSalary}>
               {cardPreview?.salary ?? formatSalary(job.salaryMin, job.salaryMax, job.category, job.externalUrl)}
-            </span>
-          </div>
-          <div className={styles.metaItem}>
-            <span className={styles.metaLabel}>Location</span>
-            <span className={styles.metaValue}>{cardPreview?.location ?? (job.city ?? job.location ?? 'Flexible')}</span>
+            </p>
           </div>
         </div>
 
-        <div className={styles.badges}>
-          <span className={styles.badge}>{JobCategoryLabels[job.category]}</span>
-          {job.isRemote && <span className={styles.badgeMuted}>Remote</span>}
-          {job.level > 0 && <span className={styles.badgeMuted}>{JobLevelLabels[job.level]}</span>}
-        </div>
+        {(cardPreview?.skills.length ?? 0) > 0 && (
+          <div className={styles.heroTags}>
+            {(cardPreview?.skills ?? job.tags.map((t) => t.name)).map((skill) => (
+              <span key={skill} className={styles.heroTag}>{skill}</span>
+            ))}
+          </div>
+        )}
       </header>
 
       {latestApplication && (
@@ -255,15 +259,63 @@ export function JobDetailPage() {
         </div>
       )}
 
-      {job.tags.length > 0 && (
+      {job.tags.length > 0 && !cardPreview?.skills.length && (
         <div className={styles.tags}>
           {job.tags.map((t) => <span key={t.id} className={styles.tag}>{t.name}</span>)}
         </div>
       )}
 
-      <article className={`${styles.description} copyable-content`}>
-        <h2 className={styles.sectionTitle}>About this role</h2>
-        <ContactLinkText text={job.description} className={styles.descriptionText} as="p" />
+      {job.companyDescription && (
+        <article className={styles.section}>
+          <h2 className={styles.sectionTitle}>About the company</h2>
+          <ContactLinkText
+            text={job.companyDescription}
+            className={`${styles.sectionText} copyable-content`}
+            as="p"
+          />
+          {(job.companyWebsite || job.companyLinkedInUrl) && (
+            <div className={styles.companyLinks}>
+              {job.companyWebsite && (
+                <a href={job.companyWebsite} target="_blank" rel="noopener noreferrer" className={styles.companyLinkAccent}>
+                  Website
+                </a>
+              )}
+              {job.companyLinkedInUrl && (
+                <a href={job.companyLinkedInUrl} target="_blank" rel="noopener noreferrer" className={styles.companyLinkAccent}>
+                  LinkedIn
+                </a>
+              )}
+            </div>
+          )}
+        </article>
+      )}
+
+      <article className={styles.section}>
+        <h2 className={styles.sectionTitle}>Job summary</h2>
+        <ContactLinkText
+          text={cardPreview?.summary || descriptionSections.summary || job.description}
+          className={`${styles.sectionText} copyable-content`}
+          as="p"
+        />
+      </article>
+
+      {descriptionSections.requirements.length > 0 && (
+        <article className={styles.section}>
+          <h2 className={styles.sectionTitle}>Requirements</h2>
+          <ul className={styles.requirementsList}>
+            {descriptionSections.requirements.map((item) => (
+              <li key={item} className={styles.requirementItem}>
+                <IconCheck size={18} className={styles.requirementIcon} />
+                <span>{item}</span>
+              </li>
+            ))}
+          </ul>
+        </article>
+      )}
+
+      <article className={`${styles.section} copyable-content`}>
+        <h2 className={styles.sectionTitle}>Full description</h2>
+        <ContactLinkText text={job.description} className={styles.sectionText} as="p" />
         {job.sourceName && (
           <p className={styles.source}>Source: {job.sourceName}</p>
         )}

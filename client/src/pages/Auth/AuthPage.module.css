@@ -20,15 +20,16 @@
 }
 
 .title {
-  font-size: var(--text-3xl);
-  font-weight: var(--weight-extrabold);
+  font-size: var(--text-display);
+  font-weight: var(--weight-bold);
   letter-spacing: var(--tracking-tight);
   line-height: var(--leading-tight);
   margin-bottom: var(--space-3);
 }
 
 .subtitle {
-  font-size: var(--text-base);
+  font-size: var(--text-secondary);
+  font-weight: var(--weight-normal);
   color: var(--color-text-muted);
   line-height: var(--leading-relaxed);
   max-width: 20rem;

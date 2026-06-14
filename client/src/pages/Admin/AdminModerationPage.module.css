@@ -1,3 +1,13 @@
+@keyframes refreshSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.refreshSpin {
+  animation: refreshSpin 0.75s linear infinite;
+}
+
 .layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(18rem, 22rem);
@@ -49,8 +59,8 @@
 }
 
 .cardTitle {
-  font-size: var(--text-base);
-  font-weight: var(--weight-extrabold);
+  font-size: var(--text-body);
+  font-weight: var(--weight-semibold);
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -59,8 +69,8 @@
 }
 
 .cardCompany {
-  font-size: var(--text-sm);
-  font-weight: var(--weight-semibold);
+  font-size: var(--text-secondary);
+  font-weight: var(--weight-normal);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -98,8 +108,8 @@
 }
 
 .detailTitle {
-  font-size: var(--text-lg);
-  font-weight: var(--weight-extrabold);
+  font-size: var(--text-section);
+  font-weight: var(--weight-semibold);
 }
 
 .rawPost {

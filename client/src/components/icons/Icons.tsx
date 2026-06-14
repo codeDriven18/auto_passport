@@ -63,6 +63,20 @@ export function IconVerified(props: IconProps) {
   return <svg {...base(props)}><path d="M12 2l2.4 1.2 2.7-.2 1.1 2.5 2.5 1.1-.2 2.7L22 12l-1.5 2.4.2 2.7-2.5 1.1-1.1 2.5-2.7-.2L12 22l-2.4-1.5-2.7.2-1.1-2.5-2.5-1.1.2-2.7L2 12l1.5-2.4-.2-2.7 2.5-1.1 1.1-2.5 2.7.2L12 2z" /><path d="m9 12 2 2 4-4" /></svg>;
 }
 
+export function IconHeart(props: IconProps) {
+  return <svg {...base(props)}><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z" /></svg>;
+}
+
+export function IconRefresh(props: IconProps & { className?: string }) {
+  const { className, ...rest } = props;
+  return (
+    <svg {...base(rest)} className={className}>
+      <path d="M21 12a9 9 0 1 1-2.64-6.36" />
+      <path d="M21 3v6h-6" />
+    </svg>
+  );
+}
+
 export function IconFilter(props: IconProps) {
   return <svg {...base(props)}><path d="M4 6h16M7 12h10M10 18h4" /></svg>;
 }
@@ -125,6 +139,18 @@ export function IconCircle(props: IconProps) {
 
 export function IconFile(props: IconProps) {
   return <svg {...base(props)}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6" /></svg>;
+}
+
+export function IconCamera(props: IconProps) {
+  return <svg {...base(props)}><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" /><circle cx="12" cy="13" r="4" /></svg>;
+}
+
+export function IconBriefcase(props: IconProps) {
+  return <svg {...base(props)}><rect x="2" y="7" width="20" height="14" rx="2" /><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2" /></svg>;
+}
+
+export function IconGraduation(props: IconProps) {
+  return <svg {...base(props)}><path d="M22 10 12 5 2 10l10 5 10-5z" /><path d="M6 12v5c0 1.1 2.7 3 6 3s6-1.9 6-3v-5" /></svg>;
 }
 
 export function IconMail(props: IconProps) {

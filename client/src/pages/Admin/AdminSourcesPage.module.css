@@ -4,6 +4,16 @@
   gap: var(--space-4);
 }
 
+.refreshSpin {
+  animation: refreshSpin 0.75s linear infinite;
+}
+
+@keyframes refreshSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .card {
   display: flex;
   flex-direction: column;
@@ -40,8 +50,8 @@
 
 .name {
   margin-top: var(--space-1);
-  font-size: var(--text-lg);
-  font-weight: var(--weight-extrabold);
+  font-size: var(--text-section);
+  font-weight: var(--weight-semibold);
 }
 
 .url {

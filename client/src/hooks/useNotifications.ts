@@ -76,5 +76,40 @@ export function useNotifications() {
     setUnreadCount(0);
   };
 
-  return { notifications, unreadCount, loading, markRead, markAllRead, reload: load };
+  const dismiss = async (id: string) => {
+    try {
+      await notificationsApi.dismiss(id);
+      setNotifications((prev) => {
+        const target = prev.find((n) => n.id === id);
+        if (target && !target.isRead) {
+          setUnreadCount((c) => Math.max(0, c - 1));
+        }
+        return prev.filter((n) => n.id !== id);
+      });
+    } catch {
+      void load();
+    }
+  };
+
+  const dismissAll = async () => {
+    if (!isAuthenticated) return;
+    try {
+      await notificationsApi.dismissAll();
+      setNotifications([]);
+      setUnreadCount(0);
+    } catch {
+      void load();
+    }
+  };
+
+  return {
+    notifications,
+    unreadCount,
+    loading,
+    markRead,
+    markAllRead,
+    dismiss,
+    dismissAll,
+    reload: load,
+  };
 }

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { moderationApi } from '@/api/moderationApi';
 import { sourcesApi } from '@/api/sourcesApi';
@@ -6,6 +6,9 @@ import { getIngestionErrorMessage } from '@/lib/ingestionErrors';
 import { getModerationErrorMessage } from '@/lib/moderationErrors';
 import { sanitizeCandidateCardTitle } from '@/lib/jobPreview';
 import { formatSalary } from '@/lib/jobFormat';
+import { IconRefresh } from '@/components/icons/Icons';
+import { useRelativeLastUpdated } from '@/hooks/useRelativeLastUpdated';
+import { useToast } from '@/context/ToastContext';
 import type { AdminSource } from '@/models/source';
 import { SourceType } from '@/models/enums';
 import type { JobCandidate } from '@/models/moderation';
@@ -27,7 +30,7 @@ function extractTelegramUrl(text: string): string | null {
   return match?.[0] ?? null;
 }
 
-const POLL_INTERVAL_MS = 20_000;
+const POLL_INTERVAL_MS = 25_000;
 
 export function AdminModerationPage() {
   const [queue, setQueue] = useState<JobCandidate[]>([]);
@@ -43,6 +46,9 @@ export function AdminModerationPage() {
   const [ingestText, setIngestText] = useState('');
   const [message, setMessage] = useState<string | null>(null);
   const [messageTone, setMessageTone] = useState<'info' | 'error' | 'success'>('info');
+  const refreshInFlightRef = useRef(false);
+  const { markUpdated, label: lastUpdatedLabel } = useRelativeLastUpdated();
+  const { showToast } = useToast();
 
   const telegramSources = useMemo(
     () => sources.filter((s) => s.type === SourceType.Telegram && s.ingestionEnabled),
@@ -71,8 +77,12 @@ export function AdminModerationPage() {
     }
   }, [notify]);
 
-  const refresh = useCallback(async (silent = false) => {
+  const refresh = useCallback(async (silent = false): Promise<boolean> => {
+    if (refreshInFlightRef.current) return false;
+    refreshInFlightRef.current = true;
     if (!silent) setRefreshing(true);
+
+    let ok = true;
     const [queueResult, analyticsResult, sourcesResult] = await Promise.allSettled([
       moderationApi.getQueue(CandidateJobStatus.PendingReview),
       moderationApi.getAnalytics(),
@@ -87,15 +97,19 @@ export function AdminModerationPage() {
         if (current && q.items.some((item) => item.id === current)) return current;
         return q.items[0]?.id ?? null;
       });
-    } else if (!silent) {
-      notify(getModerationErrorMessage(queueResult.reason, 'Failed to load moderation queue.'), 'error');
-      setQueue([]);
-      setPendingCount(0);
+    } else {
+      ok = false;
+      if (!silent) {
+        notify(getModerationErrorMessage(queueResult.reason, 'Failed to load moderation queue.'), 'error');
+        setQueue([]);
+        setPendingCount(0);
+      }
     }
 
     if (analyticsResult.status === 'fulfilled') {
       setAnalytics(analyticsResult.value);
     } else if (!silent) {
+      ok = false;
       setAnalytics(null);
     }
 
@@ -105,12 +119,16 @@ export function AdminModerationPage() {
         ?? sourcesResult.value[0];
       setTelegramSourceId((prev) => prev ?? telegram?.id ?? null);
     } else if (!silent) {
+      ok = false;
       setSources([]);
     }
 
+    if (ok) markUpdated();
     setInitialLoading(false);
+    refreshInFlightRef.current = false;
     if (!silent) setRefreshing(false);
-  }, [notify]);
+    return ok;
+  }, [markUpdated, notify]);
 
   useEffect(() => {
     void refresh();
@@ -195,6 +213,17 @@ export function AdminModerationPage() {
     }, 'Selected candidates approved.');
   };
 
+  const handleManualRefresh = () => {
+    if (refreshInFlightRef.current || refreshing) return;
+    void refresh(false).then((ok) => {
+      if (ok) {
+        showToast('Moderation data refreshed', 'success');
+      } else {
+        showToast('Refresh failed — check your connection', 'error');
+      }
+    });
+  };
+
   if (initialLoading) return <p className={adminStyles.status}>Loading moderation queue...</p>;
 
   const createSourceUrl = extractTelegramUrl(ingestText);
@@ -207,10 +236,20 @@ export function AdminModerationPage() {
           <h2 className={adminStyles.pageTitle}>Moderation</h2>
           <p className={adminStyles.pageSubtitle}>
             {pendingCount} candidates waiting · {telegramSources.length} Telegram source(s) active
-            {refreshing ? ' · refreshing…' : ''}
+            {lastUpdatedLabel && <> · {lastUpdatedLabel}</>}
           </p>
         </div>
         <div className={adminStyles.actions}>
+          <button
+            type="button"
+            className={adminStyles.btn}
+            onClick={handleManualRefresh}
+            disabled={refreshing}
+            aria-label="Refresh moderation data"
+          >
+            <IconRefresh size={16} className={refreshing ? styles.refreshSpin : undefined} />
+            Refresh
+          </button>
           <button type="button" className={adminStyles.btn} onClick={() => setShowIngest((v) => !v)}>
             Test ingest
           </button>

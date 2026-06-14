@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { dashboardApi } from '@/api/dashboardApi';
 import { DiscoveryRail } from '@/components/discovery/DiscoveryRail';
 import { CompanyCarousel } from '@/components/discovery/CompanyCarousel';
+import { PullToRefresh } from '@/components/ui/PullToRefresh';
 import { AnimatedCounter } from '@/components/ui/AnimatedCounter';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { DashboardSkeleton } from '@/components/ui/Skeleton';
@@ -11,6 +12,9 @@ import { StatusBadge } from '@/components/ui/StatusBadge';
 import { useAuth } from '@/context/AuthContext';
 import { useProfile } from '@/hooks/useProfile';
 import { useDiscoveryCollections, getTimeGreeting } from '@/hooks/useDiscoveryCollections';
+import { useRefreshLock } from '@/hooks/useRefreshLock';
+import { useToast } from '@/context/ToastContext';
+import { refreshSeekerAccountData } from '@/lib/seekerRefresh';
 import { UserRole } from '@/models/auth';
 import { getProfileCompletionPercent, shouldShowMandatoryCompletionPrompts } from '@/lib/profileCompletion';
 import { mergeDashboardWithEmpty } from '@/lib/emptyDashboard';
@@ -39,7 +43,9 @@ export function DashboardPage() {
   const [dashboard, setDashboard] = useState<UserDashboard>(() => mergeDashboardWithEmpty(null));
   const [loading, setLoading] = useState(true);
   const [fetchFailed, setFetchFailed] = useState(false);
-  const { collections } = useDiscoveryCollections(true);
+  const { collections, reload: reloadCollections } = useDiscoveryCollections(true);
+  const { runRefresh, isRefreshing } = useRefreshLock();
+  const { showToast } = useToast();
 
   const loadDashboard = useCallback(async () => {
     if (authLoading) return;
@@ -67,6 +73,39 @@ export function DashboardPage() {
   useEffect(() => {
     void loadDashboard();
   }, [loadDashboard]);
+
+  const handleRefresh = useCallback(async () => {
+    await runRefresh(async () => {
+      let hadError = false;
+
+      if (shouldLoadDashboard) {
+        try {
+          const data = await dashboardApi.getMyDashboard();
+          setDashboard(mergeDashboardWithEmpty(data));
+          setFetchFailed(false);
+        } catch {
+          hadError = true;
+          setFetchFailed(true);
+        }
+      }
+
+      const collectionsOk = await reloadCollections();
+      if (!collectionsOk) hadError = true;
+
+      if (shouldLoadDashboard) {
+        const side = await refreshSeekerAccountData();
+        if (side.failed) hadError = true;
+        if (side.dashboard) {
+          setDashboard(mergeDashboardWithEmpty(side.dashboard));
+          setFetchFailed(false);
+        }
+      }
+
+      if (hadError) {
+        showToast('Some updates could not be loaded', 'error');
+      }
+    });
+  }, [reloadCollections, runRefresh, shouldLoadDashboard, showToast]);
 
   const profilePct = dashboard.profileCompletionPercentage
     ?? getProfileCompletionPercent(profile);
@@ -98,7 +137,8 @@ export function DashboardPage() {
 
   if (!isAuthenticated) {
     return (
-      <motion.section className={styles.page} variants={container} initial="hidden" animate="show">
+      <PullToRefresh onRefresh={handleRefresh} disabled={isRefreshing}>
+        <motion.section className={styles.page} variants={container} initial="hidden" animate="show">
         <motion.header className={styles.hero} variants={item}>
           <p className={styles.greetingTime}>{greeting}</p>
           <h1 className={styles.heroTitle}>Discover your next role</h1>
@@ -164,6 +204,7 @@ export function DashboardPage() {
           <Link to="/login" className={styles.quickActionGhost}>Sign in</Link>
         </motion.div>
       </motion.section>
+      </PullToRefresh>
     );
   }
 
@@ -183,7 +224,8 @@ export function DashboardPage() {
   ].slice(0, 5);
 
   return (
-    <motion.section className={styles.page} variants={container} initial="hidden" animate="show">
+    <PullToRefresh onRefresh={handleRefresh} disabled={isRefreshing}>
+      <motion.section className={styles.page} variants={container} initial="hidden" animate="show">
       <motion.header className={styles.hero} variants={item}>
         <p className={styles.greetingTime}>{greeting}, {firstName}</p>
         <h1 className={styles.heroTitle}>Discover your next role</h1>
@@ -377,6 +419,7 @@ export function DashboardPage() {
           </div>
         </motion.section>
       )}
-    </motion.section>
+      </motion.section>
+    </PullToRefresh>
   );
 }

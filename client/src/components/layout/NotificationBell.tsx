@@ -12,12 +12,21 @@ const PANEL_ID = 'notifications';
 
 export function NotificationBell() {
   const { isAuthenticated, user } = useAuth();
-  const { notifications, unreadCount, markRead, markAllRead } = useNotifications();
+  const { notifications, unreadCount, markAllRead, dismiss, dismissAll } = useNotifications();
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
 
   const close = useCallback(() => setOpen(false), []);
+
+  const toggleOpen = useCallback(() => {
+    setOpen((wasOpen) => {
+      if (!wasOpen) {
+        void markAllRead();
+      }
+      return !wasOpen;
+    });
+  }, [markAllRead]);
 
   useDismissibleOverlay({
     open,
@@ -38,7 +47,7 @@ export function NotificationBell() {
       <button
         type="button"
         className={styles.bell}
-        onClick={() => setOpen((v) => !v)}
+        onClick={toggleOpen}
         aria-label="Notifications"
         aria-expanded={open}
         aria-haspopup="dialog"
@@ -71,9 +80,9 @@ export function NotificationBell() {
             >
               <div className={styles.panelHeader}>
                 <span className={styles.panelTitle}>Notifications</span>
-                {unreadCount > 0 && (
-                  <button type="button" className={styles.markAll} onClick={() => void markAllRead()}>
-                    Mark all read
+                {notifications.length > 0 && (
+                  <button type="button" className={styles.markAll} onClick={() => void dismissAll()}>
+                    Clear all
                   </button>
                 )}
               </div>
@@ -86,11 +95,14 @@ export function NotificationBell() {
                     <li key={n.id} className={n.isRead ? styles.itemRead : styles.item}>
                       <div className={styles.itemTop}>
                         <strong>{n.title}</strong>
-                        {!n.isRead && (
-                          <button type="button" className={styles.readBtn} onClick={() => void markRead(n.id)} aria-label="Mark read">
-                            <IconCheck size={16} />
-                          </button>
-                        )}
+                        <button
+                          type="button"
+                          className={styles.readBtn}
+                          onClick={() => void dismiss(n.id)}
+                          aria-label="Dismiss notification"
+                        >
+                          <IconCheck size={16} />
+                        </button>
                       </div>
                       <p className={styles.msg}>{n.message}</p>
                       {n.relatedJobId && (

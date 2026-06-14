@@ -83,7 +83,9 @@ function sanitizeCardTitle(raw: string | undefined, job: Job): string {
 
 function sanitizeCardSummary(displaySummary: string | undefined): string {
   const display = displaySummary?.trim();
-  if (display && !looksLikeBadCardSummary(display)) return display;
+  if (display && !looksLikeBadCardSummary(display)) {
+    return display.length > 120 ? `${display.slice(0, 117).trim()}…` : display;
+  }
   return '';
 }
 

@@ -48,9 +48,9 @@
 }
 
 .header h2 {
-  font-size: var(--text-lg);
-  font-weight: var(--weight-extrabold);
-  letter-spacing: var(--tracking-tight);
+  font-size: var(--text-section);
+  font-weight: var(--weight-semibold);
+  letter-spacing: var(--tracking-snug);
 }
 
 .clearBtn {

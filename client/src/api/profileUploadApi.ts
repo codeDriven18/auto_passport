@@ -140,3 +140,12 @@ export async function removeProfileResume(): Promise<void> {
     throw new Error('Failed to remove resume');
   }
 }
+
+export async function downloadProfileResume(): Promise<Blob> {
+  const url = `${API_CONFIG.baseUrl}/profiles/me/resume`;
+  const response = await authorizedFetch(url, { method: 'GET' });
+  if (!response.ok) {
+    throw new Error('Failed to download resume');
+  }
+  return response.blob();
+}

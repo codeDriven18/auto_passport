@@ -10,6 +10,7 @@ import type {
 import { SourceTypeLabels } from '@/models/source';
 import { SourceTrustLevel, SourceTrustLevelLabels, SourceType } from '@/models/enums';
 import { getIngestionErrorMessage } from '@/lib/ingestionErrors';
+import { getSourceIngestionStatusDisplay } from '@/lib/sourceIngestionStatus';
 import adminStyles from './AdminPage.module.css';
 import styles from './AdminSourcesPage.module.css';
 
@@ -235,12 +236,42 @@ export function AdminSourcesPage() {
             </div>
 
             <div className={styles.diagnostics}>
-              <div><span>Last sync</span><strong>{source.lastSyncStatus ?? source.metrics.connectionStatus}</strong></div>
-              <div><span>Last success</span><strong>{source.lastSuccessfulIngestionAt ? new Date(source.lastSuccessfulIngestionAt).toLocaleString() : 'Never'}</strong></div>
-              <div><span>Last message ID</span><strong>{source.lastScannedTelegramMessageId ?? '—'}</strong></div>
-              {source.lastIngestionError && (
-                <div className={styles.errorLine}><span>Last error</span><strong>{source.lastIngestionError}</strong></div>
-              )}
+              {(() => {
+                const ingestionStatus = getSourceIngestionStatusDisplay(
+                  source.lastSyncStatus,
+                  source.lastIngestionError,
+                );
+                return (
+                  <>
+                    {!ingestionStatus.hasError && (
+                      <div><span>Last sync</span><strong className={styles.clampedText}>{ingestionStatus.statusLabel}</strong></div>
+                    )}
+                    <div><span>Last success</span><strong>{source.lastSuccessfulIngestionAt ? new Date(source.lastSuccessfulIngestionAt).toLocaleString() : 'Never'}</strong></div>
+                    <div><span>Last message ID</span><strong>{source.lastScannedTelegramMessageId ?? '—'}</strong></div>
+                    {ingestionStatus.hasError && (
+                      <div className={`${styles.errorBlock} ${styles.errorBlockWide}`}>
+                        <div className={styles.errorRow}>
+                          <span>Status</span>
+                          <strong className={styles.clampedText}>{ingestionStatus.statusLabel}</strong>
+                        </div>
+                        {ingestionStatus.errorLabel && (
+                          <div className={styles.errorRow}>
+                            <span>Error</span>
+                            <strong className={styles.clampedText}>{ingestionStatus.errorLabel}</strong>
+                          </div>
+                        )}
+                        <button
+                          type="button"
+                          className={styles.errorAction}
+                          onClick={() => void handleViewLogs(source)}
+                        >
+                          View logs
+                        </button>
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
             </div>
 
             <div className={styles.metaRow}>

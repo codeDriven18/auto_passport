@@ -204,6 +204,53 @@
   color: var(--color-text-muted);
 }
 
+.clampedText {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  word-break: break-word;
+  max-height: 2.6em;
+}
+
+.errorBlock {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--color-danger) 8%, var(--color-bg));
+  border: 1px solid color-mix(in srgb, var(--color-danger) 20%, transparent);
+}
+
+.errorBlockWide {
+  grid-column: 1 / -1;
+}
+
+.errorRow {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.errorRow strong {
+  color: var(--color-danger);
+  font-size: var(--text-xs);
+}
+
+.errorAction {
+  align-self: flex-start;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-info);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  cursor: pointer;
+  text-decoration: underline;
+}
+
 .errorLine strong {
   color: var(--color-danger);
 }

@@ -13,6 +13,7 @@ using SwipeJobs.Api.Hubs;
 using SwipeJobs.Api.Middleware;
 using SwipeJobs.Api.Services;
 using SwipeJobs.Application;
+using SwipeJobs.Application.Common.Configuration;
 using SwipeJobs.Application.Common.Interfaces;
 using SwipeJobs.Infrastructure;
 
@@ -156,6 +157,9 @@ try
         dbRuntime.Username,
         dbRuntime.SslMode,
         dbRuntime.PasswordLength);
+
+    var aiRuntime = app.Services.GetRequiredService<AiConfigurationRuntimeInfo>();
+    AiDependencyInjection.LogAiConfiguration(app.Logger, aiRuntime);
 
     await app.InitializeDatabaseAsync();
 

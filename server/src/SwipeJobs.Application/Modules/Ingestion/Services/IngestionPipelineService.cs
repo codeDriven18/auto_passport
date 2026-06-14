@@ -5,6 +5,7 @@ using SwipeJobs.Application.Common;
 using SwipeJobs.Application.Common.Dtos;
 using SwipeJobs.Application.Common.Interfaces;
 using SwipeJobs.Application.Common.Interfaces.Repositories;
+using SwipeJobs.Application.Modules.Ingestion;
 using SwipeJobs.Application.Modules.Ingestion.Interfaces;
 using SwipeJobs.Domain.Entities;
 using SwipeJobs.Domain.Enums;
@@ -293,7 +294,7 @@ public class IngestionPipelineService
     private async Task MarkSourceFailure(Source source, string status, string error, CancellationToken cancellationToken)
     {
         source.LastSyncStatus = status;
-        source.LastIngestionError = error;
+        source.LastIngestionError = IngestionErrorSummarizer.ForDisplay(error);
         source.SourceLastCheckedAt = DateTime.UtcNow;
         await _sourceRepository.UpdateAsync(source, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);

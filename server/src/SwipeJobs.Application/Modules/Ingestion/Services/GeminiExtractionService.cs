@@ -15,7 +15,6 @@ namespace SwipeJobs.Application.Modules.Ingestion.Services;
 public class GeminiExtractionService : IAiExtractionService
 {
     private const string ExtractionSource = "Gemini";
-    private static readonly string[] ModelFallbackChain = ["gemini-2.0-flash", "gemini-1.5-flash"];
 
     private const string SystemPrompt = """
         You are a recruitment data extraction engine.
@@ -65,89 +64,89 @@ public class GeminiExtractionService : IAiExtractionService
 
     private readonly HttpClient _httpClient;
     private readonly AiOptions _options;
+    private readonly AiConfigurationRuntimeInfo _runtimeInfo;
     private readonly ILogger<GeminiExtractionService> _logger;
 
     public GeminiExtractionService(
         HttpClient httpClient,
         IOptions<AiOptions> options,
+        AiConfigurationRuntimeInfo runtimeInfo,
         ILogger<GeminiExtractionService> logger)
     {
         _httpClient = httpClient;
         _options = options.Value;
+        _runtimeInfo = runtimeInfo;
         _logger = logger;
     }
 
     public async Task<AiExtractionResponse> ExtractJobAsync(string rawMessage, CancellationToken cancellationToken = default)
     {
         var stopwatch = Stopwatch.StartNew();
-        var model = ResolvePrimaryModel();
+        var model = RequireConfiguredModel();
 
         if (string.IsNullOrWhiteSpace(_options.ApiKey))
         {
-            _logger.LogWarning("Gemini extraction skipped: AI:ApiKey is not configured.");
-            return Failed(model, "AI:ApiKey is not configured.", stopwatch.ElapsedMilliseconds, null);
+            const string message = "AI:ApiKey is not configured.";
+            _logger.LogError("Gemini extraction blocked: {Message}", message);
+            return Failed(model, message, stopwatch.ElapsedMilliseconds);
         }
 
         if (string.IsNullOrWhiteSpace(rawMessage))
-            return Failed(model, "Raw message is empty.", stopwatch.ElapsedMilliseconds, null);
+            return Failed(model, "Raw message is empty.", stopwatch.ElapsedMilliseconds);
 
-        var modelsToTry = BuildModelChain(model);
         Exception? lastError = null;
         string? lastResponseBody = null;
 
         for (var attempt = 1; attempt <= 2; attempt++)
         {
-            foreach (var candidateModel in modelsToTry)
+            try
             {
-                try
-                {
-                    var (responseText, statusCode, requestBytes, responseBody) =
-                        await CallGeminiAsync(rawMessage, candidateModel, cancellationToken);
-                    lastResponseBody = responseBody;
+                var (responseText, statusCode, requestBytes, responseBody) =
+                    await CallGeminiAsync(rawMessage, model, cancellationToken);
+                lastResponseBody = responseBody;
 
-                    var parsed = ParseCandidateJson(responseText);
+                var parsed = ParseCandidateJson(responseText);
 
-                    _logger.LogInformation(
-                        "Gemini extraction succeeded. Model={Model}, RequestBytes={RequestBytes}, Status={Status}, ParseTitle={Title}, ParseConfidence={Confidence}",
-                        candidateModel,
-                        requestBytes,
-                        statusCode,
-                        parsed.Title ?? "(null)",
-                        parsed.Confidence);
+                _logger.LogInformation(
+                    "Gemini extraction succeeded. Model={Model}, RequestBytes={RequestBytes}, Status={Status}, ParseTitle={Title}, ParseConfidence={Confidence}",
+                    model,
+                    requestBytes,
+                    statusCode,
+                    parsed.Title ?? "(null)",
+                    parsed.Confidence);
 
-                    stopwatch.Stop();
-                    return new AiExtractionResponse(
-                        parsed,
-                        _options.Provider,
-                        candidateModel,
-                        ExtractionSource,
-                        true,
-                        null,
-                        stopwatch.ElapsedMilliseconds);
-                }
-                catch (GeminiApiException ex)
-                {
-                    lastError = ex;
-                    lastResponseBody = ex.ResponseBody;
-                    _logger.LogWarning(
-                        ex,
-                        "Gemini attempt {Attempt} failed for model {Model}. Status={Status}, RequestBytes={RequestBytes}, ResponseBody={ResponseBody}",
-                        attempt,
-                        candidateModel,
-                        ex.StatusCode,
-                        ex.RequestBytes,
-                        Truncate(ex.ResponseBody, 2000));
-                }
-                catch (Exception ex) when (attempt < 2)
-                {
-                    lastError = ex;
-                    _logger.LogWarning(ex, "Gemini extraction attempt {Attempt} failed for model {Model}; retrying.", attempt, candidateModel);
-                }
-                catch (Exception ex)
-                {
-                    lastError = ex;
-                    _logger.LogError(ex, "Gemini extraction failed for model {Model}.", candidateModel);
-                }
+                stopwatch.Stop();
+                return new AiExtractionResponse(
+                    parsed,
+                    _options.Provider,
+                    model,
+                    ExtractionSource,
+                    true,
+                    null,
+                    stopwatch.ElapsedMilliseconds);
+            }
+            catch (GeminiApiException ex)
+            {
+                lastError = ex;
+                lastResponseBody = ex.ResponseBody;
+                _logger.LogWarning(
+                    ex,
+                    "Gemini attempt {Attempt} failed. Model={Model}, Status={Status}, RequestBytes={RequestBytes}, ResponseBody={ResponseBody}",
+                    attempt,
+                    model,
+                    ex.StatusCode,
+                    ex.RequestBytes,
+                    Truncate(ex.ResponseBody, 2000));
+            }
+            catch (Exception ex) when (attempt < 2)
+            {
+                lastError = ex;
+                _logger.LogWarning(ex, "Gemini extraction attempt {Attempt} failed for model {Model}; retrying.", attempt, model);
+            }
+            catch (Exception ex)
+            {
+                lastError = ex;
+                _logger.LogError(ex, "Gemini extraction failed for model {Model}.", model);
             }
         }
 
@@ -157,28 +156,25 @@ public class GeminiExtractionService : IAiExtractionService
             : lastError?.Message ?? "Extraction failed.";
 
         _logger.LogError(
-            "Gemini extraction exhausted retries. Model={Model}, LastError={Error}, LastResponseBody={Body}",
+            "Gemini extraction exhausted retries. Model={Model}, ConfigSource={ConfigSource}, LastError={Error}, LastResponseBody={Body}",
             model,
+            _runtimeInfo.ModelSource,
             errorMessage,
             Truncate(lastResponseBody ?? string.Empty, 2000));
 
-        return Failed(model, errorMessage, stopwatch.ElapsedMilliseconds, lastResponseBody);
+        return Failed(model, errorMessage, stopwatch.ElapsedMilliseconds);
     }
 
-    private string ResolvePrimaryModel()
+    private string RequireConfiguredModel()
     {
-        var configured = _options.Model?.Trim();
-        return string.IsNullOrWhiteSpace(configured) ? ModelFallbackChain[0] : configured;
-    }
-
-    private static IEnumerable<string> BuildModelChain(string primary)
-    {
-        yield return primary;
-        foreach (var fallback in ModelFallbackChain)
+        var model = _options.Model?.Trim();
+        if (string.IsNullOrWhiteSpace(model))
         {
-            if (!string.Equals(fallback, primary, StringComparison.OrdinalIgnoreCase))
-                yield return fallback;
+            throw new InvalidOperationException(
+                "AI:Model is not configured. Set AI__Model in environment or AI:Model in appsettings.");
         }
+
+        return model;
     }
 
     private async Task<(string Text, int StatusCode, int RequestBytes, string ResponseBody)> CallGeminiAsync(
@@ -187,6 +183,13 @@ public class GeminiExtractionService : IAiExtractionService
         CancellationToken cancellationToken)
     {
         var url = $"v1beta/models/{Uri.EscapeDataString(model)}:generateContent";
+
+        _logger.LogInformation(
+            "Gemini request preparing. Model={Model}, Endpoint={Endpoint}, ConfigSource={ConfigSource}",
+            model,
+            url,
+            _runtimeInfo.ModelSource);
+
         var request = new GeminiGenerateContentRequest
         {
             SystemInstruction = new GeminiContent
@@ -216,9 +219,10 @@ public class GeminiExtractionService : IAiExtractionService
         httpRequest.Content = JsonContent.Create(request);
 
         _logger.LogInformation(
-            "Gemini request starting. Model={Model}, RequestBytes={RequestBytes}",
+            "Gemini request sending. Model={Model}, RequestBytes={RequestBytes}, Url={Url}",
             model,
-            requestBytes);
+            requestBytes,
+            url);
 
         using var response = await _httpClient.SendAsync(httpRequest, cancellationToken);
         var body = await response.Content.ReadAsStringAsync(cancellationToken);
@@ -292,10 +296,10 @@ public class GeminiExtractionService : IAiExtractionService
         try
         {
             using var doc = JsonDocument.Parse(body);
-            if (doc.RootElement.TryGetProperty("error", out var error))
+            if (doc.RootElement.TryGetProperty("error", out var error) &&
+                error.TryGetProperty("message", out var message))
             {
-                if (error.TryGetProperty("message", out var message))
-                    return message.GetString();
+                return message.GetString();
             }
         }
         catch (JsonException)
@@ -323,7 +327,7 @@ public class GeminiExtractionService : IAiExtractionService
     private static string Truncate(string value, int maxLength) =>
         value.Length <= maxLength ? value : value[..maxLength] + "...";
 
-    private AiExtractionResponse Failed(string model, string error, long elapsedMs, string? responseBody) =>
+    private AiExtractionResponse Failed(string model, string error, long elapsedMs) =>
         new(null, _options.Provider, model, ExtractionSource, false, error, elapsedMs);
 
     private sealed class GeminiApiException : Exception

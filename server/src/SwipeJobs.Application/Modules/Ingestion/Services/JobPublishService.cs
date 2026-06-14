@@ -1,5 +1,5 @@
-using System.Text.Json;
 using System.Text.RegularExpressions;
+using Microsoft.Extensions.Logging;
 using SwipeJobs.Application.Common;
 using SwipeJobs.Application.Common.Dtos;
 using SwipeJobs.Application.Common.Interfaces;
@@ -23,19 +23,22 @@ public class JobPublishService : IJobPublishService
     private readonly ICompanyRepository _companyRepository;
     private readonly ISourceRepository _sourceRepository;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly ILogger<JobPublishService> _logger;
 
     public JobPublishService(
         IJobCandidateRepository candidateRepository,
         IJobRepository jobRepository,
         ICompanyRepository companyRepository,
         ISourceRepository sourceRepository,
-        IUnitOfWork unitOfWork)
+        IUnitOfWork unitOfWork,
+        ILogger<JobPublishService> logger)
     {
         _candidateRepository = candidateRepository;
         _jobRepository = jobRepository;
         _companyRepository = companyRepository;
         _sourceRepository = sourceRepository;
         _unitOfWork = unitOfWork;
+        _logger = logger;
     }
 
     public async Task<JobDto?> PublishCandidateAsync(
@@ -44,7 +47,10 @@ public class JobPublishService : IJobPublishService
         CancellationToken cancellationToken = default)
     {
         var candidate = await _candidateRepository.GetByIdWithDetailsAsync(candidateId, cancellationToken)
-            ?? throw new ModerationException(ModerationErrorCodes.CandidateNotFound, "Candidate not found.");
+            ?? throw new ModerationException(
+                ModerationErrorCodes.CandidateNotFound,
+                "Candidate not found.",
+                $"No candidate exists with id {candidateId}.");
 
         var companyName = candidate.CompanyName?.Trim();
         if (string.IsNullOrWhiteSpace(companyName))
@@ -56,21 +62,38 @@ public class JobPublishService : IJobPublishService
         if (string.IsNullOrWhiteSpace(candidate.Title))
             throw new ModerationException(
                 ModerationErrorCodes.ApproveMissingTitle,
-                "Job title is required to publish.");
+                "Job title is required to publish.",
+                $"CandidateId={candidateId}");
 
         if (string.IsNullOrWhiteSpace(companyName))
             throw new ModerationException(
                 ModerationErrorCodes.ApproveMissingCompany,
-                "Company name is required to publish.");
+                "Company name is required to publish.",
+                $"CandidateId={candidateId}; SourceId={candidate.SourceId}");
 
         if (candidate.PublishedJobId.HasValue)
         {
             var existing = await _jobRepository.GetByIdWithDetailsAsync(candidate.PublishedJobId.Value, cancellationToken);
-            return existing is null ? null : JobMapper.ToDto(existing);
+            if (existing is not null)
+            {
+                if (candidate.Status != CandidateJobStatus.Published)
+                {
+                    candidate.Status = CandidateJobStatus.Published;
+                    candidate.PublishedAt ??= DateTime.UtcNow;
+                    candidate.PublishedByUserId ??= publisherUserId;
+                    await _candidateRepository.UpdateAsync(candidate, cancellationToken);
+                    await _unitOfWork.SaveChangesAsync(cancellationToken);
+                }
+
+                return JobMapper.ToDto(existing);
+            }
         }
 
         var source = await _sourceRepository.GetByIdAsync(candidate.SourceId, cancellationToken)
-            ?? throw new InvalidOperationException("Source not found.");
+            ?? throw new ModerationException(
+                ModerationErrorCodes.SourceNotFound,
+                "Ingestion source not found for this candidate.",
+                $"CandidateId={candidateId}; SourceId={candidate.SourceId}");
 
         var company = await ResolveCompanyAsync(companyName!, cancellationToken);
         var primaryMessage = candidate.MessageLinks.FirstOrDefault(l => l.IsPrimary)?.IngestionMessage
@@ -83,6 +106,25 @@ public class JobPublishService : IJobPublishService
             candidate.City,
             candidate.SourceId,
             candidate.ApplyUrl);
+
+        var duplicateJob = await _jobRepository.FindByContentFingerprintAsync(fingerprint, cancellationToken);
+        if (duplicateJob is not null)
+        {
+            _logger.LogInformation(
+                "Reusing existing job {JobId} for candidate {CandidateId} by fingerprint match.",
+                duplicateJob.Id,
+                candidateId);
+
+            candidate.Status = CandidateJobStatus.Published;
+            candidate.PublishedJobId = duplicateJob.Id;
+            candidate.PublishedByUserId = publisherUserId;
+            candidate.PublishedAt = DateTime.UtcNow;
+            await _candidateRepository.UpdateAsync(candidate, cancellationToken);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+            var loadedDuplicate = await _jobRepository.GetByIdWithDetailsAsync(duplicateJob.Id, cancellationToken);
+            return loadedDuplicate is null ? JobMapper.ToDto(duplicateJob) : JobMapper.ToDto(loadedDuplicate);
+        }
 
         var now = DateTime.UtcNow;
         var expiresAt = now.AddDays(Math.Clamp(source.DefaultExpirationDays, 7, 90));
@@ -123,6 +165,12 @@ public class JobPublishService : IJobPublishService
         candidate.PublishedAt = now;
         await _candidateRepository.UpdateAsync(candidate, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation(
+            "Published candidate {CandidateId} as job {JobId} for company {CompanyId}.",
+            candidateId,
+            job.Id,
+            company.Id);
 
         var created = await _jobRepository.GetByIdWithDetailsAsync(job.Id, cancellationToken);
         return created is null ? JobMapper.ToDto(job) : JobMapper.ToDto(created);

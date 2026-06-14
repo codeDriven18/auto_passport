@@ -8,10 +8,39 @@ import type {
 } from '@/models/moderation';
 import { CandidateJobStatus } from '@/models/moderation';
 
+export interface ModerationApproveResult {
+  job: Job;
+  candidateId: string;
+  success: boolean;
+  message: string;
+}
+
+export interface BulkApproveHighConfidenceResult {
+  approved: number;
+  failed: number;
+  results: Array<{
+    success: boolean;
+    code?: string | null;
+    message?: string | null;
+    details?: string | null;
+    candidateId?: string | null;
+    jobId?: string | null;
+    candidateStatus?: string | null;
+  }>;
+}
+
+function queueStatusParam(status?: CandidateJobStatus): string | undefined {
+  if (status === undefined) return undefined;
+  return CandidateJobStatus[status];
+}
+
 export const moderationApi = {
-  getQueue: (status?: CandidateJobStatus, page = 1, pageSize = 20) => {
-    const params = new URLSearchParams({ page: String(page), pageSize: String(pageSize) });
-    if (status !== undefined) params.set('status', String(status));
+  getQueue: (status: CandidateJobStatus = CandidateJobStatus.PendingReview, page = 1, pageSize = 50) => {
+    const params = new URLSearchParams({
+      page: String(page),
+      pageSize: String(pageSize),
+      status: queueStatusParam(status) ?? 'PendingReview',
+    });
     return apiClient<ModerationQueue>(`/admin/moderation/queue?${params}`);
   },
 
@@ -19,7 +48,7 @@ export const moderationApi = {
     apiClient<JobCandidate>(`/admin/moderation/candidates/${id}`),
 
   approve: (id: string) =>
-    apiClient<Job>(`/admin/moderation/candidates/${id}/approve`, { method: 'POST' }),
+    apiClient<ModerationApproveResult>(`/admin/moderation/candidates/${id}/approve`, { method: 'POST' }),
 
   reject: (id: string, reason: string) =>
     apiClient<void>(`/admin/moderation/candidates/${id}/reject`, {
@@ -34,7 +63,7 @@ export const moderationApi = {
     }),
 
   bulkApproveHighConfidence: () =>
-    apiClient<{ approved: number }>('/admin/moderation/bulk/approve-high-confidence', { method: 'POST' }),
+    apiClient<BulkApproveHighConfidenceResult>('/admin/moderation/bulk/approve-high-confidence', { method: 'POST' }),
 
   bulkReject: (candidateIds: string[], reason = 'Bulk rejected') =>
     apiClient<{ rejected: number }>(`/admin/moderation/bulk/reject?reason=${encodeURIComponent(reason)}`, {

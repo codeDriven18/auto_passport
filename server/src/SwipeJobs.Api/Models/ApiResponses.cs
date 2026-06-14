@@ -1,6 +1,6 @@
 namespace SwipeJobs.Api.Models;
 
-public record ApiErrorResponse(string Error, string? Code = null);
+public record ApiErrorResponse(string Error, string? Code = null, string? Details = null);
 
 public record ApiSuccessResponse<T>(T Data);
 

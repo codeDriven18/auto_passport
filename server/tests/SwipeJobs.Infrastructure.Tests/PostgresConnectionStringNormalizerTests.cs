@@ -16,7 +16,6 @@ public class PostgresConnectionStringNormalizerTests
 
         Assert.Contains($"Host={RenderHost}", normalized);
         Assert.Contains("SSL Mode=Require", normalized, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("Trust Server Certificate=True", normalized, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -27,7 +26,6 @@ public class PostgresConnectionStringNormalizerTests
         var normalized = PostgresConnectionStringNormalizer.Normalize(raw);
 
         Assert.Contains("SSL Mode=Require", normalized, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("Trust Server Certificate=True", normalized, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

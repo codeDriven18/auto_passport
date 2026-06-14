@@ -26,7 +26,6 @@ public static class PostgresConnectionStringNormalizer
         {
             builder.Host = ExternalizeRenderHost(builder.Host!);
             builder.SslMode = SslMode.Require;
-            builder.TrustServerCertificate = true;
         }
 
         return builder.ConnectionString;
@@ -68,7 +67,7 @@ public static class PostgresConnectionStringNormalizer
         {
             var normalized = Normalize(connectionString);
             var builder = new NpgsqlConnectionStringBuilder(normalized);
-            return $"Host={builder.Host};Port={builder.Port};Database={builder.Database};Username={builder.Username};SSL Mode={builder.SslMode};Trust Server Certificate={builder.TrustServerCertificate}";
+            return $"Host={builder.Host};Port={builder.Port};Database={builder.Database};Username={builder.Username};SSL Mode={builder.SslMode}";
         }
         catch (Exception ex)
         {

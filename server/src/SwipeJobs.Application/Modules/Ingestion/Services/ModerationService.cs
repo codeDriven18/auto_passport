@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
 using SwipeJobs.Application.Common.Dtos;
 using SwipeJobs.Application.Common.Interfaces;
 using SwipeJobs.Application.Common.Interfaces.Repositories;
@@ -16,7 +17,7 @@ public interface IModerationService
     Task<JobDto?> ApproveAndPublishAsync(Guid candidateId, Guid moderatorUserId, CancellationToken cancellationToken = default);
     Task<bool> RejectAsync(Guid candidateId, Guid moderatorUserId, RejectJobCandidateDto dto, CancellationToken cancellationToken = default);
     Task<JobCandidateDto?> EditAsync(Guid candidateId, EditJobCandidateDto dto, CancellationToken cancellationToken = default);
-    Task<int> BulkApproveHighConfidenceAsync(Guid moderatorUserId, CancellationToken cancellationToken = default);
+    Task<BulkModerationActionResultDto> BulkApproveHighConfidenceAsync(Guid moderatorUserId, CancellationToken cancellationToken = default);
     Task<int> BulkRejectAsync(IReadOnlyList<Guid> ids, Guid moderatorUserId, string reason, CancellationToken cancellationToken = default);
     Task<IngestionAnalyticsDto> GetAnalyticsAsync(CancellationToken cancellationToken = default);
 }
@@ -32,19 +33,22 @@ public class ModerationService : IModerationService
     private readonly IJobRepository _jobRepository;
     private readonly IJobPublishService _publishService;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly ILogger<ModerationService> _logger;
 
     public ModerationService(
         IJobCandidateRepository candidateRepository,
         IIngestionMessageRepository messageRepository,
         IJobRepository jobRepository,
         IJobPublishService publishService,
-        IUnitOfWork unitOfWork)
+        IUnitOfWork unitOfWork,
+        ILogger<ModerationService> logger)
     {
         _candidateRepository = candidateRepository;
         _messageRepository = messageRepository;
         _jobRepository = jobRepository;
         _publishService = publishService;
         _unitOfWork = unitOfWork;
+        _logger = logger;
     }
 
     public async Task<ModerationQueueDto> GetQueueAsync(
@@ -57,6 +61,16 @@ public class ModerationService : IModerationService
         var items = await _candidateRepository.GetModerationQueueAsync(filter, page, pageSize, cancellationToken);
         var pending = await _candidateRepository.CountByStatusAsync(CandidateJobStatus.PendingReview, cancellationToken);
         var total = await _candidateRepository.CountByStatusAsync(filter, cancellationToken);
+
+        _logger.LogInformation(
+            "Moderation queue loaded. Filter={Status}, Page={Page}, PageSize={PageSize}, Returned={Returned}, Total={Total}, Pending={Pending}",
+            filter,
+            page,
+            pageSize,
+            items.Count,
+            total,
+            pending);
+
         return new ModerationQueueDto(
             items.Select(IngestionMapper.ToCandidateDto).ToList(),
             total,
@@ -75,32 +89,59 @@ public class ModerationService : IModerationService
         CancellationToken cancellationToken = default)
     {
         var candidate = await _candidateRepository.GetByIdWithDetailsAsync(candidateId, cancellationToken)
-            ?? throw new ModerationException(ModerationErrorCodes.CandidateNotFound, "Candidate not found.");
+            ?? throw new ModerationException(
+                ModerationErrorCodes.CandidateNotFound,
+                "Candidate not found.",
+                $"No candidate exists with id {candidateId}.");
+
+        _logger.LogInformation(
+            "Approve requested. CandidateId={CandidateId}, Status={Status}, Title={Title}, Company={Company}, Confidence={Confidence}",
+            candidateId,
+            candidate.Status,
+            candidate.Title ?? "(null)",
+            candidate.CompanyName ?? "(null)",
+            candidate.ExtractionConfidence);
 
         if (candidate.Status is CandidateJobStatus.Rejected or CandidateJobStatus.Published)
+        {
             throw new ModerationException(
                 ModerationErrorCodes.CandidateNotApprovable,
-                $"Candidate cannot be approved while status is {candidate.Status}.");
+                $"Candidate cannot be approved while status is {candidate.Status}.",
+                $"CandidateId={candidateId}; CurrentStatus={candidate.Status}");
+        }
+
+        if (candidate.PublishedJobId.HasValue)
+        {
+            var existingJob = await _jobRepository.GetByIdWithDetailsAsync(candidate.PublishedJobId.Value, cancellationToken);
+            if (existingJob is not null)
+            {
+                _logger.LogInformation(
+                    "Candidate {CandidateId} already published as job {JobId}. Returning existing job.",
+                    candidateId,
+                    existingJob.Id);
+                return JobMapper.ToDto(existingJob);
+            }
+        }
+
+        EnsureApprovalFields(candidate);
 
         if (string.IsNullOrWhiteSpace(candidate.Title))
+        {
             throw new ModerationException(
                 ModerationErrorCodes.ApproveMissingTitle,
-                "Job title is required before approval. Edit the candidate or re-ingest with clearer text.");
+                "Job title is required before approval. Edit the candidate or re-ingest with clearer text.",
+                $"CandidateId={candidateId}; DescriptionPresent={!string.IsNullOrWhiteSpace(candidate.Description)}");
+        }
 
         if (string.IsNullOrWhiteSpace(candidate.CompanyName))
         {
-            candidate.CompanyName = candidate.Source.ChannelName ?? candidate.Source.Name;
-            if (string.IsNullOrWhiteSpace(candidate.CompanyName))
-            {
-                throw new ModerationException(
-                    ModerationErrorCodes.ApproveMissingCompany,
-                    "Company name is required before approval. Edit the candidate or ensure the source has a channel name.");
-            }
-
-            await _candidateRepository.UpdateAsync(candidate, cancellationToken);
-            await _unitOfWork.SaveChangesAsync(cancellationToken);
+            throw new ModerationException(
+                ModerationErrorCodes.ApproveMissingCompany,
+                "Company name is required before approval. Edit the candidate or ensure the source has a channel name.",
+                $"CandidateId={candidateId}; SourceId={candidate.SourceId}");
         }
 
+        var previousStatus = candidate.Status;
         candidate.Status = CandidateJobStatus.Approved;
         candidate.ApprovedByUserId = moderatorUserId;
         candidate.ApprovedAt = DateTime.UtcNow;
@@ -109,7 +150,13 @@ public class ModerationService : IModerationService
 
         try
         {
-            return await _publishService.PublishCandidateAsync(candidateId, moderatorUserId, cancellationToken);
+            var job = await _publishService.PublishCandidateAsync(candidateId, moderatorUserId, cancellationToken);
+            _logger.LogInformation(
+                "Candidate approved and published. CandidateId={CandidateId}, JobId={JobId}, PreviousStatus={PreviousStatus}, NewStatus=Published",
+                candidateId,
+                job?.Id,
+                previousStatus);
+            return job;
         }
         catch (Exception ex)
         {
@@ -118,10 +165,23 @@ public class ModerationService : IModerationService
             candidate.ApprovedAt = null;
             await _candidateRepository.UpdateAsync(candidate, cancellationToken);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
-            throw new ModerationException(
-                ModerationErrorCodes.PublishFailed,
-                ex.Message,
-                ex);
+
+            var details = ex.InnerException?.Message ?? ex.Message;
+            _logger.LogError(
+                ex,
+                "Publish failed after approval. CandidateId={CandidateId}, PreviousStatus={PreviousStatus}, RolledBackTo=PendingReview",
+                candidateId,
+                previousStatus);
+
+            throw ex switch
+            {
+                ModerationException moderationEx => moderationEx,
+                _ => new ModerationException(
+                    ModerationErrorCodes.PublishFailed,
+                    "Publishing failed. The candidate was returned to the review queue.",
+                    details,
+                    ex),
+            };
         }
     }
 
@@ -176,21 +236,65 @@ public class ModerationService : IModerationService
         return updated is null ? null : IngestionMapper.ToCandidateDto(updated);
     }
 
-    public async Task<int> BulkApproveHighConfidenceAsync(Guid moderatorUserId, CancellationToken cancellationToken = default)
+    public async Task<BulkModerationActionResultDto> BulkApproveHighConfidenceAsync(
+        Guid moderatorUserId,
+        CancellationToken cancellationToken = default)
     {
         var queue = await _candidateRepository.GetModerationQueueAsync(
             CandidateJobStatus.PendingReview, 1, 500, cancellationToken);
 
-        var count = 0;
-        foreach (var candidate in queue.Where(c =>
+        var eligible = queue.Where(c =>
             c.ExtractionConfidence >= HighConfidenceThreshold &&
             c.CompletenessScore >= HighCompletenessThreshold &&
-            c.SpamScore <= MaxSpamThreshold))
+            c.SpamScore <= MaxSpamThreshold).ToList();
+
+        _logger.LogInformation(
+            "Bulk approve high-confidence started. Pending={Pending}, Eligible={Eligible}",
+            queue.Count,
+            eligible.Count);
+
+        var results = new List<ModerationActionResultDto>();
+        var approved = 0;
+
+        foreach (var candidate in eligible)
         {
-            await ApproveAndPublishAsync(candidate.Id, moderatorUserId, cancellationToken);
-            count++;
+            try
+            {
+                var job = await ApproveAndPublishAsync(candidate.Id, moderatorUserId, cancellationToken);
+                approved++;
+                results.Add(new ModerationActionResultDto(
+                    true,
+                    null,
+                    "Approved and published.",
+                    null,
+                    candidate.Id,
+                    job?.Id,
+                    CandidateJobStatus.Published.ToString()));
+            }
+            catch (ModerationException ex)
+            {
+                _logger.LogWarning(
+                    ex,
+                    "Bulk approve failed for candidate {CandidateId}. Code={Code}",
+                    candidate.Id,
+                    ex.Code);
+                results.Add(new ModerationActionResultDto(
+                    false,
+                    ex.Code,
+                    ex.Message,
+                    ex.Details,
+                    candidate.Id,
+                    null,
+                    candidate.Status.ToString()));
+            }
         }
-        return count;
+
+        _logger.LogInformation(
+            "Bulk approve high-confidence finished. Approved={Approved}, Failed={Failed}",
+            approved,
+            results.Count - approved);
+
+        return new BulkModerationActionResultDto(approved, results.Count - approved, results);
     }
 
     public async Task<int> BulkRejectAsync(
@@ -217,12 +321,17 @@ public class ModerationService : IModerationService
         var rejected = await _candidateRepository.CountByStatusAsync(CandidateJobStatus.Rejected, cancellationToken);
         var published = await _candidateRepository.CountByStatusAsync(CandidateJobStatus.Published, cancellationToken);
 
-        var queue = await _candidateRepository.GetModerationQueueAsync(null, 1, 1000, cancellationToken);
+        var queue = await _candidateRepository.GetModerationQueueAsync(CandidateJobStatus.PendingReview, 1, 1000, cancellationToken);
         var avgConfidence = queue.Count > 0 ? queue.Average(c => c.ExtractionConfidence) : 0;
         var avgTrust = queue.Count > 0 ? queue.Average(c => c.TrustScore) : 0;
 
         var leaderboard = queue
-            .GroupBy(c => new { c.SourceId, c.Source.Name, c.Source.TrustScore })
+            .GroupBy(c => new
+            {
+                c.SourceId,
+                Name = c.Source?.Name ?? "Unknown",
+                TrustScore = c.Source?.TrustScore ?? 0,
+            })
             .Select(g => new SourceLeaderboardEntryDto(
                 g.Key.SourceId,
                 g.Key.Name,
@@ -248,5 +357,23 @@ public class ModerationService : IModerationService
             avgConfidence,
             avgTrust,
             leaderboard);
+    }
+
+    private static void EnsureApprovalFields(JobCandidate candidate)
+    {
+        if (string.IsNullOrWhiteSpace(candidate.Title) && !string.IsNullOrWhiteSpace(candidate.Description))
+        {
+            var firstLine = candidate.Description
+                .Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .FirstOrDefault();
+            candidate.Title = firstLine is { Length: > 300 } ? firstLine[..300] : firstLine;
+        }
+
+        if (string.IsNullOrWhiteSpace(candidate.CompanyName))
+        {
+            candidate.CompanyName = candidate.Source?.ChannelName
+                ?? candidate.Source?.Name
+                ?? candidate.MessageLinks.FirstOrDefault()?.IngestionMessage?.ChannelName;
+        }
     }
 }

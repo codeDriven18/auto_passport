@@ -18,28 +18,59 @@ public class AdminModerationController : ControllerBase
     private readonly IngestionPipelineService _pipeline;
     private readonly IJobLifecycleService _lifecycle;
     private readonly ICurrentUserService _currentUser;
+    private readonly ILogger<AdminModerationController> _logger;
 
     public AdminModerationController(
         IModerationService moderation,
         IngestionPipelineService pipeline,
         IJobLifecycleService lifecycle,
-        ICurrentUserService currentUser)
+        ICurrentUserService currentUser,
+        ILogger<AdminModerationController> logger)
     {
         _moderation = moderation;
         _pipeline = pipeline;
         _lifecycle = lifecycle;
         _currentUser = currentUser;
+        _logger = logger;
     }
 
     [HttpGet("queue")]
     public async Task<IActionResult> GetQueue(
-        [FromQuery] CandidateJobStatus? status,
+        [FromQuery] string? status,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
         CancellationToken cancellationToken = default)
     {
         _currentUser.RequireRole(UserRole.Admin);
-        return Ok(await _moderation.GetQueueAsync(status, page, pageSize, cancellationToken));
+
+        var statusFilter = CandidateJobStatus.PendingReview;
+        if (!string.IsNullOrWhiteSpace(status))
+        {
+            if (int.TryParse(status, out var numericStatus) && Enum.IsDefined(typeof(CandidateJobStatus), numericStatus))
+            {
+                statusFilter = (CandidateJobStatus)numericStatus;
+            }
+            else if (!Enum.TryParse<CandidateJobStatus>(status, ignoreCase: true, out statusFilter))
+            {
+                _logger.LogWarning("Invalid moderation queue status filter: {Status}", status);
+                return BadRequest(new
+                {
+                    error = $"Invalid status filter '{status}'.",
+                    code = "invalid_status_filter",
+                    details = "Use PendingReview, Approved, Rejected, Published, Archived, or 0-4.",
+                });
+            }
+        }
+
+        var queue = await _moderation.GetQueueAsync(statusFilter, page, pageSize, cancellationToken);
+        _logger.LogInformation(
+            "Moderation queue requested. Status={Status}, Page={Page}, Returned={Returned}, Pending={Pending}",
+            statusFilter,
+            page,
+            queue.Items.Count,
+            queue.PendingCount);
+
+        return Ok(queue);
     }
 
     [HttpGet("candidates/{id:guid}")]
@@ -54,8 +85,29 @@ public class AdminModerationController : ControllerBase
     public async Task<IActionResult> Approve(Guid id, CancellationToken cancellationToken = default)
     {
         _currentUser.RequireRole(UserRole.Admin);
-        var job = await _moderation.ApproveAndPublishAsync(id, _currentUser.GetRequiredUserId(), cancellationToken);
-        return Ok(job);
+
+        try
+        {
+            var job = await _moderation.ApproveAndPublishAsync(id, _currentUser.GetRequiredUserId(), cancellationToken);
+            _logger.LogInformation("Moderation approve succeeded. CandidateId={CandidateId}, JobId={JobId}", id, job?.Id);
+            return Ok(new
+            {
+                job,
+                candidateId = id,
+                success = true,
+                message = "Candidate approved and published.",
+            });
+        }
+        catch (ModerationException ex)
+        {
+            _logger.LogWarning(
+                ex,
+                "Moderation approve failed. CandidateId={CandidateId}, Code={Code}, Details={Details}",
+                id,
+                ex.Code,
+                ex.Details);
+            throw;
+        }
     }
 
     [HttpPost("candidates/{id:guid}/reject")]
@@ -78,8 +130,19 @@ public class AdminModerationController : ControllerBase
     public async Task<IActionResult> BulkApproveHighConfidence(CancellationToken cancellationToken = default)
     {
         _currentUser.RequireRole(UserRole.Admin);
-        var count = await _moderation.BulkApproveHighConfidenceAsync(_currentUser.GetRequiredUserId(), cancellationToken);
-        return Ok(new { approved = count });
+
+        var result = await _moderation.BulkApproveHighConfidenceAsync(_currentUser.GetRequiredUserId(), cancellationToken);
+        _logger.LogInformation(
+            "Bulk approve high-confidence completed. Approved={Approved}, Failed={Failed}",
+            result.Approved,
+            result.Failed);
+
+        return Ok(new
+        {
+            approved = result.Approved,
+            failed = result.Failed,
+            results = result.Results,
+        });
     }
 
     [HttpPost("bulk/reject")]

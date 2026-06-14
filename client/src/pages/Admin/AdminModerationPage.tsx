@@ -51,42 +51,65 @@ export function AdminModerationPage() {
 
   const selected = queue.find((c) => c.id === selectedId) ?? null;
 
-  const loadQueue = useCallback(() => {
-    moderationApi.getQueue(CandidateJobStatus.PendingReview)
-      .then((q) => {
-        setQueue(q.items);
-        setPendingCount(q.pendingCount);
-        if (q.items.length > 0 && !selectedId) setSelectedId(q.items[0].id);
-      })
-      .catch(() => setQueue([]));
-  }, [selectedId]);
+  const notify = useCallback((text: string, tone: 'info' | 'error' | 'success' = 'info') => {
+    setMessage(text);
+    setMessageTone(tone);
+  }, []);
 
-  const refresh = useCallback((silent = false) => {
+  const loadQueue = useCallback(async () => {
+    try {
+      const q = await moderationApi.getQueue(CandidateJobStatus.PendingReview);
+      setQueue(q.items ?? []);
+      setPendingCount(q.pendingCount ?? q.items?.length ?? 0);
+      setSelectedId((current) => {
+        if (current && q.items.some((item) => item.id === current)) return current;
+        return q.items[0]?.id ?? null;
+      });
+    } catch (err) {
+      notify(getModerationErrorMessage(err, 'Failed to load moderation queue.'), 'error');
+    }
+  }, [notify]);
+
+  const refresh = useCallback(async (silent = false) => {
     if (!silent) setRefreshing(true);
-    return Promise.all([
+    const [queueResult, analyticsResult, sourcesResult] = await Promise.allSettled([
       moderationApi.getQueue(CandidateJobStatus.PendingReview),
       moderationApi.getAnalytics(),
       sourcesApi.list(),
-    ])
-      .then(([q, a, s]) => {
-        setQueue(q.items);
-        setPendingCount(q.pendingCount);
-        setAnalytics(a);
-        setSources(s);
-        const telegram = s.find((x) => x.type === SourceType.Telegram && x.ingestionEnabled) ?? s[0];
-        setTelegramSourceId((prev) => prev ?? telegram?.id ?? null);
-      })
-      .catch(() => {
-        if (!silent) {
-          setQueue([]);
-          setAnalytics(null);
-        }
-      })
-      .finally(() => {
-        setInitialLoading(false);
-        if (!silent) setRefreshing(false);
+    ]);
+
+    if (queueResult.status === 'fulfilled') {
+      const q = queueResult.value;
+      setQueue(q.items ?? []);
+      setPendingCount(q.pendingCount ?? q.items?.length ?? 0);
+      setSelectedId((current) => {
+        if (current && q.items.some((item) => item.id === current)) return current;
+        return q.items[0]?.id ?? null;
       });
-  }, []);
+    } else if (!silent) {
+      notify(getModerationErrorMessage(queueResult.reason, 'Failed to load moderation queue.'), 'error');
+      setQueue([]);
+      setPendingCount(0);
+    }
+
+    if (analyticsResult.status === 'fulfilled') {
+      setAnalytics(analyticsResult.value);
+    } else if (!silent) {
+      setAnalytics(null);
+    }
+
+    if (sourcesResult.status === 'fulfilled') {
+      setSources(sourcesResult.value);
+      const telegram = sourcesResult.value.find((x) => x.type === SourceType.Telegram && x.ingestionEnabled)
+        ?? sourcesResult.value[0];
+      setTelegramSourceId((prev) => prev ?? telegram?.id ?? null);
+    } else if (!silent) {
+      setSources([]);
+    }
+
+    setInitialLoading(false);
+    if (!silent) setRefreshing(false);
+  }, [notify]);
 
   useEffect(() => {
     void refresh();
@@ -98,11 +121,6 @@ export function AdminModerationPage() {
     }, POLL_INTERVAL_MS);
     return () => window.clearInterval(timer);
   }, [refresh]);
-
-  const notify = (text: string, tone: 'info' | 'error' | 'success' = 'info') => {
-    setMessage(text);
-    setMessageTone(tone);
-  };
 
   const runAction = async (fn: () => Promise<unknown>, successMsg: string) => {
     setActionLoading(true);
@@ -215,7 +233,12 @@ export function AdminModerationPage() {
             type="button"
             className={adminStyles.btnPrimary}
             disabled={actionLoading}
-            onClick={() => void runAction(() => moderationApi.bulkApproveHighConfidence(), 'High-confidence jobs approved.')}
+            onClick={() => void runAction(async () => {
+              const result = await moderationApi.bulkApproveHighConfidence();
+              if (result.failed > 0) {
+                throw new Error(`${result.approved} approved, ${result.failed} failed. Check server logs or retry individually.`);
+              }
+            }, 'High-confidence jobs approved.')}
           >
             Approve high confidence
           </button>

@@ -13,15 +13,15 @@ env:
 
 jobs:
   build:
-    runs-on: windows-latest
+    runs-on: windows-2025-vs2026
     permissions:
       contents: read
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Set up .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
           dotnet-version: '10.0.x'
 
@@ -38,31 +38,31 @@ jobs:
           Select-String -Path (Join-Path $pub "web.config") -Pattern "stdoutLogEnabled|hostingModel|processPath"
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: .net-app
           path: ${{ runner.temp }}/publish
 
   deploy:
-    runs-on: windows-latest
+    runs-on: windows-2025-vs2026
     needs: build
     permissions:
       id-token: write
       contents: read
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Login to Azure
         id: azure-login
-        uses: azure/login@v2
+        uses: azure/login@v3
         with:
           client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_576290AC42DC4A16BF27E92F9C0E1637 }}
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_C86F95965C204C3F89FDFA40C1A41A8B }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_1B53392385324F709311D27CB9A0DCD6 }}
 
       - name: Set up .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
           dotnet-version: '10.0.x'
 
@@ -111,7 +111,7 @@ jobs:
             --connection "$DB_CONNECTION"
 
       - name: Download artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: .net-app
           path: ./publish
@@ -154,7 +154,7 @@ jobs:
           fi
 
           if echo "$DB_CONNECTION" | grep -qi 'render.com' && ! echo "$DB_CONNECTION" | grep -qiE 'SSL Mode=Require|sslmode=require'; then
-            echo "Render host detected — app will enforce SSL Mode=Require and Trust Server Certificate=true"
+            echo "Render host detected — app will enforce SSL Mode=Require"
           fi
 
           retry_az() {
@@ -492,7 +492,7 @@ jobs:
 
       - name: Upload Azure diagnose log
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: azure-diagnose-log
           path: azure-diagnose.log

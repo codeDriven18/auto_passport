@@ -46,7 +46,7 @@ public class ExceptionHandlingMiddleware
         catch (ModerationException ex)
         {
             LogCaughtException(context, ex, StatusCodes.Status400BadRequest);
-            if (await TryWriteErrorAsync(context, StatusCodes.Status400BadRequest, ex.Message, ex.Code))
+            if (await TryWriteErrorAsync(context, StatusCodes.Status400BadRequest, ex.Message, ex.Code, ex.Details))
                 return;
             throw;
         }
@@ -111,7 +111,12 @@ public class ExceptionHandlingMiddleware
         return "Database operation failed.";
     }
 
-    private async Task<bool> TryWriteErrorAsync(HttpContext context, int statusCode, string message, string code)
+    private async Task<bool> TryWriteErrorAsync(
+        HttpContext context,
+        int statusCode,
+        string message,
+        string code,
+        string? details = null)
     {
         if (context.Response.HasStarted)
         {
@@ -126,7 +131,7 @@ public class ExceptionHandlingMiddleware
 
         context.Response.StatusCode = statusCode;
         context.Response.ContentType = "application/json";
-        await context.Response.WriteAsJsonAsync(new ApiErrorResponse(message, code));
+        await context.Response.WriteAsJsonAsync(new ApiErrorResponse(message, code, details));
         return true;
     }
 }

@@ -154,7 +154,7 @@ export const PremiumSwipeDeck = forwardRef<PremiumSwipeDeckHandle, PremiumSwipeD
                 opacity: layer.opacity,
               }}
             >
-              <SwipeJobCard job={job} interactive={false} />
+              <SwipeJobCard job={job} interactive={false} attachedDock={false} />
             </div>
           );
         })}

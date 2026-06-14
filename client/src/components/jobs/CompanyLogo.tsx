@@ -5,7 +5,7 @@ import styles from './CompanyLogo.module.css';
 interface CompanyLogoProps {
   name: string;
   logoUrl?: string | null;
-  size?: 'sm' | 'md' | 'lg' | 'xl';
+  size?: 'sm' | 'swipe' | 'md' | 'lg' | 'xl';
   className?: string;
 }
 

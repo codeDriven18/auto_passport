@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { IconCheck, IconChevronRight, IconCircle, IconFile, IconSettings } from '@/components/icons/Icons';
+import { Link, useNavigate } from 'react-router-dom';
+import { IconCheck, IconChevronRight, IconCircle, IconFile, IconLogOut, IconSettings } from '@/components/icons/Icons';
 import { applicationsApi } from '@/api/applicationsApi';
 import { savedJobsApi } from '@/api/savedJobsApi';
 import { ProfileShareMenu } from '@/components/profile/ProfileShareMenu';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { UserAvatar } from '@/components/profile/UserAvatar';
 import { ProfileSkeleton } from '@/components/ui/Skeleton';
+import { useAuth } from '@/context/AuthContext';
 import { useProfile } from '@/hooks/useProfile';
 import { isProfileSubstantiallyComplete, shouldShowMandatoryCompletionPrompts } from '@/lib/profileCompletion';
 import { markProfileSubstantiallyComplete } from '@/lib/profileCompletionStorage';
@@ -16,6 +17,8 @@ import type { JobApplication } from '@/models/application';
 import styles from './ProfilePage.module.css';
 
 export function ProfileHubPage() {
+  const { logout } = useAuth();
+  const navigate = useNavigate();
   const { profile, loading } = useProfile();
   const [applicationsCount, setApplicationsCount] = useState(0);
   const [recentApplications, setRecentApplications] = useState<JobApplication[]>([]);
@@ -61,6 +64,11 @@ export function ProfileHubPage() {
   const topSkills = profile.skills.slice(0, 8);
   const topExperience = profile.experiences.slice(0, 3);
   const topEducation = profile.educations.slice(0, 2);
+
+  const handleLogout = async () => {
+    await logout();
+    navigate('/login', { replace: true });
+  };
 
   return (
     <section className={styles.page}>
@@ -266,6 +274,10 @@ export function ProfileHubPage() {
           <IconSettings size={18} />
           Settings
         </Link>
+        <button type="button" className={styles.settingsEntry} onClick={() => void handleLogout()}>
+          <IconLogOut size={18} />
+          Log out
+        </button>
       </footer>
 
       <ProfileShareMenu

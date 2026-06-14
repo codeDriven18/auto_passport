@@ -107,6 +107,10 @@ export function IconSettings(props: IconProps) {
   return <svg {...base(props)}><circle cx="12" cy="12" r="3" /><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" /></svg>;
 }
 
+export function IconLogOut(props: IconProps) {
+  return <svg {...base(props)}><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><path d="M16 17l5-5-5-5M21 12H9" /></svg>;
+}
+
 export function IconActivity(props: IconProps) {
   return <svg {...base(props)}><path d="M22 12h-4l-3 9L9 3l-3 9H2" /></svg>;
 }

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ResolvedJobImage } from '@/lib/resolveJobImage';
 import styles from './JobHeroImage.module.css';
 
@@ -12,21 +12,35 @@ interface JobHeroImageProps {
 export function JobHeroImage({ image, alt, className = '', priority = false }: JobHeroImageProps) {
   const [loaded, setLoaded] = useState(false);
   const [src, setSrc] = useState(image.url);
+  const imgRef = useRef<HTMLImageElement>(null);
   const isCategory = image.source === 'category';
+
+  const categoryFallback = `/job-images/${image.theme === 'gig' ? 'default' : image.theme}.svg`;
+
+  const markLoadedIfReady = useCallback(() => {
+    const img = imgRef.current;
+    if (img?.complete && img.naturalWidth > 0) {
+      setLoaded(true);
+    }
+  }, []);
 
   useEffect(() => {
     setLoaded(false);
     setSrc(image.url);
   }, [image.url]);
 
-  const categoryFallback = `/job-images/${image.theme === 'gig' ? 'default' : image.theme}.svg`;
+  useEffect(() => {
+    markLoadedIfReady();
+  }, [src, markLoadedIfReady]);
 
   return (
     <div className={`${styles.wrap} ${className}`} style={{ background: image.gradient }}>
       {!loaded && <div className={styles.skeleton} aria-hidden />}
       <img
+        ref={imgRef}
         src={src}
         alt={alt}
+        draggable={false}
         className={`${styles.img} ${loaded ? styles.visible : ''} ${isCategory ? styles.category : ''}`}
         loading={priority ? 'eager' : 'lazy'}
         decoding="async"
@@ -34,8 +48,10 @@ export function JobHeroImage({ image, alt, className = '', priority = false }: J
         onLoad={() => setLoaded(true)}
         onError={() => {
           if (src !== categoryFallback) {
-            setSrc(categoryFallback);
             setLoaded(false);
+            setSrc(categoryFallback);
+          } else {
+            setLoaded(true);
           }
         }}
       />

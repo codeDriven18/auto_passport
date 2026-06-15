@@ -50,23 +50,59 @@ const BAD_SUMMARY_PATTERNS = [
   /^contact\s*:/i,
 ];
 
+const FIELD_LABEL_PREFIX =
+  /^(company|technologies?|tech\s*stack|requirements?|skills?|responsibilities?|qualifications?|role|position|title|description|overview|summary|employer)\s*:\s*/i;
+
 function stripFieldLabels(text: string): string {
-  return text
-    .replace(/^(company|technologies?|tech\s*stack|requirements?|skills?|responsibilities?|qualifications?|role|position|title|description|overview|summary|employer)\s*:\s*/i, '')
-    .trim();
+  return text.replace(FIELD_LABEL_PREFIX, '').trim();
+}
+
+function stripAllFieldLabels(text: string): string {
+  let result = text.trim();
+  let prev = '';
+  while (result !== prev) {
+    prev = result;
+    result = stripFieldLabels(result);
+  }
+  return result;
+}
+
+const MAX_DISPLAY_TITLE = 50;
+const MAX_DISPLAY_SUMMARY = 120;
+const MAX_DISPLAY_TAGS = 5;
+
+function looksLikeCompanySkillsTitle(text: string): boolean {
+  const colonParts = text.split(':').map((part) => part.trim()).filter(Boolean);
+  if (colonParts.length < 2) return false;
+
+  const tail = colonParts.slice(1).join(': ');
+  const commaParts = tail.split(',').map((part) => part.trim()).filter(Boolean);
+  if (commaParts.length >= 2 && commaParts.every((part) => part.length <= 28)) return true;
+
+  return colonParts.length >= 3;
 }
 
 function looksLikeBadCardTitle(text: string): boolean {
-  const trimmed = stripFieldLabels(text);
+  const trimmed = stripAllFieldLabels(text);
   if (!trimmed) return true;
-  if (trimmed.length > 64) return true;
+  if (trimmed.length > MAX_DISPLAY_TITLE) return true;
   if (BAD_TITLE_PATTERNS.some((pattern) => pattern.test(trimmed))) return true;
+  if (looksLikeCompanySkillsTitle(trimmed)) return true;
   const lines = trimmed.split(/\n+/).filter(Boolean);
   if (lines.length > 1) return true;
   const commaParts = trimmed.split(',').map((part) => part.trim());
   if (commaParts.length >= 4 && commaParts.every((part) => part.length < 24)) return true;
   if (/^[A-Z#][\w+#./-]+(?:\s*[,•|]\s*[A-Z#][\w+#./-]+){3,}/.test(trimmed)) return true;
   return false;
+}
+
+function clampTitle(text: string): string {
+  const trimmed = text.trim();
+  if (trimmed.length <= MAX_DISPLAY_TITLE) return trimmed;
+  const slice = trimmed.slice(0, MAX_DISPLAY_TITLE);
+  const lastSpace = slice.lastIndexOf(' ');
+  if (lastSpace > 24) return `${slice.slice(0, lastSpace).trim()}…`;
+  return `${slice.trim()}…`;
 }
 
 function looksLikeBadCardSummary(text: string): boolean {
@@ -100,26 +136,28 @@ function pickTitle(job: Job): string {
     job.displayTitle,
     job.title,
   ]
-    .map((value) => stripFieldLabels(value?.trim() ?? ''))
+    .map((value) => stripAllFieldLabels(value?.trim() ?? ''))
     .filter(Boolean);
 
   for (const candidate of candidates) {
-    if (!looksLikeBadCardTitle(candidate)) return candidate;
+    if (!looksLikeBadCardTitle(candidate)) return clampTitle(candidate);
   }
 
   const inferred = inferTitleFromSkills(job);
-  if (inferred) return inferred;
+  if (inferred) return clampTitle(inferred);
 
   const company = job.displayCompany?.trim() || job.company?.trim();
-  if (company) return `Role at ${company}`;
+  if (company) return clampTitle(`Role at ${company}`);
 
   return 'Open position';
 }
 
 function sanitizeCardSummary(displaySummary: string | undefined, job: Job): string {
-  const display = stripFieldLabels(displaySummary?.trim() ?? '');
+  const display = stripAllFieldLabels(displaySummary?.trim() ?? '');
   if (display && !looksLikeBadCardSummary(display)) {
-    return display.length > 120 ? `${display.slice(0, 117).trim()}…` : display;
+    return display.length > MAX_DISPLAY_SUMMARY
+      ? `${display.slice(0, MAX_DISPLAY_SUMMARY - 1).trim()}…`
+      : display;
   }
 
   const company = job.displayCompany?.trim() || job.company?.trim();
@@ -157,10 +195,13 @@ function resolveLocation(job: Job): string {
 }
 
 function resolveSkills(job: Job): string[] {
-  if (job.displaySkills?.length) {
-    return job.displaySkills.slice(0, 6).map((skill) => skill.trim()).filter(Boolean);
-  }
-  return job.tags.slice(0, 6).map((tag) => tag.name.trim()).filter(Boolean);
+  const source = job.displaySkills?.length
+    ? job.displaySkills
+    : job.tags.map((tag) => tag.name);
+  const skills = source.map((skill) => skill.trim()).filter(Boolean);
+  const unique = [...new Set(skills)];
+  if (unique.length <= MAX_DISPLAY_TAGS) return unique.slice(0, MAX_DISPLAY_TAGS);
+  return unique.slice(0, MAX_DISPLAY_TAGS);
 }
 
 export function getJobCardPreview(job: Job): JobCardPreview {

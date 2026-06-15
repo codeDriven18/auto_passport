@@ -1,7 +1,6 @@
 import { Outlet, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
 import { Navigation } from './Navigation';
-import { HeaderThemeToggle } from '@/components/theme/HeaderThemeToggle';
 import { NotificationBell } from './NotificationBell';
 import { AppIcon } from '@/components/brand/AppIcon';
 import { useAuth } from '@/context/AuthContext';
@@ -33,7 +32,6 @@ export function AppLayout() {
             {isStandalone && isProfileHub && <span className={styles.title}>Profile</span>}
           </motion.div>
           <motion.div className={styles.headerActions} style={{ opacity: headerFadeOpacity }}>
-            <HeaderThemeToggle />
             {isAuthenticated && <NotificationBell />}
           </motion.div>
         </header>

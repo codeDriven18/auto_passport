@@ -11,7 +11,11 @@ import styles from './NotificationBell.module.css';
 
 const PANEL_ID = 'notifications';
 
-export function NotificationBell() {
+interface NotificationBellProps {
+  bellClassName?: string;
+}
+
+export function NotificationBell({ bellClassName }: NotificationBellProps = {}) {
   const { isAuthenticated, user } = useAuth();
   const { notifications, unreadCount, markAllRead, dismiss, dismissAll } = useNotifications();
   const [open, setOpen] = useState(false);
@@ -63,7 +67,7 @@ export function NotificationBell() {
     <div ref={containerRef} className={styles.wrap}>
       <button
         type="button"
-        className={styles.bell}
+        className={[styles.bell, bellClassName].filter(Boolean).join(' ')}
         onClick={toggleOpen}
         aria-label="Notifications"
         aria-expanded={open}

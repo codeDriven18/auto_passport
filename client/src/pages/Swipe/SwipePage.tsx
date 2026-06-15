@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
-import { AnimatePresence, motion } from 'framer-motion';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { AnimatePresence, motion, useScroll, useTransform } from 'framer-motion';
 import { ApiError } from '@/api/client';
 import { applicationsApi } from '@/api/applicationsApi';
 import { jobsApi } from '@/api/jobsApi';
@@ -12,6 +12,8 @@ import {
   type SwipeDirection,
 } from '@/components/swipe/PremiumSwipeDeck';
 import { IconBookmark, IconFilter, IconHeart, IconMenu, IconX } from '@/components/icons/Icons';
+import { IconMessages } from '@/components/layout/NavIcons';
+import { NotificationBell } from '@/components/layout/NotificationBell';
 import { hasCompletedSwipeOnboarding, markSwipeOnboardingComplete } from '@/lib/swipeOnboardingStorage';
 import { PullToRefresh } from '@/components/ui/PullToRefresh';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -40,7 +42,10 @@ export function SwipePage() {
   const filters = useJobFilters();
   const deckRef = useRef<PremiumSwipeDeckHandle>(null);
   const headerRef = useRef<HTMLElement>(null);
+  const pageScrollRef = useRef<HTMLDivElement>(null);
   const queueRef = useRef<Job[]>([]);
+  const { scrollY } = useScroll({ container: pageScrollRef });
+  const headerActionsOpacity = useTransform(scrollY, [0, 56], [1, 0]);
 
   const [queue, setQueue] = useState<Job[]>([]);
   queueRef.current = queue;
@@ -237,8 +242,9 @@ export function SwipePage() {
     >
       <div className={styles.backdrop} aria-hidden />
 
+      <div ref={pageScrollRef} className={styles.pageScroll}>
       <header ref={headerRef} className={styles.header}>
-        <div className={styles.headerStart}>
+        <motion.div className={styles.headerStart} style={{ opacity: headerActionsOpacity }}>
           <button
             type="button"
             className={styles.headerBtn}
@@ -247,13 +253,6 @@ export function SwipePage() {
           >
             <IconMenu size={20} />
           </button>
-        </div>
-
-        <span className={styles.deckCount}>
-          {loading || isRefreshing ? '…' : `${queue.length} left`}
-        </span>
-
-        <div className={styles.headerEnd}>
           <button
             type="button"
             className={styles.headerBtn}
@@ -265,7 +264,27 @@ export function SwipePage() {
               <span className={styles.filterCount}>{filters.activeFilterCount}</span>
             )}
           </button>
-        </div>
+        </motion.div>
+
+        <span className={styles.deckCount}>
+          {loading || isRefreshing ? '…' : `${queue.length} left`}
+        </span>
+
+        <motion.div className={styles.headerEnd} style={{ opacity: headerActionsOpacity }}>
+          {isAuthenticated && (
+            <div className={styles.headerActions}>
+              <NotificationBell bellClassName={styles.headerBtn} />
+              <Link
+                to="/messages"
+                className={styles.headerBtn}
+                aria-label="Messages"
+                onClick={() => closeActiveFloatingPanel()}
+              >
+                <IconMessages />
+              </Link>
+            </div>
+          )}
+        </motion.div>
       </header>
 
       <div className={styles.stage}>
@@ -342,6 +361,7 @@ export function SwipePage() {
             </div>
           </div>
         )}
+      </div>
       </div>
 
       <AnimatePresence>

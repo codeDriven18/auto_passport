@@ -2,6 +2,7 @@ import { IconChevronLeft, IconFile } from '@/components/icons/Icons';
 import { useCallback, useEffect, useState } from 'react';
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
 import { ProfileAppPanel } from '@/components/profile/ProfileAppPanel';
+import { ThemeAppearancePicker } from '@/components/theme/ThemeAppearancePicker';
 import { ProfileSkeleton } from '@/components/ui/Skeleton';
 import { useToast } from '@/context/ToastContext';
 import { useProfile } from '@/hooks/useProfile';
@@ -20,7 +21,8 @@ const SECTION_TITLES: Record<string, string> = {
   preferences: 'Job preferences',
   notifications: 'Notifications',
   privacy: 'Privacy',
-  app: 'App',
+  appearance: 'Appearance',
+  app: 'Settings',
 };
 
 const INFO_SECTIONS = new Set(['skills', 'experience', 'education']);
@@ -248,7 +250,19 @@ export function ProfileSectionPage() {
           </>
         )}
 
-        {section === 'app' && <ProfileAppPanel />}
+        {section === 'appearance' && <ThemeAppearancePicker />}
+
+        {section === 'app' && (
+          <>
+            <nav className={styles.settingsLinks} aria-label="Settings">
+              <Link to="/profile/appearance" className={styles.settingsLink}>Appearance</Link>
+              <Link to="/profile/notifications" className={styles.settingsLink}>Notifications</Link>
+              <Link to="/profile/privacy" className={styles.settingsLink}>Privacy</Link>
+            </nav>
+            <div className={styles.divider} />
+            <ProfileAppPanel />
+          </>
+        )}
       </div>
 
       {section !== 'resume' && (

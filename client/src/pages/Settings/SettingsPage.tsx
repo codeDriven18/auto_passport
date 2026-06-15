@@ -1,6 +1,7 @@
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { UserRole } from '@/models/auth';
+import { ThemeAppearancePicker } from '@/components/theme/ThemeAppearancePicker';
 import { resetOnboarding } from '@/lib/onboardingStorage';
 import { PageHeader } from '@/components/ui/PageHeader';
 import styles from './SettingsPage.module.css';
@@ -35,8 +36,16 @@ export function SettingsPage() {
 
       {isAuthenticated && (
         <div className={styles.card}>
-          <h2 className={styles.cardTitle}>App & appearance</h2>
-          <p className={styles.cardDesc}>Theme, install, updates, and version info.</p>
+          <h2 className={styles.cardTitle}>Appearance</h2>
+          <p className={styles.cardDesc}>Light, dark, or match your system.</p>
+          <ThemeAppearancePicker />
+        </div>
+      )}
+
+      {isAuthenticated && (
+        <div className={styles.card}>
+          <h2 className={styles.cardTitle}>App & install</h2>
+          <p className={styles.cardDesc}>Install, updates, and version info.</p>
           <Link to="/profile/app" className={styles.btn} style={{ display: 'inline-block', textAlign: 'center' }}>
             Open app settings
           </Link>

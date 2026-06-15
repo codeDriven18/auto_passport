@@ -9,7 +9,6 @@ import {
   IconApplications,
   IconDiscover,
   IconHome,
-  IconMessages,
   IconProfile,
   IconSaved,
   IconSignIn,
@@ -35,7 +34,6 @@ const seekerItems: NavItem[] = [
   { to: '/swipe', label: 'discover', icon: <IconDiscover /> },
   { to: '/saved', label: 'saved', icon: <IconSaved /> },
   { to: '/applications', label: 'applied', icon: <IconApplications /> },
-  { to: '/messages', label: 'messages', icon: <IconMessages /> },
   { to: '/profile', label: 'profile', avatar: true, icon: <IconProfile /> },
 ];
 

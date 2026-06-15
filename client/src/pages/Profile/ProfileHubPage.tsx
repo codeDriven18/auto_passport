@@ -253,7 +253,7 @@ export function ProfileHubPage() {
             to="/profile/app"
             icon={<IconSettings size={18} />}
             title="Settings"
-            summary="Notifications, privacy, app"
+            summary="Appearance, notifications, app"
           />
         </ProfileMenuList>
 

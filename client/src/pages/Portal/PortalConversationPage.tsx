@@ -37,10 +37,11 @@ export function PortalConversationPage() {
     <ChatView
       conversation={conversation}
       backTo="/portal/messages"
-      backLabel="Messages"
+      backLabel="Back to messages"
       title={conversation.candidateName}
       subtitle={conversation.jobTitle}
       layout="portal"
+      fullscreen
       api={{
         getMessages: portalMessagingApi.getMessages,
         sendMessage: portalMessagingApi.sendMessage,

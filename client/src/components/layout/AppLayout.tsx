@@ -16,8 +16,10 @@ export function AppLayout() {
   const isSwipe = location.pathname === '/swipe';
   const isWelcome = location.pathname === '/welcome';
   const isAuthPage = AUTH_PATHS.has(location.pathname);
-  const hideHeader = isSwipe || isWelcome || isAuthPage;
-  const hideNav = isAuthPage;
+  const isChatConversation = /^\/messages\/[^/]+$/.test(location.pathname)
+    || /^\/portal\/messages\/[^/]+$/.test(location.pathname);
+  const hideHeader = isSwipe || isWelcome || isAuthPage || isChatConversation;
+  const hideNav = isAuthPage || isChatConversation;
   const isProfileHub = location.pathname === '/profile' || location.pathname.startsWith('/profile/');
   const showInboxActions = isAuthenticated && !isProfileHub && !isSwipe && !isWelcome && !isAuthPage
     && (location.pathname === '/' || location.pathname === '/saved' || location.pathname === '/applications');
@@ -39,7 +41,7 @@ export function AppLayout() {
         </header>
       )}
 
-      <main className={`${styles.main} ${isSwipe ? styles.mainSwipe : ''} ${isWelcome ? styles.mainWelcome : ''} ${isAuthPage ? styles.mainWelcome : ''}`}>
+      <main className={`${styles.main} ${isSwipe ? styles.mainSwipe : ''} ${isChatConversation ? styles.mainChat : ''} ${isWelcome ? styles.mainWelcome : ''} ${isAuthPage ? styles.mainWelcome : ''}`}>
         <AnimatePresence mode="wait">
           <motion.div
             key={location.pathname}

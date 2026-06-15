@@ -58,6 +58,12 @@
   overflow: visible;
 }
 
+.mainChat {
+  padding: 0;
+  padding-bottom: 0;
+  overflow: hidden;
+}
+
 .mainWelcome {
   padding-top: var(--space-4);
   padding-bottom: calc(var(--nav-height) + var(--space-8));

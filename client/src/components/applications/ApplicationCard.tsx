@@ -3,7 +3,7 @@ import { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import type { JobApplication } from '@/models/application';
 import { JobHeroImage } from '@/components/jobs/JobHeroImage';
-import { CompanyIdentityStrip } from '@/components/jobs/CompanyIdentityStrip';
+import { CompanyLogo } from '@/components/jobs/CompanyLogo';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { Button } from '@/components/ui/Button';
 import { ApplicationStatusTimeline } from '@/components/applications/ApplicationStatusTimeline';
@@ -76,18 +76,25 @@ export function ApplicationCard({
           alt={`${preview.title} at ${preview.company}`}
           className={styles.heroImage}
         />
+        <div className={styles.heroFade} aria-hidden />
         <div className={styles.heroOverlay}>
           <div className={styles.heroTop}>
-            <StatusBadge status={application.status} />
+            <StatusBadge status={application.status} compact />
           </div>
-          <CompanyIdentityStrip job={job} variant="compact" onDark />
+        </div>
+        <div className={styles.heroLogoFloat}>
+          <CompanyLogo
+            name={preview.company}
+            logoUrl={job.companyLogoUrl}
+            size="md"
+          />
         </div>
       </div>
 
       <div className={styles.body}>
         <h3 className={styles.title}>{preview.title}</h3>
-        <p className={styles.salary}>{preview.salary}</p>
         <p className={styles.company}>{preview.company}</p>
+        <p className={styles.salary}>{preview.salary}</p>
         <p className={styles.location}>{locationLine}</p>
         <p className={styles.appliedDate}>Applied {formatAppliedDate(application.appliedAt)}</p>
 

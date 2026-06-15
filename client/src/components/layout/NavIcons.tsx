@@ -44,6 +44,22 @@ export function IconMessages({ className }: IconProps) {
   );
 }
 
+/** Messenger-style filled bubble icon */
+export function IconMessenger({ className }: IconProps) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" aria-hidden>
+      <path
+        fill="currentColor"
+        d="M12 1C5.925 1 1 5.477 1 10.8c0 2.865 1.417 5.416 3.637 7.07L3.5 22.5l5.341-2.898c1.48.405 3.05.623 4.659.623 6.075 0 11-4.477 11-9.8S18.075 1 12 1z"
+      />
+      <path
+        fill="var(--color-bg)"
+        d="M16.2 9.4 12.1 13.6 9.9 11.4 6.6 13.6l2.2-3.4L6.6 7.2l3.3 2.2 2.2-2.2 2.2 3.4-2.2 1.6z"
+      />
+    </svg>
+  );
+}
+
 export function IconProfile({ className }: IconProps) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>

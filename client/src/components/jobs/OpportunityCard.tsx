@@ -55,6 +55,7 @@ export function OpportunityCard({
   const breadcrumb = getJobBreadcrumb(job);
   const showActions = variant === 'discover' && interactive;
   const isSwipe = variant === 'swipe';
+  const isCompact = variant === 'compact';
 
   if (isSwipe) {
     return (
@@ -130,19 +131,33 @@ export function OpportunityCard({
             alt={`${preview.title} at ${preview.company}`}
             className={styles.heroImage}
           />
+          <div className={styles.heroFade} aria-hidden />
           <div className={styles.heroOverlay}>
             <div className={styles.heroOverlayTop}>
               {heroBadge}
               {heroAction}
             </div>
-            <SourceBadge job={job} className={styles.source} />
-            <CompanyIdentityStrip job={job} variant="compact" onDark />
+            {!isCompact && (
+              <>
+                <SourceBadge job={job} className={styles.source} />
+                <CompanyIdentityStrip job={job} variant="compact" onDark />
+              </>
+            )}
           </div>
+          {isCompact && (
+            <div className={styles.heroLogoFloat}>
+              <CompanyLogo
+                name={preview.company}
+                logoUrl={job.companyLogoUrl}
+                size="md"
+              />
+            </div>
+          )}
         </div>
 
         <div className={styles.body}>
-          <p className={styles.companyLine}>{preview.company}</p>
           <h3 className={styles.title}>{preview.title}</h3>
+          <p className={styles.companyLine}>{preview.company}</p>
 
           <div className={styles.pills}>
             <span className={styles.pillAccent}>{preview.salary}</span>
@@ -153,13 +168,18 @@ export function OpportunityCard({
                 <span className={styles.pill}>{employment}</span>
               </>
             )}
+            {isCompact && preview.skills.length > 0 && (
+              preview.skills.slice(0, 3).map((skill) => (
+                <span key={skill} className={styles.pill}>{skill}</span>
+              ))
+            )}
           </div>
 
-          {preview.summary && (
+          {!isCompact && preview.summary && (
             <p className={styles.summary}>{preview.summary}</p>
           )}
 
-          {preview.skills.length > 0 && (
+          {!isCompact && preview.skills.length > 0 && (
             <div className={styles.tags} title={preview.tagsLine}>
               <span className={styles.tagLine}>{preview.tagsLine}</span>
             </div>

@@ -3,6 +3,7 @@ import styles from './StatusBadge.module.css';
 
 interface StatusBadgeProps {
   status: ApplicationStatus;
+  compact?: boolean;
 }
 
 const statusClass: Record<ApplicationStatus, string> = {
@@ -18,9 +19,9 @@ const statusClass: Record<ApplicationStatus, string> = {
   [ApplicationStatus.Withdrawn]: styles.withdrawn,
 };
 
-export function StatusBadge({ status }: StatusBadgeProps) {
+export function StatusBadge({ status, compact = false }: StatusBadgeProps) {
   return (
-    <span className={`${styles.badge} ${statusClass[status]}`}>
+    <span className={`${styles.badge} ${compact ? styles.compact : ''} ${statusClass[status]}`}>
       {ApplicationStatusLabels[status]}
     </span>
   );

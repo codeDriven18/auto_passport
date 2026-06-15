@@ -39,9 +39,10 @@ export function ConversationPage() {
       <ChatView
         conversation={conversation}
         backTo="/messages"
-        backLabel="Messages"
+        backLabel="Back to messages"
         logoUrl={conversation.companyLogoUrl}
         layout="seeker"
+        fullscreen
         api={{
           getMessages: messagingApi.getMessages,
           sendMessage: messagingApi.sendMessage,

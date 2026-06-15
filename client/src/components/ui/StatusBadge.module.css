@@ -8,6 +8,16 @@
   border-radius: 9999px;
 }
 
+.compact {
+  font-size: 0.625rem;
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: 0.01em;
+  padding: 0.2rem 0.5rem;
+  line-height: 1.2;
+  max-height: 1.5rem;
+}
+
 .pending { background: #fff3cd; color: #856404; }
 .applied { background: #ffd600; color: #000; }
 .review { background: #cce5ff; color: #004085; }

@@ -27,6 +27,13 @@ export function formatMessageTime(iso: string): string {
   return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 }
 
+export function formatBubbleTime(iso: string): string {
+  return new Date(iso).toLocaleTimeString(undefined, {
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+}
+
 export function formatMessageTimestamp(iso: string): string {
   return new Date(iso).toLocaleString(undefined, {
     month: 'short',

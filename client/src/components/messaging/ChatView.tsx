@@ -7,8 +7,8 @@ import { useChatHub } from '@/hooks/useChatHub';
 import { useKeyboardViewport } from '@/hooks/useKeyboardViewport';
 import { getApiErrorMessage } from '@/lib/apiErrors';
 import {
+  formatBubbleTime,
   formatDateSeparator,
-  formatMessageTimestamp,
   isSameMessageDay,
 } from '@/lib/messagingHelpers';
 import type { ChatMessage, ConversationDetail } from '@/models/messaging';
@@ -32,6 +32,7 @@ interface ChatViewProps {
   api: ChatApi;
   onMessagesRead?: () => void;
   layout?: 'seeker' | 'portal';
+  fullscreen?: boolean;
 }
 
 function normalizeLoadedMessage(message: ChatMessage): ChatMessage {
@@ -41,6 +42,13 @@ function normalizeLoadedMessage(message: ChatMessage): ChatMessage {
     type: isSystem ? 'System' : 'User',
     isSystem,
   };
+}
+
+function MessageReceipt({ readAt }: { readAt?: string }) {
+  if (readAt) {
+    return <span className={styles.receiptRead} aria-label="Read">✓✓</span>;
+  }
+  return <span className={styles.receiptSent} aria-label="Delivered">✓✓</span>;
 }
 
 export function ChatView({
@@ -53,6 +61,7 @@ export function ChatView({
   api,
   onMessagesRead,
   layout = 'seeker',
+  fullscreen = true,
 }: ChatViewProps) {
   useKeyboardViewport();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -64,6 +73,9 @@ export function ChatView({
   const listRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+
+  const displayName = title ?? conversation.companyName;
+  const displaySubtitle = subtitle ?? conversation.jobTitle;
 
   const loadMessages = useCallback(async () => {
     setLoading(true);
@@ -117,7 +129,8 @@ export function ChatView({
   });
 
   const timeline = useMemo(() => {
-    const items: Array<{ kind: 'separator'; key: string; label: string } | { kind: 'message'; key: string; message: ChatMessage }> = [];
+    const items: Array<{ kind: 'separator'; key: string; label: string } | { kind: 'message'; key: string; message: ChatMessage; sameSender: boolean }> = [];
+    let lastSenderMine: boolean | null = null;
 
     messages.forEach((message, index) => {
       const previous = messages[index - 1];
@@ -127,8 +140,15 @@ export function ChatView({
           key: `sep-${message.sentAt}-${index}`,
           label: formatDateSeparator(message.sentAt),
         });
+        lastSenderMine = null;
       }
-      items.push({ kind: 'message', key: message.id, message });
+
+      const sameSender = !message.isSystem && lastSenderMine === message.isMine;
+      if (!message.isSystem) {
+        lastSenderMine = message.isMine;
+      }
+
+      items.push({ kind: 'message', key: message.id, message, sameSender });
     });
 
     return items;
@@ -181,21 +201,31 @@ export function ChatView({
   };
 
   return (
-    <section className={`${styles.page} ${layout === 'portal' ? styles.pagePortal : ''}`}>
+    <section
+      className={[
+        styles.page,
+        layout === 'portal' ? styles.pagePortal : '',
+        fullscreen ? styles.pageFullscreen : '',
+      ].filter(Boolean).join(' ')}
+    >
       <header className={styles.header}>
-        <Link to={backTo} className={styles.back}>
-          <IconChevronLeft size={18} /> {backLabel}
-        </Link>
-        <div className={styles.headerMain}>
-          {logoUrl ? (
-            <img src={logoUrl} alt="" className={styles.logo} />
-          ) : (
-            <span className={styles.logoFallback}>{(title ?? conversation.companyName).slice(0, 1)}</span>
-          )}
-          <div>
-            <h1 className={styles.title}>{title ?? conversation.companyName}</h1>
-            <p className={styles.subtitle}>{subtitle ?? conversation.jobTitle}</p>
-            <StatusBadge status={conversation.applicationStatus} />
+        <div className={styles.headerBar}>
+          <Link to={backTo} className={styles.backBtn} aria-label={backLabel}>
+            <IconChevronLeft size={22} />
+          </Link>
+          <div className={styles.headerIdentity}>
+            {logoUrl ? (
+              <img src={logoUrl} alt="" className={styles.avatar} />
+            ) : (
+              <span className={styles.avatarFallback}>{displayName.slice(0, 1)}</span>
+            )}
+            <div className={styles.headerText}>
+              <h1 className={styles.title}>{displayName}</h1>
+              <p className={styles.headerMeta}>
+                <span className={styles.subtitle}>{displaySubtitle}</span>
+                <StatusBadge status={conversation.applicationStatus} compact />
+              </p>
+            </div>
           </div>
         </div>
       </header>
@@ -223,12 +253,11 @@ export function ChatView({
               );
             }
 
-            const { message } = item;
+            const { message, sameSender } = item;
             if (message.isSystem) {
               return (
                 <div key={item.key} className={styles.systemMessage}>
                   <p>{message.messageText}</p>
-                  <time dateTime={message.sentAt}>{formatMessageTimestamp(message.sentAt)}</time>
                 </div>
               );
             }
@@ -236,7 +265,11 @@ export function ChatView({
             return (
               <article
                 key={item.key}
-                className={`${styles.message} ${message.isMine ? styles.mine : styles.theirs}`}
+                className={[
+                  styles.message,
+                  message.isMine ? styles.mine : styles.theirs,
+                  sameSender ? styles.messageGrouped : styles.messageNewSender,
+                ].join(' ')}
               >
                 <p className={styles.messageText}>{message.messageText}</p>
                 {message.attachmentUrl && (
@@ -249,10 +282,8 @@ export function ChatView({
                   </button>
                 )}
                 <footer className={styles.meta}>
-                  <time dateTime={message.sentAt}>{formatMessageTimestamp(message.sentAt)}</time>
-                  {message.isMine && (
-                    <span>{message.readAt ? 'Read' : 'Sent'}</span>
-                  )}
+                  <time dateTime={message.sentAt}>{formatBubbleTime(message.sentAt)}</time>
+                  {message.isMine && <MessageReceipt readAt={message.readAt} />}
                 </footer>
               </article>
             );
@@ -289,12 +320,12 @@ export function ChatView({
           onClick={() => fileInputRef.current?.click()}
           aria-label="Attach file"
         >
-          Attach
+          +
         </button>
         <textarea
           className={styles.input}
           rows={1}
-          placeholder={conversation.canSendMessages ? 'Write a message…' : 'Messaging locked'}
+          placeholder={conversation.canSendMessages ? 'Message…' : 'Messaging locked'}
           value={draft}
           disabled={!conversation.canSendMessages || sending}
           onChange={(event) => {

@@ -51,6 +51,7 @@ public class MessageConfiguration : IEntityTypeConfiguration<Message>
         builder.HasOne(m => m.User)
             .WithMany()
             .HasForeignKey(m => m.SenderUserId)
-            .OnDelete(DeleteBehavior.Restrict);
+            .OnDelete(DeleteBehavior.Restrict)
+            .IsRequired(false);
     }
 }

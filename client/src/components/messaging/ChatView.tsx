@@ -1,10 +1,14 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { IconChevronLeft } from '@/components/icons/Icons';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { Button } from '@/components/ui/Button';
 import { useChatHub } from '@/hooks/useChatHub';
-import { formatMessageTimestamp } from '@/lib/messagingHelpers';
+import {
+  formatDateSeparator,
+  formatMessageTimestamp,
+  isSameMessageDay,
+} from '@/lib/messagingHelpers';
 import type { ChatMessage, ConversationDetail } from '@/models/messaging';
 import styles from './ChatView.module.css';
 
@@ -24,6 +28,16 @@ interface ChatViewProps {
   title?: string;
   logoUrl?: string;
   api: ChatApi;
+  onMessagesRead?: () => void;
+}
+
+function normalizeLoadedMessage(message: ChatMessage): ChatMessage {
+  const isSystem = message.isSystem ?? message.type === 'System';
+  return {
+    ...message,
+    type: isSystem ? 'System' : 'User',
+    isSystem,
+  };
 }
 
 export function ChatView({
@@ -34,6 +48,7 @@ export function ChatView({
   title,
   logoUrl,
   api,
+  onMessagesRead,
 }: ChatViewProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(true);
@@ -43,26 +58,28 @@ export function ChatView({
   const [typingUserId, setTypingUserId] = useState<string | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const bottomRef = useRef<HTMLDivElement>(null);
 
   const loadMessages = useCallback(async () => {
     setLoading(true);
     try {
       const items = await api.getMessages(conversation.id);
-      setMessages(items);
+      setMessages(items.map(normalizeLoadedMessage));
       await api.markRead(conversation.id);
+      onMessagesRead?.();
     } catch {
       setError('Could not load messages.');
     } finally {
       setLoading(false);
     }
-  }, [api, conversation.id]);
+  }, [api, conversation.id, onMessagesRead]);
 
   useEffect(() => {
     void loadMessages();
   }, [loadMessages]);
 
   useEffect(() => {
-    listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: 'smooth' });
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, typingUserId]);
 
   const handleIncoming = useCallback((message: ChatMessage) => {
@@ -70,8 +87,19 @@ export function ChatView({
       if (current.some((m) => m.id === message.id)) return current;
       return [...current, message];
     });
-    void api.markRead(conversation.id);
-  }, [api, conversation.id]);
+    void api.markRead(conversation.id).then(() => onMessagesRead?.());
+  }, [api, conversation.id, onMessagesRead]);
+
+  const handleRead = useCallback((readerUserId: string) => {
+    void readerUserId;
+    setMessages((current) =>
+      current.map((message) =>
+        message.isMine && !message.readAt
+          ? { ...message, readAt: new Date().toISOString() }
+          : message,
+      ),
+    );
+  }, []);
 
   const { sendTyping } = useChatHub({
     conversationId: conversation.id,
@@ -80,7 +108,26 @@ export function ChatView({
       setTypingUserId(senderUserId);
       window.setTimeout(() => setTypingUserId(null), 2000);
     },
+    onRead: handleRead,
   });
+
+  const timeline = useMemo(() => {
+    const items: Array<{ kind: 'separator'; key: string; label: string } | { kind: 'message'; key: string; message: ChatMessage }> = [];
+
+    messages.forEach((message, index) => {
+      const previous = messages[index - 1];
+      if (!previous || !isSameMessageDay(previous.sentAt, message.sentAt)) {
+        items.push({
+          kind: 'separator',
+          key: `sep-${message.sentAt}-${index}`,
+          label: formatDateSeparator(message.sentAt),
+        });
+      }
+      items.push({ kind: 'message', key: message.id, message });
+    });
+
+    return items;
+  }, [messages]);
 
   const handleSend = async () => {
     const text = draft.trim();
@@ -89,7 +136,7 @@ export function ChatView({
     setSending(true);
     setError(null);
     try {
-      const message = await api.sendMessage(conversation.id, text);
+      const message = normalizeLoadedMessage(await api.sendMessage(conversation.id, text));
       setMessages((current) => [...current, message]);
       setDraft('');
     } catch {
@@ -104,7 +151,7 @@ export function ChatView({
     setSending(true);
     setError(null);
     try {
-      const message = await api.sendAttachment(conversation.id, file);
+      const message = normalizeLoadedMessage(await api.sendAttachment(conversation.id, file));
       setMessages((current) => [...current, message]);
     } catch {
       setError('Attachment could not be sent.');
@@ -156,33 +203,58 @@ export function ChatView({
         {loading ? (
           <p className={styles.status}>Loading messages…</p>
         ) : messages.length === 0 ? (
-          <p className={styles.status}>No messages yet. Start the conversation when you are ready.</p>
+          <p className={styles.status}>
+            {conversation.canSendMessages
+              ? 'Say hello to start the conversation.'
+              : 'Messages unlock after an interview invitation.'}
+          </p>
         ) : (
-          messages.map((message) => (
-            <article
-              key={message.id}
-              className={`${styles.message} ${message.isMine ? styles.mine : styles.theirs}`}
-            >
-              <p className={styles.messageText}>{message.messageText}</p>
-              {message.attachmentUrl && (
-                <button
-                  type="button"
-                  className={styles.attachment}
-                  onClick={() => void handleDownload(message)}
-                >
-                  {message.attachmentFileName ?? 'Download attachment'}
-                </button>
-              )}
-              <footer className={styles.meta}>
-                <time dateTime={message.sentAt}>{formatMessageTimestamp(message.sentAt)}</time>
-                {message.isMine && (
-                  <span>{message.readAt ? 'Read' : 'Sent'}</span>
+          timeline.map((item) => {
+            if (item.kind === 'separator') {
+              return (
+                <div key={item.key} className={styles.dateSeparator}>
+                  <span>{item.label}</span>
+                </div>
+              );
+            }
+
+            const { message } = item;
+            if (message.isSystem) {
+              return (
+                <div key={item.key} className={styles.systemMessage}>
+                  <p>{message.messageText}</p>
+                  <time dateTime={message.sentAt}>{formatMessageTimestamp(message.sentAt)}</time>
+                </div>
+              );
+            }
+
+            return (
+              <article
+                key={item.key}
+                className={`${styles.message} ${message.isMine ? styles.mine : styles.theirs}`}
+              >
+                <p className={styles.messageText}>{message.messageText}</p>
+                {message.attachmentUrl && (
+                  <button
+                    type="button"
+                    className={styles.attachment}
+                    onClick={() => void handleDownload(message)}
+                  >
+                    {message.attachmentFileName ?? 'Download attachment'}
+                  </button>
                 )}
-              </footer>
-            </article>
-          ))
+                <footer className={styles.meta}>
+                  <time dateTime={message.sentAt}>{formatMessageTimestamp(message.sentAt)}</time>
+                  {message.isMine && (
+                    <span>{message.readAt ? 'Read' : 'Sent'}</span>
+                  )}
+                </footer>
+              </article>
+            );
+          })
         )}
         {typingUserId && <p className={styles.typing}>Typing…</p>}
+        <div ref={bottomRef} />
       </div>
 
       {error && <p className={styles.error}>{error}</p>}
@@ -214,15 +286,21 @@ export function ChatView({
         >
           Attach
         </button>
-        <input
-          type="text"
+        <textarea
           className={styles.input}
+          rows={1}
           placeholder={conversation.canSendMessages ? 'Write a message…' : 'Messaging locked'}
           value={draft}
           disabled={!conversation.canSendMessages || sending}
           onChange={(event) => {
             setDraft(event.target.value);
             sendTyping();
+          }}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' && !event.shiftKey) {
+              event.preventDefault();
+              void handleSend();
+            }
           }}
         />
         <Button

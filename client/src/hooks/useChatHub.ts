@@ -12,15 +12,26 @@ interface UseChatHubOptions {
   onRead?: (readerUserId: string) => void;
 }
 
+function normalizeMessage(message: ChatMessage, currentUserId?: string): ChatMessage {
+  const isSystem = message.isSystem ?? message.type === 'System';
+  return {
+    ...message,
+    type: isSystem ? 'System' : 'User',
+    isSystem,
+    isMine: !isSystem && !!currentUserId && message.senderUserId === currentUserId,
+  };
+}
+
 export function useChatHub({
   conversationId,
   onMessage,
   onTyping,
   onRead,
 }: UseChatHubOptions) {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const connectionRef = useRef<signalR.HubConnection | null>(null);
   const typingTimeoutRef = useRef<number | null>(null);
+  const currentUserId = user?.id;
 
   useEffect(() => {
     if (!isAuthenticated || !conversationId) return;
@@ -34,7 +45,7 @@ export function useChatHub({
       .build();
 
     connection.on('MessageReceived', (message: ChatMessage) => {
-      onMessage?.(message);
+      onMessage?.(normalizeMessage(message, currentUserId));
     });
     connection.on('Typing', (payload: { senderUserId: string }) => {
       onTyping?.(payload.senderUserId);
@@ -51,7 +62,7 @@ export function useChatHub({
         if (cancelled) return;
         await connection.invoke('JoinConversation', conversationId);
       } catch {
-        // Realtime is optional; polling still works via page refresh.
+        // Realtime is optional.
       }
     })();
 
@@ -61,7 +72,7 @@ export function useChatHub({
       void connection.stop();
       connectionRef.current = null;
     };
-  }, [conversationId, isAuthenticated, onMessage, onRead, onTyping]);
+  }, [conversationId, currentUserId, isAuthenticated, onMessage, onRead, onTyping]);
 
   const sendTyping = () => {
     const connection = connectionRef.current;

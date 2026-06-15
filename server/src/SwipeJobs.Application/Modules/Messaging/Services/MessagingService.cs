@@ -209,6 +209,27 @@ public class MessagingService : IMessagingService
         return total;
     }
 
+    public async Task<int> GetCompanyUnreadCountAsync(Guid companyId, CancellationToken cancellationToken = default)
+    {
+        var conversations = await _conversationRepository.GetByCompanyIdAsync(companyId, cancellationToken);
+        var total = 0;
+        foreach (var conversation in conversations)
+        {
+            total += await _messageRepository.CountUnreadForCompanyAsync(
+                conversation.Id, companyId, cancellationToken);
+        }
+
+        return total;
+    }
+
+    public async Task<bool> CanAccessConversationAsync(
+        Guid conversationId, Guid userId, UserRole role, Guid? companyId, Guid? profileId,
+        CancellationToken cancellationToken = default)
+    {
+        var conversation = await _conversationRepository.GetByIdWithDetailsAsync(conversationId, cancellationToken);
+        return conversation is not null && CanAccess(conversation, role, companyId, profileId);
+    }
+
     public async Task<InviteToInterviewResultDto?> InviteToInterviewAsync(
         Guid companyId, Guid applicationId, CancellationToken cancellationToken = default)
     {
@@ -232,6 +253,13 @@ public class MessagingService : IMessagingService
         conversation.ClosedAt = null;
         await _conversationRepository.UpdateAsync(conversation, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        var companyName = job.Company?.Name ?? "Company";
+        await AddSystemMessageAsync(
+            conversation.Id,
+            BuildStatusSystemMessage(ApplicationStatus.InterviewInvited, companyName, job.Title)
+            ?? $"{companyName} invited you to interview for {job.Title}.",
+            cancellationToken);
 
         await _notificationService.NotifyInterviewInvitedAsync(
             application.UserProfileId,
@@ -287,12 +315,21 @@ public class MessagingService : IMessagingService
     }
 
     public async Task SyncConversationStatusForApplicationAsync(
-        Guid applicationId, ApplicationStatus status, CancellationToken cancellationToken = default)
+        Guid applicationId, ApplicationStatus status, ApplicationStatus? previousStatus = null,
+        CancellationToken cancellationToken = default)
     {
         var conversation = await _conversationRepository.GetByApplicationIdTrackedAsync(
             applicationId, cancellationToken);
         if (conversation is null)
             return;
+
+        var application = conversation.Application
+            ?? await _applicationRepository.GetByIdAsync(applicationId, cancellationToken);
+        var job = application is not null
+            ? await _jobRepository.GetByIdWithDetailsAsync(application.JobId, cancellationToken)
+            : null;
+        var companyName = conversation.Company?.Name ?? job?.Company?.Name ?? "Company";
+        var jobTitle = job?.Title ?? "this role";
 
         if (ApplicationWorkflow.IsConversationReadOnly(status) || status == ApplicationStatus.Hired)
         {
@@ -307,6 +344,23 @@ public class MessagingService : IMessagingService
 
         await _conversationRepository.UpdateAsync(conversation, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        if (previousStatus is null || previousStatus == status)
+            return;
+
+        var statusText = BuildStatusSystemMessage(status, companyName, jobTitle);
+        if (!string.IsNullOrWhiteSpace(statusText))
+        {
+            await AddSystemMessageAsync(conversation.Id, statusText, cancellationToken);
+        }
+
+        if (ApplicationWorkflow.IsConversationReadOnly(status) || status == ApplicationStatus.Hired)
+        {
+            await AddSystemMessageAsync(
+                conversation.Id,
+                "This conversation is now read-only.",
+                cancellationToken);
+        }
     }
 
     private async Task<Conversation> EnsureConversationAsync(
@@ -417,13 +471,81 @@ public class MessagingService : IMessagingService
             message.Id,
             message.ConversationId,
             message.SenderUserId,
-            message.SenderUserId == currentUserId,
+            message.Type == MessageType.User
+                && message.SenderUserId.HasValue
+                && message.SenderUserId.Value == currentUserId,
+            message.Type,
+            message.Type == MessageType.System,
             message.MessageText,
             message.AttachmentUrl,
             message.AttachmentFileName,
             message.AttachmentContentType,
             message.SentAt,
             message.ReadAt);
+
+    private async Task AddSystemMessageAsync(
+        Guid conversationId, string messageText, CancellationToken cancellationToken)
+    {
+        var text = messageText.Trim();
+        if (string.IsNullOrWhiteSpace(text))
+            return;
+
+        var message = new Message
+        {
+            ConversationId = conversationId,
+            Type = MessageType.System,
+            SenderUserId = null,
+            MessageText = text,
+            SentAt = DateTime.UtcNow,
+        };
+
+        await _messageRepository.AddAsync(message, cancellationToken);
+        var conversation = await _conversationRepository.GetByIdWithDetailsAsync(conversationId, cancellationToken);
+        if (conversation is not null)
+        {
+            conversation.UpdatedAt = DateTime.UtcNow;
+            await _conversationRepository.UpdateAsync(conversation, cancellationToken);
+        }
+
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        var dto = new MessageDto(
+            message.Id,
+            message.ConversationId,
+            null,
+            false,
+            MessageType.System,
+            true,
+            message.MessageText,
+            null,
+            null,
+            null,
+            message.SentAt,
+            null);
+
+        await _chatPublisher.PublishMessageAsync(conversationId, dto, cancellationToken);
+    }
+
+    private static string? BuildStatusSystemMessage(
+        ApplicationStatus status, string companyName, string jobTitle) =>
+        status switch
+        {
+            ApplicationStatus.Shortlisted =>
+                $"{companyName} shortlisted your application for {jobTitle}.",
+            ApplicationStatus.InterviewInvited =>
+                $"{companyName} invited you to interview for {jobTitle}.",
+            ApplicationStatus.Interviewing =>
+                $"Interview in progress for {jobTitle}.",
+            ApplicationStatus.OfferSent =>
+                $"{companyName} sent an offer for {jobTitle}.",
+            ApplicationStatus.Rejected =>
+                $"Application for {jobTitle} was not moved forward.",
+            ApplicationStatus.Withdrawn =>
+                $"Application for {jobTitle} was withdrawn.",
+            ApplicationStatus.Hired =>
+                $"Congratulations! You were hired for {jobTitle}.",
+            _ => null,
+        };
 
     private static IEnumerable<Conversation> ApplyCompanyFilter(IReadOnlyList<Conversation> conversations, string? filter)
     {

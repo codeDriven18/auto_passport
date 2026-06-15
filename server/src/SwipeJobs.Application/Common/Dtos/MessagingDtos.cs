@@ -37,8 +37,10 @@ public record ConversationDetailDto(
 public record MessageDto(
     Guid Id,
     Guid ConversationId,
-    Guid SenderUserId,
+    Guid? SenderUserId,
     bool IsMine,
+    MessageType Type,
+    bool IsSystem,
     string MessageText,
     string? AttachmentUrl,
     string? AttachmentFileName,

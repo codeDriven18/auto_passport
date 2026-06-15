@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { portalMessagingApi } from '@/api/messagingApi';
 import { ConversationList } from '@/components/messaging/ConversationList';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { PageHeader } from '@/components/ui/PageHeader';
+import { useUnreadMessages } from '@/hooks/useUnreadMessages';
 import type { ConversationSummary } from '@/models/messaging';
 import styles from './PortalMessagesPage.module.css';
 
@@ -18,6 +20,8 @@ export function PortalMessagesPage() {
   const [filter, setFilter] = useState('');
   const [conversations, setConversations] = useState<ConversationSummary[]>([]);
   const [loading, setLoading] = useState(true);
+  const location = useLocation();
+  const { refresh: refreshUnread } = useUnreadMessages();
 
   useEffect(() => {
     setLoading(true);
@@ -25,7 +29,8 @@ export function PortalMessagesPage() {
       .then(setConversations)
       .catch(() => setConversations([]))
       .finally(() => setLoading(false));
-  }, [filter]);
+    void refreshUnread();
+  }, [filter, location.pathname, refreshUnread]);
 
   return (
     <section className={styles.page}>

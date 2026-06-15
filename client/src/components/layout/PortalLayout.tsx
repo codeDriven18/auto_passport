@@ -2,6 +2,7 @@ import { NavLink, Outlet } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { IconChevronLeft } from '@/components/icons/Icons';
 import { useAuth } from '@/context/AuthContext';
+import { useUnreadMessages } from '@/hooks/useUnreadMessages';
 import { AppIcon } from '@/components/brand/AppIcon';
 import styles from './PortalLayout.module.css';
 
@@ -16,6 +17,16 @@ const navItems = [
 
 export function PortalLayout() {
   const { user } = useAuth();
+  const { count: unreadMessages } = useUnreadMessages();
+
+  const renderNavLabel = (label: string) => (
+    <span className={styles.navLabelWrap}>
+      <span>{label}</span>
+      {label === 'Messages' && unreadMessages > 0 && (
+        <span className={styles.navBadge}>{unreadMessages > 9 ? '9+' : unreadMessages}</span>
+      )}
+    </span>
+  );
 
   return (
     <div className={styles.layout}>
@@ -37,7 +48,7 @@ export function PortalLayout() {
                 [styles.sidebarLink, isActive ? styles.sidebarActive : ''].filter(Boolean).join(' ')
               }
             >
-              {item.label}
+              {renderNavLabel(item.label)}
             </NavLink>
           ))}
         </nav>
@@ -76,7 +87,7 @@ export function PortalLayout() {
                       transition={{ type: 'spring', stiffness: 420, damping: 32 }}
                     />
                   )}
-                  <span className={styles.bottomLabel}>{item.label}</span>
+                  <span className={styles.bottomLabel}>{renderNavLabel(item.label)}</span>
                 </>
               )}
             </NavLink>

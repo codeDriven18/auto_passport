@@ -29,6 +29,8 @@ public class MessageRepository : Repository<Message>, IMessageRepository
         Guid conversationId, Guid candidateUserId, CancellationToken cancellationToken = default)
         => DbSet.CountAsync(
             m => m.ConversationId == conversationId
+                && m.Type == MessageType.User
+                && m.SenderUserId != null
                 && m.SenderUserId != candidateUserId
                 && m.ReadAt == null,
             cancellationToken);
@@ -43,8 +45,10 @@ public class MessageRepository : Repository<Message>, IMessageRepository
 
         return await DbSet.CountAsync(
             m => m.ConversationId == conversationId
+                && m.Type == MessageType.User
+                && m.SenderUserId != null
                 && m.ReadAt == null
-                && !memberUserIds.Contains(m.SenderUserId),
+                && !memberUserIds.Contains(m.SenderUserId.Value),
             cancellationToken);
     }
 
@@ -53,6 +57,8 @@ public class MessageRepository : Repository<Message>, IMessageRepository
     {
         var unread = await DbSet
             .Where(m => m.ConversationId == conversationId
+                && m.Type == MessageType.User
+                && m.SenderUserId != null
                 && m.SenderUserId != readerUserId
                 && m.ReadAt == null)
             .ToListAsync(cancellationToken);

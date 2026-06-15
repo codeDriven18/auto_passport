@@ -34,11 +34,15 @@ export interface ConversationDetail {
   isReadOnly: boolean;
 }
 
+export type MessageType = 'User' | 'System';
+
 export interface ChatMessage {
   id: string;
   conversationId: string;
-  senderUserId: string;
+  senderUserId?: string;
   isMine: boolean;
+  type: MessageType;
+  isSystem: boolean;
   messageText: string;
   attachmentUrl?: string;
   attachmentFileName?: string;

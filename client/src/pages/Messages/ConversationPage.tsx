@@ -3,12 +3,14 @@ import { useParams } from 'react-router-dom';
 import { messagingApi } from '@/api/messagingApi';
 import { ChatView } from '@/components/messaging/ChatView';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { useUnreadMessages } from '@/hooks/useUnreadMessages';
 import type { ConversationDetail } from '@/models/messaging';
 
 export function ConversationPage() {
   const { conversationId } = useParams<{ conversationId: string }>();
   const [conversation, setConversation] = useState<ConversationDetail | null>(null);
   const [loading, setLoading] = useState(true);
+  const { refresh: refreshUnread } = useUnreadMessages();
 
   useEffect(() => {
     if (!conversationId) return;
@@ -44,6 +46,7 @@ export function ConversationPage() {
         markRead: messagingApi.markRead,
         downloadAttachment: messagingApi.downloadAttachment,
       }}
+      onMessagesRead={() => void refreshUnread()}
     />
   );
 }

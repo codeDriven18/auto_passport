@@ -79,21 +79,63 @@
   text-align: center;
 }
 
+.dateSeparator {
+  display: flex;
+  justify-content: center;
+  margin: var(--space-2) 0;
+}
+
+.dateSeparator span {
+  padding: 0.25rem 0.75rem;
+  border-radius: var(--radius-full);
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.systemMessage {
+  align-self: center;
+  max-width: 92%;
+  text-align: center;
+  padding: 0.35rem 0.5rem;
+}
+
+.systemMessage p {
+  margin: 0;
+  padding: 0.45rem 0.85rem;
+  border-radius: var(--radius-full);
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  font-size: 0.8125rem;
+  line-height: 1.45;
+}
+
+.systemMessage time {
+  display: block;
+  margin-top: 0.25rem;
+  color: var(--color-text-muted);
+  font-size: 0.6875rem;
+}
+
 .message {
-  max-width: 85%;
+  max-width: min(85%, 28rem);
   padding: var(--space-3);
-  border-radius: var(--radius-lg);
+  border-radius: 1.125rem;
   border: 1px solid var(--color-border);
   background: var(--color-surface);
 }
 
 .mine {
   align-self: flex-end;
-  background: var(--color-primary-soft, #eef4ff);
+  background: color-mix(in srgb, var(--color-accent) 16%, var(--color-surface));
+  border-color: color-mix(in srgb, var(--color-accent) 28%, var(--color-border));
+  border-bottom-right-radius: 0.35rem;
 }
 
 .theirs {
   align-self: flex-start;
+  border-bottom-left-radius: 0.35rem;
 }
 
 .messageText {
@@ -131,7 +173,7 @@
   display: grid;
   grid-template-columns: auto 1fr auto;
   gap: var(--space-2);
-  align-items: center;
+  align-items: end;
   padding-top: var(--space-3);
   border-top: 1px solid var(--color-border);
 }
@@ -150,9 +192,14 @@
 
 .input {
   width: 100%;
+  min-height: 2.5rem;
+  max-height: 7rem;
+  resize: none;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   padding: 0.625rem 0.75rem;
   background: var(--color-bg);
   color: var(--color-text);
+  font: inherit;
+  line-height: 1.4;
 }

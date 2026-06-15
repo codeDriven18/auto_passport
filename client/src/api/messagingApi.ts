@@ -48,6 +48,8 @@ export const portalMessagingApi = {
     return apiClient<ConversationSummary[]>(`/portal/conversations${query}`);
   },
 
+  getUnreadCount: () => apiClient<{ count: number }>('/portal/conversations/unread-count'),
+
   getConversation: (id: string) => apiClient<ConversationDetail>(`/portal/conversations/${id}`),
 
   getMessages: (id: string) => apiClient<ChatMessage[]>(`/portal/conversations/${id}/messages`),
@@ -79,4 +81,7 @@ export const portalMessagingApi = {
 
   markRead: (id: string) =>
     apiClient<void>(`/portal/conversations/${id}/read`, { method: 'POST' }),
+
+  downloadAttachment: (conversationId: string, messageId: string) =>
+    apiClientBlob(`/portal/conversations/${conversationId}/attachments/${messageId}`),
 };

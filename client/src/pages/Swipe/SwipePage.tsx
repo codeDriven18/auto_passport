@@ -25,6 +25,7 @@ import { useJobFilters } from '@/hooks/useJobFilters';
 import { useProfile } from '@/hooks/useProfile';
 import { useRefreshLock } from '@/hooks/useRefreshLock';
 import { useActivityTracking } from '@/hooks/useActivityTracking';
+import { useUnreadMessages } from '@/hooks/useUnreadMessages';
 import { refreshSeekerAccountData } from '@/lib/seekerRefresh';
 import { closeActiveFloatingPanel, registerFloatingPanel, unregisterFloatingPanel } from '@/lib/floatingPanels';
 import type { Job } from '@/models/job';
@@ -46,6 +47,7 @@ export function SwipePage() {
   const queueRef = useRef<Job[]>([]);
   const { scrollY } = useScroll({ container: pageScrollRef });
   const headerActionsOpacity = useTransform(scrollY, [0, 56], [1, 0]);
+  const { count: unreadMessages } = useUnreadMessages();
 
   const [queue, setQueue] = useState<Job[]>([]);
   queueRef.current = queue;
@@ -281,6 +283,11 @@ export function SwipePage() {
                 onClick={() => closeActiveFloatingPanel()}
               >
                 <IconMessages />
+                {unreadMessages > 0 && (
+                  <span className={styles.filterCount}>
+                    {unreadMessages > 9 ? '9+' : unreadMessages}
+                  </span>
+                )}
               </Link>
             </div>
           )}

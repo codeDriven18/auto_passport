@@ -4,6 +4,7 @@ using SwipeJobs.Application.Common.Interfaces;
 using SwipeJobs.Application.Common.Interfaces.Repositories;
 using SwipeJobs.Application.Common.Mapping;
 using SwipeJobs.Application.Modules.Applications.Interfaces;
+using SwipeJobs.Application.Modules.Messaging.Interfaces;
 using SwipeJobs.Application.Modules.Personalization.Interfaces;
 using SwipeJobs.Domain.Enums;
 using ApplicationEntity = SwipeJobs.Domain.Entities.Application;
@@ -18,6 +19,7 @@ public class ApplicationService : IApplicationService
     private readonly IJobRepository _jobRepository;
     private readonly IActivityService _activityService;
     private readonly INotificationService _notificationService;
+    private readonly IMessagingService _messagingService;
     private readonly IUnitOfWork _unitOfWork;
 
     public ApplicationService(
@@ -27,6 +29,7 @@ public class ApplicationService : IApplicationService
         IJobRepository jobRepository,
         IActivityService activityService,
         INotificationService notificationService,
+        IMessagingService messagingService,
         IUnitOfWork unitOfWork)
     {
         _applicationRepository = applicationRepository;
@@ -35,6 +38,7 @@ public class ApplicationService : IApplicationService
         _jobRepository = jobRepository;
         _activityService = activityService;
         _notificationService = notificationService;
+        _messagingService = messagingService;
         _unitOfWork = unitOfWork;
     }
 
@@ -125,6 +129,7 @@ public class ApplicationService : IApplicationService
             or ApplicationStatus.Rejected)
             return false;
 
+        var previousStatus = application.Status;
         var changedAt = DateTime.UtcNow;
         application.Status = ApplicationStatus.Withdrawn;
         application.StatusHistoryJson = ApplicationStatusHistorySerializer.Append(
@@ -133,14 +138,8 @@ public class ApplicationService : IApplicationService
         await _applicationRepository.UpdateAsync(application, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-        var conversation = await _conversationRepository.GetByApplicationIdTrackedAsync(application.Id, cancellationToken);
-        if (conversation is not null)
-        {
-            conversation.Status = Domain.Enums.ConversationStatus.ReadOnly;
-            conversation.ClosedAt = changedAt;
-            await _conversationRepository.UpdateAsync(conversation, cancellationToken);
-            await _unitOfWork.SaveChangesAsync(cancellationToken);
-        }
+        await _messagingService.SyncConversationStatusForApplicationAsync(
+            application.Id, ApplicationStatus.Withdrawn, previousStatus, cancellationToken);
 
         return true;
     }

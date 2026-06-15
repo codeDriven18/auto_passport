@@ -34,6 +34,12 @@ public interface IMessagingService
 
     Task<int> GetCandidateUnreadCountAsync(Guid profileId, CancellationToken cancellationToken = default);
 
+    Task<int> GetCompanyUnreadCountAsync(Guid companyId, CancellationToken cancellationToken = default);
+
+    Task<bool> CanAccessConversationAsync(
+        Guid conversationId, Guid userId, UserRole role, Guid? companyId, Guid? profileId,
+        CancellationToken cancellationToken = default);
+
     Task<InviteToInterviewResultDto?> InviteToInterviewAsync(
         Guid companyId, Guid applicationId, CancellationToken cancellationToken = default);
 
@@ -43,5 +49,6 @@ public interface IMessagingService
     Task<MessagingMetricsDto> GetMetricsAsync(CancellationToken cancellationToken = default);
 
     Task SyncConversationStatusForApplicationAsync(
-        Guid applicationId, ApplicationStatus status, CancellationToken cancellationToken = default);
+        Guid applicationId, ApplicationStatus status, ApplicationStatus? previousStatus = null,
+        CancellationToken cancellationToken = default);
 }

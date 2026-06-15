@@ -211,6 +211,15 @@ public class CompanyPortalController : ControllerBase
         return Ok(await _messagingService.GetCompanyConversationsAsync(companyId, filter, cancellationToken));
     }
 
+    [HttpGet("conversations/unread-count")]
+    public async Task<IActionResult> ConversationUnreadCount(CancellationToken cancellationToken)
+    {
+        _currentUser.RequireRole(UserRole.Company, UserRole.Admin);
+        var companyId = _currentUser.GetRequiredCompanyId();
+        var count = await _messagingService.GetCompanyUnreadCountAsync(companyId, cancellationToken);
+        return Ok(new { count });
+    }
+
     [HttpGet("conversations/{id:guid}")]
     public async Task<IActionResult> GetConversation(Guid id, CancellationToken cancellationToken)
     {
@@ -301,6 +310,29 @@ public class CompanyPortalController : ControllerBase
         await _messagingService.MarkConversationReadAsync(
             id, userId, UserRole.Company, companyId, null, cancellationToken);
         return NoContent();
+    }
+
+    [HttpGet("conversations/{id:guid}/attachments/{messageId:guid}")]
+    public async Task<IActionResult> DownloadConversationAttachment(
+        Guid id,
+        Guid messageId,
+        CancellationToken cancellationToken)
+    {
+        _currentUser.RequireRole(UserRole.Company, UserRole.Admin);
+        var companyId = _currentUser.GetRequiredCompanyId();
+        var userId = _currentUser.GetRequiredUserId();
+        var messages = await _messagingService.GetMessagesAsync(
+            id, userId, UserRole.Company, companyId, null, cancellationToken);
+        var message = messages.FirstOrDefault(m => m.Id == messageId);
+        if (message?.AttachmentUrl is null)
+            return NotFound();
+
+        var opened = await _attachmentStorage.OpenReadAsync(message.AttachmentUrl, cancellationToken);
+        if (opened is null)
+            return NotFound();
+
+        var (content, contentType, fileName) = opened.Value;
+        return File(content, contentType, message.AttachmentFileName ?? fileName);
     }
 
     [HttpGet("company")]

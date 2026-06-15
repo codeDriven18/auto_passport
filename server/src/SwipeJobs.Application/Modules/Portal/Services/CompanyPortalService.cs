@@ -297,7 +297,7 @@ public class CompanyPortalService : ICompanyPortalService
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         await _messagingService.SyncConversationStatusForApplicationAsync(
-            applicationId, status, cancellationToken);
+            applicationId, status, previous, cancellationToken);
 
         _logger.LogInformation(
             "Application status updated applicationId={ApplicationId} companyId={CompanyId} from={Previous} to={Status}",

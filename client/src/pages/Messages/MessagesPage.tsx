@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { messagingApi } from '@/api/messagingApi';
 import { ConversationList } from '@/components/messaging/ConversationList';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { PageHeader } from '@/components/ui/PageHeader';
+import { useUnreadMessages } from '@/hooks/useUnreadMessages';
 import type { ConversationSummary } from '@/models/messaging';
 import styles from './MessagesPage.module.css';
 
@@ -10,6 +12,8 @@ export function MessagesPage() {
   const [conversations, setConversations] = useState<ConversationSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
+  const location = useLocation();
+  const { refresh: refreshUnread } = useUnreadMessages();
 
   const load = () => {
     setLoading(true);
@@ -25,7 +29,8 @@ export function MessagesPage() {
 
   useEffect(() => {
     load();
-  }, []);
+    void refreshUnread();
+  }, [location.pathname, refreshUnread]);
 
   return (
     <section className={styles.page}>

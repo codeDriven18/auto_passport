@@ -24,5 +24,8 @@ public class ApplicationConfiguration : IEntityTypeConfiguration<Domain.Entities
         builder.HasIndex(a => a.Status);
         builder.Property(a => a.StatusHistoryJson).HasColumnType("text");
         builder.Property(a => a.ReapplicationCount).HasDefaultValue(0);
+        builder.Property(a => a.InterviewPhase).HasConversion<string>().HasMaxLength(32);
+        builder.Property(a => a.InterviewScheduledAtUtc);
+        builder.HasIndex(a => a.InterviewScheduledAtUtc);
     }
 }

@@ -146,15 +146,6 @@ export function OpportunityCard({
                 <CompanyIdentityStrip job={job} variant="compact" onDark />
               </>
             )}
-            {isCompact && (
-              <div className={styles.heroLogo}>
-                <CompanyLogo
-                  name={preview.company}
-                  logoUrl={job.companyLogoUrl}
-                  size="md"
-                />
-              </div>
-            )}
           </div>
         </div>
 

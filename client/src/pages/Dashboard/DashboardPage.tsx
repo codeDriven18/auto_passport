@@ -268,7 +268,7 @@ export function DashboardPage() {
       )}
 
       <motion.div variants={item}>
-        {(!dashboardReady || recommendationsLoading) ? (
+        {(!dashboardReady || recommendationsLoading) && recommendedJobs.length === 0 ? (
           <DiscoveryRailSkeleton title="Recommended for you" />
         ) : (
           <DiscoveryRail

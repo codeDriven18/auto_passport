@@ -261,9 +261,6 @@ export function ChatView({
         {loading ? (
           <div className={styles.loadingMessages} aria-busy="true" aria-label="Loading messages">
             <span className={styles.loader} aria-hidden />
-            <div className={`${styles.loadingBubble} ${styles.theirs}`} />
-            <div className={`${styles.loadingBubble} ${styles.mine}`} />
-            <div className={`${styles.loadingBubble} ${styles.theirs}`} />
           </div>
         ) : messages.length === 0 ? (
           <p className={styles.status}>

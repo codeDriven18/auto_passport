@@ -3,7 +3,6 @@ import { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import type { JobApplication } from '@/models/application';
 import { JobHeroImage } from '@/components/jobs/JobHeroImage';
-import { CompanyLogo } from '@/components/jobs/CompanyLogo';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { Button } from '@/components/ui/Button';
 import { ApplicationStatusTimeline } from '@/components/applications/ApplicationStatusTimeline';
@@ -83,13 +82,6 @@ export function ApplicationCard({
         <div className={styles.heroOverlay}>
           <div className={styles.heroTop}>
             <StatusBadge status={application.status} compact />
-          </div>
-          <div className={styles.heroLogo}>
-            <CompanyLogo
-              name={preview.company}
-              logoUrl={job.companyLogoUrl}
-              size="md"
-            />
           </div>
         </div>
       </div>

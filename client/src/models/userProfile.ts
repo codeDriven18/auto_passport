@@ -26,6 +26,7 @@ export interface Experience {
 
 export type WorkArrangement = 'Any' | 'Remote' | 'Hybrid' | 'Onsite';
 export type ProfileVisibilityLevel = 'Public' | 'EmployersOnly' | 'Private';
+export type JobSeekingStatus = 'ActivelyLooking' | 'OpenToOpportunities' | 'CasuallyBrowsing' | 'NotLooking';
 
 export interface UserProfile {
   id: string;
@@ -50,6 +51,7 @@ export interface UserProfile {
   desiredSalaryMax?: number;
   preferredLocations?: string;
   workArrangement: WorkArrangement;
+  jobSeekingStatus: JobSeekingStatus;
   emailNotifications: boolean;
   pushNotifications: boolean;
   jobAlerts: boolean;
@@ -80,6 +82,7 @@ export interface UpdateUserProfileRequest {
   desiredSalaryMax?: number;
   preferredLocations?: string;
   workArrangement?: WorkArrangement;
+  jobSeekingStatus?: JobSeekingStatus;
   emailNotifications?: boolean;
   pushNotifications?: boolean;
   jobAlerts?: boolean;

@@ -7,6 +7,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { UserAvatar } from '@/components/profile/UserAvatar';
 import { ApplicationStatus, ApplicationStatusLabels } from '@/models/enums';
 import type { PortalApplicantDetail } from '@/models/portalApplicant';
+import { formatJobSeekingStatus } from '@/lib/jobSeekingStatus';
 import styles from './PortalPage.module.css';
 
 const PIPELINE_STATUSES = [
@@ -156,6 +157,7 @@ export function PortalApplicantPage() {
           <div>
             <h2 className={styles.cardTitle}>{fullName}</h2>
             {applicant.headline && <p className={styles.cardMeta}>{applicant.headline}</p>}
+            <p className={styles.cardMeta}>{formatJobSeekingStatus(applicant.jobSeekingStatus)}</p>
             <p className={styles.cardMeta}>
               {applicant.email}
               {applicant.phone ? ` · ${applicant.phone}` : ''}

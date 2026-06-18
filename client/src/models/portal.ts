@@ -14,6 +14,10 @@ export interface PortalApplication {
   id: string;
   status: ApplicationStatus;
   appliedAt: string;
+  /** Sub-state when in interview stage (requested / scheduled / completed). */
+  interviewPhase?: 'none' | 'requested' | 'scheduled' | 'completed';
+  /** Reserved for calendar integration. */
+  interviewScheduledAtUtc?: string;
   jobId: string;
   jobTitle: string;
   userProfileId: string;

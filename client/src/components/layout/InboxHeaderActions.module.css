@@ -17,15 +17,13 @@
   transition: background var(--transition-fast), transform var(--duration-fast) var(--ease-out);
 }
 
-.iconBtn:active {
-  transform: scale(0.94);
+.headerIcon {
+  display: block;
+  flex-shrink: 0;
 }
 
-.chatIcon,
-.headerIcon {
-  width: 1.375rem;
-  height: 1.375rem;
-  display: block;
+.iconBtn:active {
+  transform: scale(0.94);
 }
 
 .badge {

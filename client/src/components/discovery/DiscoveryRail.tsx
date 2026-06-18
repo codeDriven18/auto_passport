@@ -2,9 +2,9 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useMemo } from 'react';
 import type { Job } from '@/models/job';
+import { getJobCardPreview } from '@/lib/jobPreview';
 import { JobHeroImage } from '@/components/jobs/JobHeroImage';
 import { resolveJobImage } from '@/lib/resolveJobImage';
-import { formatSalary } from '@/lib/jobFormat';
 import { getMatchScore } from '@/lib/jobMatch';
 import styles from './DiscoveryRail.module.css';
 
@@ -16,6 +16,7 @@ interface DiscoveryJobCardProps {
 
 export function DiscoveryJobCard({ job, index = 0, onClick }: DiscoveryJobCardProps) {
   const heroImage = useMemo(() => resolveJobImage(job), [job]);
+  const preview = useMemo(() => getJobCardPreview(job), [job]);
 
   return (
     <motion.article
@@ -30,15 +31,13 @@ export function DiscoveryJobCard({ job, index = 0, onClick }: DiscoveryJobCardPr
       whileTap={{ scale: 0.98 }}
     >
       <div className={styles.hero}>
-        <JobHeroImage image={heroImage} alt={job.title} className={styles.heroImage} />
+        <JobHeroImage image={heroImage} alt={preview.title} className={styles.heroImage} variant="compact" />
         <span className={styles.match}>{getMatchScore(job)}%</span>
       </div>
       <div className={styles.body}>
-        <span className={styles.title}>{job.title}</span>
-        <span className={styles.company}>{job.company}</span>
-        <span className={styles.salary}>
-          {formatSalary(job.salaryMin, job.salaryMax, job.category, job.externalUrl)}
-        </span>
+        <span className={styles.title}>{preview.title}</span>
+        <span className={styles.company}>{preview.company}</span>
+        <span className={styles.salary}>{preview.salary}</span>
       </div>
     </motion.article>
   );

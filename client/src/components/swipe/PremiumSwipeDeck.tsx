@@ -189,14 +189,14 @@ export const PremiumSwipeDeck = forwardRef<PremiumSwipeDeckHandle, PremiumSwipeD
                   style={{ opacity: passOpacity }}
                 >
                   <IconX size={28} />
-                  <span>NOPE</span>
+                  <span>SKIP</span>
                 </motion.div>
                 <motion.div
                   className={`${styles.stamp} ${styles.stampApply}`}
                   style={{ opacity: applyOpacity }}
                 >
                   <IconHeart size={28} />
-                  <span>LIKE</span>
+                  <span>APPLY</span>
                 </motion.div>
                 <motion.span
                   className={`${styles.stamp} ${styles.stampSave}`}

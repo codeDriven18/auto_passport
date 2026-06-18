@@ -72,6 +72,18 @@
   white-space: nowrap;
 }
 
+.seekingStatus {
+  margin: 0;
+  display: inline-flex;
+  padding: 0.2rem 0.55rem;
+  border-radius: var(--radius-full);
+  background: color-mix(in srgb, var(--color-accent) 14%, var(--color-bg));
+  border: 1px solid color-mix(in srgb, var(--color-accent) 28%, transparent);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text);
+}
+
 .role {
   font-size: 0.9375rem;
   font-weight: 500;
@@ -80,6 +92,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  margin: 0;
 }
 
 .location {

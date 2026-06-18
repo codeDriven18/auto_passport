@@ -12,7 +12,8 @@ import {
   type ProfileFormState,
 } from '@/lib/profileForm';
 import { getApiErrorMessage } from '@/lib/apiErrors';
-import type { ProfileVisibilityLevel, WorkArrangement } from '@/models/userProfile';
+import type { ProfileVisibilityLevel, WorkArrangement, JobSeekingStatus } from '@/models/userProfile';
+import { JOB_SEEKING_STATUS_OPTIONS, JOB_SEEKING_STATUS_LABELS } from '@/lib/jobSeekingStatus';
 import styles from './ProfilePage.module.css';
 
 const SECTION_TITLES: Record<string, string> = {
@@ -199,6 +200,16 @@ export function ProfileSectionPage() {
             </div>
             <Field label="Preferred locations">
               <input value={form.preferredLocations} onChange={(e) => patchForm({ preferredLocations: e.target.value })} />
+            </Field>
+            <Field label="Job-seeking status">
+              <select
+                value={form.jobSeekingStatus}
+                onChange={(e) => patchForm({ jobSeekingStatus: e.target.value as JobSeekingStatus })}
+              >
+                {JOB_SEEKING_STATUS_OPTIONS.map((status) => (
+                  <option key={status} value={status}>{JOB_SEEKING_STATUS_LABELS[status]}</option>
+                ))}
+              </select>
             </Field>
             <Field label="Work arrangement">
               <select value={form.workArrangement} onChange={(e) => patchForm({ workArrangement: e.target.value as WorkArrangement })}>

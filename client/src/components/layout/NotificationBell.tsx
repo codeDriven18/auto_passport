@@ -1,7 +1,7 @@
 import { useCallback, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { IconBell, IconCheck, IconChevronRight } from '@/components/icons/Icons';
+import { IconBell, IconChevronRight } from '@/components/icons/Icons';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useDismissibleOverlay } from '@/hooks/useDismissibleOverlay';
 import { useAuth } from '@/context/AuthContext';
@@ -17,7 +17,7 @@ interface NotificationBellProps {
 
 export function NotificationBell({ bellClassName }: NotificationBellProps = {}) {
   const { isAuthenticated, user } = useAuth();
-  const { notifications, unreadCount, markAllRead, markRead, dismiss, dismissAll } = useNotifications();
+  const { notifications, unreadCount, markAllRead, markRead } = useNotifications();
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -42,10 +42,6 @@ export function NotificationBell({ bellClassName }: NotificationBellProps = {}) 
   });
 
   if (!isAuthenticated || user?.role !== UserRole.JobSeeker) return null;
-
-  const handleNotificationOpen = (id: string, isRead: boolean) => {
-    if (!isRead) void markRead(id);
-  };
 
   const handleNotificationNavigate = (id: string, isRead: boolean) => {
     if (!isRead) void markRead(id);
@@ -106,45 +102,33 @@ export function NotificationBell({ bellClassName }: NotificationBellProps = {}) 
             >
               <div className={styles.panelHeader}>
                 <span className={styles.panelTitle}>Notifications</span>
-                {notifications.length > 0 && (
-                  <button type="button" className={styles.markAll} onClick={() => void dismissAll()}>
-                    Clear all
-                  </button>
-                )}
+                <Link to="/profile/notifications" className={styles.settingsLink} onClick={close}>
+                  Settings
+                </Link>
               </div>
 
               {notifications.length === 0 ? (
                 <p className={styles.empty}>No notifications yet.</p>
               ) : (
                 <ul className={styles.list}>
-                  {notifications.map((n) => (
-                    <li
-                      key={n.id}
-                      className={n.isRead ? styles.itemRead : styles.item}
-                      onMouseEnter={() => handleNotificationOpen(n.id, n.isRead)}
-                      onFocus={() => handleNotificationOpen(n.id, n.isRead)}
-                    >
-                      <div className={styles.itemTop}>
-                        <strong>{n.title}</strong>
-                        <button
-                          type="button"
-                          className={styles.readBtn}
-                          onClick={() => void dismiss(n.id)}
-                          aria-label="Dismiss notification"
-                        >
-                          <IconCheck size={16} />
-                        </button>
-                      </div>
-                      <p className={styles.msg}>{n.message}</p>
-                      {(() => {
-                        const to = resolveNotificationLink(n);
-                        if (!to) return null;
-                        const label = n.type === NotificationType.NewMessage
-                          ? 'Open conversation'
-                          : n.type === NotificationType.InterviewInvited
-                            ? 'View application'
-                            : 'View details';
-                        return (
+                  {notifications.map((n) => {
+                    const to = resolveNotificationLink(n);
+                    const label = n.type === NotificationType.NewMessage
+                      ? 'Open conversation'
+                      : n.type === NotificationType.InterviewInvited
+                        ? 'View application'
+                        : 'View details';
+
+                    return (
+                      <li
+                        key={n.id}
+                        className={n.isRead ? styles.itemRead : styles.item}
+                      >
+                        <div className={styles.itemTop}>
+                          <strong>{n.title}</strong>
+                        </div>
+                        <p className={styles.msg}>{n.message}</p>
+                        {to && (
                           <Link
                             to={to}
                             className={styles.link}
@@ -152,10 +136,10 @@ export function NotificationBell({ bellClassName }: NotificationBellProps = {}) 
                           >
                             {label} <IconChevronRight size={14} />
                           </Link>
-                        );
-                      })()}
-                    </li>
-                  ))}
+                        )}
+                      </li>
+                    );
+                  })}
                 </ul>
               )}
             </motion.div>

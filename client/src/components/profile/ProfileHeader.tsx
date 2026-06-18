@@ -4,6 +4,7 @@ import { IconMapPin, IconShare, IconVerified } from '@/components/icons/Icons';
 import { CoverUploader } from '@/components/profile/CoverUploader';
 import { UserAvatar } from '@/components/profile/UserAvatar';
 import type { UserProfile } from '@/models/userProfile';
+import { formatJobSeekingStatus } from '@/lib/jobSeekingStatus';
 import styles from './ProfileHeader.module.css';
 
 interface ProfileHeaderProps {
@@ -29,6 +30,7 @@ export function ProfileHeader({
 }: ProfileHeaderProps) {
   const role = profile.headline?.trim() || 'Add your role or headline';
   const location = profile.location?.trim() || 'Add location';
+  const seekingStatus = formatJobSeekingStatus(profile.jobSeekingStatus);
 
   return (
     <header className={styles.header}>
@@ -63,6 +65,8 @@ export function ProfileHeader({
           </div>
 
           <p className={styles.role}>{role}</p>
+
+          <p className={styles.seekingStatus}>{seekingStatus}</p>
 
           <p className={styles.location}>
             <IconMapPin size={14} />

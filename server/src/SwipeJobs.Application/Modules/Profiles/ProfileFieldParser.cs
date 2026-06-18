@@ -23,4 +23,14 @@ internal static class ProfileFieldParser
             ? parsed
             : fallback;
     }
+
+    public static JobSeekingStatus ParseJobSeekingStatus(string? value, JobSeekingStatus fallback = JobSeekingStatus.ActivelyLooking)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return fallback;
+
+        return Enum.TryParse<JobSeekingStatus>(value, true, out var parsed)
+            ? parsed
+            : fallback;
+    }
 }

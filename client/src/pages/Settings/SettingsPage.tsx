@@ -11,6 +11,7 @@ import {
   IconSmartphone,
   IconSpark,
   IconUser,
+  IconBell,
 } from '@/components/icons/Icons';
 import styles from './SettingsPage.module.css';
 
@@ -31,6 +32,21 @@ export function SettingsPage() {
             <span className={styles.rowBody}>
               <span className={styles.rowTitle}>Admin console</span>
               <span className={styles.rowDesc}>Users, companies, jobs, and platform settings</span>
+            </span>
+            <IconChevronRight size={18} className={styles.rowChevron} aria-hidden />
+          </Link>
+        </div>
+      )}
+
+      {isAuthenticated && (
+        <div className={styles.group}>
+          <Link to="/profile/notifications" className={styles.row}>
+            <span className={styles.rowIcon} aria-hidden>
+              <IconBell size={20} />
+            </span>
+            <span className={styles.rowBody}>
+              <span className={styles.rowTitle}>Notifications</span>
+              <span className={styles.rowDesc}>Email, push, and job alerts</span>
             </span>
             <IconChevronRight size={18} className={styles.rowChevron} aria-hidden />
           </Link>

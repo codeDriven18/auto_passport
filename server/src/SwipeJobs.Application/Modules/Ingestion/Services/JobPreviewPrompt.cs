@@ -12,12 +12,12 @@ internal static class JobPreviewPrompt
         Return valid JSON only. Do not explain. Do not use markdown. Do not use emojis.
 
         Rules:
-        - displayTitle: professional normalized job title, max 60 characters
+        - displayTitle: professional job title, target 25-40 characters, maximum 55 characters, must sound like a real job title
         - displayCompany: company name; if missing and extraction confidence >= 80 you may infer from channelHint; otherwise use exactly "Company not specified"
         - displaySalary: compact salary text for a card (e.g. "$80k–$120k", "Competitive", "Not disclosed")
         - displayLocation: compact location (e.g. "Remote", "Tashkent", "Hybrid · Berlin")
-        - displaySkills: up to 5 most relevant skills, short labels
-        - displaySummary: one professional sentence for a job card, max 180 characters, no raw Telegram tone
+        - displaySkills: 3-5 short skill/tag labels (also returned as displayTags)
+        - displaySummary: one professional sentence for a job card, maximum 120 characters, no raw Telegram tone
 
         Expected JSON:
         {
@@ -51,7 +51,7 @@ internal static class JobPreviewTextSanitizer
     }
 
     public static JobPreviewResult EnforceLimits(JobPreviewResult preview) => new(
-        Truncate(StripEmojis(preview.DisplayTitle), 60),
+        Truncate(StripEmojis(preview.DisplayTitle), 55),
         Truncate(StripEmojis(preview.DisplayCompany), 120),
         Truncate(StripEmojis(preview.DisplaySalary), 80),
         Truncate(StripEmojis(preview.DisplayLocation), 80),
@@ -61,7 +61,7 @@ internal static class JobPreviewTextSanitizer
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .Take(5)
             .ToList(),
-        Truncate(StripEmojis(preview.DisplaySummary), 180));
+        Truncate(StripEmojis(preview.DisplaySummary), 120));
 }
 
 internal static class JobPreviewJsonParser

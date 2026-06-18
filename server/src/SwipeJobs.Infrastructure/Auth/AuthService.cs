@@ -486,6 +486,7 @@ public class AuthService : IAuthService
         {
             UserId = user.Id,
             CompanyId = company.Id,
+            Role = Domain.Enums.CompanyMemberRole.Owner,
         };
         await _companyMemberRepository.AddAsync(membership, cancellationToken);
         RegisterFlowDiagnostics.LogPhaseStart(_logger, "create-company-membership", "SaveChangesAsync (membership)");

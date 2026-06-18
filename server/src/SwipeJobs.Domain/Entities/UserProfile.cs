@@ -29,6 +29,7 @@ public class UserProfile : BaseEntity
     public decimal? DesiredSalaryMax { get; set; }
     public string? PreferredLocations { get; set; }
     public WorkArrangement WorkArrangement { get; set; } = WorkArrangement.Any;
+    public JobSeekingStatus JobSeekingStatus { get; set; } = JobSeekingStatus.ActivelyLooking;
     public bool EmailNotifications { get; set; } = true;
     public bool PushNotifications { get; set; } = true;
     public bool JobAlerts { get; set; } = true;

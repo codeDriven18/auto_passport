@@ -78,6 +78,7 @@ public record PortalApplicantDetailDto(
     string? Headline,
     string? Bio,
     string? Location,
+    string JobSeekingStatus,
     string? ProfileImageUrl,
     bool HasResume,
     string? ResumeFileName,

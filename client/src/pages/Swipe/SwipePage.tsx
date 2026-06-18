@@ -239,6 +239,9 @@ export function SwipePage() {
 
       <div className={styles.pageScroll}>
       <header ref={headerRef} className={styles.header}>
+        <span className={styles.deckCount}>
+          {loading || isRefreshing ? '…' : `${queue.length} left`}
+        </span>
         <button
           type="button"
           className={styles.headerBtn}
@@ -277,10 +280,6 @@ export function SwipePage() {
             </div>
 
             <div className={styles.controls}>
-              <span className={styles.deckCount}>
-                {loading || isRefreshing ? '…' : `${queue.length} left`}
-              </span>
-
               <div
                 className={`${styles.onboardingSlot} ${onboardingCollapsed ? styles.onboardingSlotCollapsed : ''} ${onboardingFading ? styles.onboardingSlotFading : ''}`}
                 aria-hidden={onboardingCollapsed}

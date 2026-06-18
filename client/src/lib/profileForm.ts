@@ -6,6 +6,7 @@ import type {
   UserProfile,
   WorkArrangement,
   ProfileVisibilityLevel,
+  JobSeekingStatus,
 } from '@/models/userProfile';
 
 export interface ProfileFormState {
@@ -24,6 +25,7 @@ export interface ProfileFormState {
   desiredSalaryMax: string;
   preferredLocations: string;
   workArrangement: WorkArrangement;
+  jobSeekingStatus: JobSeekingStatus;
   emailNotifications: boolean;
   pushNotifications: boolean;
   jobAlerts: boolean;
@@ -61,6 +63,7 @@ export function profileToFormState(profile: UserProfile): ProfileFormState {
     desiredSalaryMax: profile.desiredSalaryMax?.toString() ?? '',
     preferredLocations: profile.preferredLocations ?? '',
     workArrangement: profile.workArrangement ?? 'Any',
+    jobSeekingStatus: profile.jobSeekingStatus ?? 'ActivelyLooking',
     emailNotifications: profile.emailNotifications ?? true,
     pushNotifications: profile.pushNotifications ?? true,
     jobAlerts: profile.jobAlerts ?? true,
@@ -96,6 +99,7 @@ export function formStateToPayload(form: ProfileFormState): UpdateUserProfileReq
     desiredSalaryMax: parseSalary(form.desiredSalaryMax),
     preferredLocations: form.preferredLocations.trim() || undefined,
     workArrangement: form.workArrangement,
+    jobSeekingStatus: form.jobSeekingStatus,
     emailNotifications: form.emailNotifications,
     pushNotifications: form.pushNotifications,
     jobAlerts: form.jobAlerts,

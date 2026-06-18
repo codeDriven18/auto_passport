@@ -48,6 +48,10 @@ import { PortalApplicationsPage } from '@/pages/Portal/PortalApplicationsPage';
 import { PortalApplicantPage } from '@/pages/Portal/PortalApplicantPage';
 import { PortalMessagesPage } from '@/pages/Portal/PortalMessagesPage';
 import { PortalConversationPage } from '@/pages/Portal/PortalConversationPage';
+import { PortalPipelinePage } from '@/pages/Portal/PortalPipelinePage';
+import { PortalAnalyticsPage } from '@/pages/Portal/PortalAnalyticsPage';
+import { PortalCompanyPage } from '@/pages/Portal/PortalCompanyPage';
+import { PortalSettingsPage } from '@/pages/Portal/PortalSettingsPage';
 import { MessagesPage } from '@/pages/Messages/MessagesPage';
 import { ConversationPage } from '@/pages/Messages/ConversationPage';
 import { PublicProfilePage } from '@/pages/Profile/PublicProfilePage';
@@ -99,11 +103,15 @@ export function AppRouter() {
           }
         >
           <Route index element={<PortalDashboardPage />} />
+          <Route path="pipeline" element={<PortalPipelinePage />} />
           <Route path="jobs" element={<PortalJobsPage />} />
           <Route path="applications" element={<PortalApplicationsPage />} />
           <Route path="applications/:applicationId" element={<PortalApplicantPage />} />
           <Route path="messages" element={<PortalMessagesPage />} />
           <Route path="messages/:conversationId" element={<PortalConversationPage />} />
+          <Route path="analytics" element={<PortalAnalyticsPage />} />
+          <Route path="company" element={<PortalCompanyPage />} />
+          <Route path="settings" element={<PortalSettingsPage />} />
         </Route>
 
         <Route element={<AppLayout />}>

@@ -34,6 +34,14 @@ namespace SwipeJobs.Infrastructure.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("InterviewPhase")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<DateTime?>("InterviewScheduledAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<Guid>("JobId")
                         .HasColumnType("uuid");
 
@@ -59,6 +67,8 @@ namespace SwipeJobs.Infrastructure.Migrations
                         .HasColumnType("uuid");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("InterviewScheduledAtUtc");
 
                     b.HasIndex("JobId");
 
@@ -232,6 +242,11 @@ namespace SwipeJobs.Infrastructure.Migrations
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Role")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -1398,6 +1413,11 @@ namespace SwipeJobs.Infrastructure.Migrations
 
                     b.Property<bool>("JobAlerts")
                         .HasColumnType("boolean");
+
+                    b.Property<string>("JobSeekingStatus")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
 
                     b.Property<string>("LastName")
                         .IsRequired()

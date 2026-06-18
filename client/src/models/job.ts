@@ -40,6 +40,7 @@ export interface Job {
   displaySalary?: string;
   displayLocation?: string;
   displaySkills?: string[];
+  displayTags?: string[];
   displaySummary?: string;
   createdAt: string;
   updatedAt?: string;

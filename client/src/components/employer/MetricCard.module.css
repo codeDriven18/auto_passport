@@ -1,0 +1,38 @@
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-5);
+  border-radius: var(--employer-radius-lg, var(--radius-xl));
+  background: var(--employer-surface, var(--color-surface-raised));
+  border: 1px solid var(--employer-border, var(--color-border-subtle));
+  box-shadow: var(--employer-shadow-sm, var(--shadow-sm));
+  min-width: 0;
+}
+
+.label {
+  font-size: var(--text-secondary);
+  font-weight: var(--weight-medium);
+  color: var(--color-text-muted);
+}
+
+.value {
+  font-size: clamp(1.5rem, 2.4vw, 1.875rem);
+  font-weight: var(--weight-bold);
+  letter-spacing: var(--tracking-tight);
+  line-height: 1.1;
+}
+
+.trend {
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  color: var(--color-success);
+}
+
+.trendDown {
+  color: var(--color-danger);
+}
+
+.accent {
+  color: var(--employer-brand, var(--color-accent));
+}

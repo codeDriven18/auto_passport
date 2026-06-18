@@ -27,6 +27,7 @@ export interface PortalApplicantDetail {
   headline?: string;
   bio?: string;
   location?: string;
+  jobSeekingStatus?: string;
   profileImageUrl?: string;
   hasResume: boolean;
   resumeFileName?: string;

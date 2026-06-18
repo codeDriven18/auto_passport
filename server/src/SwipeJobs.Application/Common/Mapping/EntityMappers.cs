@@ -215,6 +215,7 @@ public static class ProfileMapper
         profile.DesiredSalaryMax,
         profile.PreferredLocations,
         profile.WorkArrangement.ToString(),
+        profile.JobSeekingStatus.ToString(),
         profile.EmailNotifications,
         profile.PushNotifications,
         profile.JobAlerts,

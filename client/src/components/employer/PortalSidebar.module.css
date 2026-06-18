@@ -1,0 +1,90 @@
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  width: var(--employer-sidebar-width);
+  min-height: 100dvh;
+  padding: var(--space-6) var(--space-4);
+  background: var(--employer-sidebar-bg);
+  border-right: 1px solid var(--employer-border);
+}
+
+.nav {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  flex: 1;
+}
+
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.groupLabel {
+  margin: 0 0 0.25rem;
+  padding: 0 var(--space-3);
+  font-size: 0.6875rem;
+  font-weight: var(--weight-bold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  opacity: 0.85;
+}
+
+.link {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 0.625rem var(--space-3);
+  border-radius: var(--radius-lg);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-muted);
+  transition: background var(--duration-fast) var(--ease-out), color var(--duration-fast) var(--ease-out);
+  min-width: 0;
+}
+
+.link:hover {
+  color: var(--color-text);
+  background: var(--employer-surface-hover);
+}
+
+.linkActive {
+  color: var(--color-text);
+  background: color-mix(in srgb, var(--employer-brand) 12%, var(--employer-surface-elevated));
+  box-shadow: inset 3px 0 0 var(--employer-brand);
+}
+
+.linkIcon {
+  flex-shrink: 0;
+  opacity: 0.88;
+  width: 1.125rem;
+  height: 1.125rem;
+}
+
+.linkLabel {
+  flex: 1;
+  min-width: 0;
+}
+
+.badge {
+  min-width: 1.125rem;
+  height: 1.125rem;
+  padding: 0 0.3rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-full);
+  background: var(--employer-brand);
+  color: #0a0a0a;
+  font-size: 0.625rem;
+  font-weight: 800;
+}
+
+.footer {
+  margin-top: auto;
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--employer-border);
+}

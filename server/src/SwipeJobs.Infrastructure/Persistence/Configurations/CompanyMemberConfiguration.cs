@@ -11,6 +11,7 @@ public class CompanyMemberConfiguration : IEntityTypeConfiguration<CompanyMember
         builder.HasKey(x => x.Id);
         builder.HasIndex(x => x.UserId).IsUnique();
         builder.HasIndex(x => new { x.CompanyId, x.UserId }).IsUnique();
+        builder.Property(x => x.Role).HasConversion<string>().HasMaxLength(32);
 
         builder.HasOne(x => x.User)
             .WithOne(x => x.CompanyMembership)

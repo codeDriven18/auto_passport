@@ -1,99 +1,92 @@
-import { NavLink, Outlet } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { IconChevronLeft } from '@/components/icons/Icons';
-import { useAuth } from '@/context/AuthContext';
+import { useMemo, useState } from 'react';
+import { Outlet, useLocation } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+import { EmployerWorkspaceProvider, useEmployerWorkspace } from '@/context/EmployerWorkspaceContext';
 import { useUnreadMessages } from '@/hooks/useUnreadMessages';
-import { AppIcon } from '@/components/brand/AppIcon';
+import { PortalHeader } from '@/components/employer/PortalHeader';
+import { PortalSidebar } from '@/components/employer/PortalSidebar';
+import { PortalMobileNav } from '@/components/employer/PortalMobileNav';
+import { resolvePortalPageTitle } from '@/components/employer/portalNav';
 import styles from './PortalLayout.module.css';
 
-const navItems = [
-  { to: '/portal', label: 'Overview', end: true },
-  { to: '/portal/jobs', label: 'Jobs' },
-  { to: '/portal/applications', label: 'Applicants' },
-  { to: '/portal/messages', label: 'Messages' },
-  { to: '/profile', label: 'Company' },
-  { to: '/account', label: 'Settings' },
-] as const;
-
-export function PortalLayout() {
-  const { user } = useAuth();
+function PortalLayoutShell() {
+  const location = useLocation();
+  const { brandColor } = useEmployerWorkspace();
   const { count: unreadMessages } = useUnreadMessages();
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
-  const renderNavLabel = (label: string) => (
-    <span className={styles.navLabelWrap}>
-      <span>{label}</span>
-      {label === 'Messages' && unreadMessages > 0 && (
-        <span className={styles.navBadge}>{unreadMessages > 9 ? '9+' : unreadMessages}</span>
-      )}
-    </span>
+  const isConversation = /^\/portal\/messages\/[^/]+$/.test(location.pathname);
+  const pageTitle = useMemo(
+    () => resolvePortalPageTitle(location.pathname),
+    [location.pathname],
   );
 
-  return (
-    <div className={styles.layout}>
-      <aside className={styles.sidebar}>
-        <div className={styles.brand}>
-          <AppIcon size="sm" />
-          <div className={styles.brandText}>
-            <span className={styles.brandTitle}>Workspace</span>
-            <span className={styles.brandSub}>{user?.companyName ?? 'Your company'}</span>
-          </div>
-        </div>
-        <nav className={styles.sidebarNav} aria-label="Portal navigation">
-          {navItems.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              end={'end' in item ? item.end : false}
-              className={({ isActive }) =>
-                [styles.sidebarLink, isActive ? styles.sidebarActive : ''].filter(Boolean).join(' ')
-              }
-            >
-              {renderNavLabel(item.label)}
-            </NavLink>
-          ))}
-        </nav>
-        <NavLink to="/" className={styles.backLink}>
-          <IconChevronLeft size={16} /> Back to app
-        </NavLink>
-      </aside>
+  const layoutStyle = useMemo(
+    () => ({ '--employer-brand': brandColor }) as React.CSSProperties,
+    [brandColor],
+  );
 
-      <main className={styles.main}>
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-        >
+  if (isConversation) {
+    return (
+      <div className={`${styles.layout} ${styles.layoutFullscreen}`} style={layoutStyle}>
+        <main className={styles.mainFullscreen}>
           <Outlet />
-        </motion.div>
-      </main>
+        </main>
+      </div>
+    );
+  }
 
-      <nav className={styles.bottomNav} aria-label="Portal navigation">
-        <div className={styles.bottomInner}>
-          {navItems.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              end={'end' in item ? item.end : false}
-              className={({ isActive }) =>
-                [styles.bottomLink, isActive ? styles.bottomActive : ''].filter(Boolean).join(' ')
-              }
-            >
-              {({ isActive }) => (
-                <>
-                  {isActive && (
-                    <motion.span
-                      layoutId="portal-nav-indicator"
-                      className={styles.bottomIndicator}
-                      transition={{ type: 'spring', stiffness: 420, damping: 32 }}
-                    />
-                  )}
-                  <span className={styles.bottomLabel}>{renderNavLabel(item.label)}</span>
-                </>
-              )}
-            </NavLink>
-          ))}
-        </div>
-      </nav>
+  return (
+    <div className={styles.layout} style={layoutStyle}>
+      <PortalSidebar unreadMessages={unreadMessages} className={styles.desktopSidebar} />
+
+      <AnimatePresence>
+        {drawerOpen && (
+          <div className={styles.drawer} role="presentation">
+            <button
+              type="button"
+              className={styles.drawerBackdrop}
+              aria-label="Close menu"
+              onClick={() => setDrawerOpen(false)}
+            />
+            <PortalSidebar
+              unreadMessages={unreadMessages}
+              onNavigate={() => setDrawerOpen(false)}
+              className={styles.drawerPanel}
+            />
+          </div>
+        )}
+      </AnimatePresence>
+
+      <div className={styles.workspace}>
+        <PortalHeader
+          title={pageTitle}
+          showMenuButton
+          onOpenMenu={() => setDrawerOpen(true)}
+        />
+
+        <main className={styles.main}>
+          <motion.div
+            key={location.pathname}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+            className={styles.page}
+          >
+            <Outlet />
+          </motion.div>
+        </main>
+      </div>
+
+      <PortalMobileNav unreadMessages={unreadMessages} />
     </div>
+  );
+}
+
+export function PortalLayout() {
+  return (
+    <EmployerWorkspaceProvider>
+      <PortalLayoutShell />
+    </EmployerWorkspaceProvider>
   );
 }

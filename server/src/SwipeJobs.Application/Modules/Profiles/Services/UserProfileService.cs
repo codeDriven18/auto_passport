@@ -91,6 +91,7 @@ public class UserProfileService : IUserProfileService
             profile.LastName,
             profile.Headline,
             profile.Location,
+            profile.JobSeekingStatus.ToString(),
             profile.ProfileImageUrl,
             profile.Skills.Select(s => s.Name).Take(8).ToList(),
             !string.IsNullOrWhiteSpace(profile.LinkedInUrl),
@@ -394,6 +395,9 @@ public class UserProfileService : IUserProfileService
 
         if (dto.WorkArrangement is not null)
             profile.WorkArrangement = ProfileFieldParser.ParseWorkArrangement(dto.WorkArrangement);
+
+        if (dto.JobSeekingStatus is not null)
+            profile.JobSeekingStatus = ProfileFieldParser.ParseJobSeekingStatus(dto.JobSeekingStatus, profile.JobSeekingStatus);
 
         if (dto.EmailNotifications.HasValue)
             profile.EmailNotifications = dto.EmailNotifications.Value;

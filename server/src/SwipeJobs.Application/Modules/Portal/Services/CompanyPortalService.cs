@@ -253,6 +253,7 @@ public class CompanyPortalService : ICompanyPortalService
             profile.Headline,
             profile.Bio,
             profile.Location,
+            profile.JobSeekingStatus.ToString(),
             profile.ProfileImageUrl,
             !string.IsNullOrWhiteSpace(profile.ResumeUrl) || !string.IsNullOrWhiteSpace(profile.ResumeFileName),
             profile.ResumeFileName,

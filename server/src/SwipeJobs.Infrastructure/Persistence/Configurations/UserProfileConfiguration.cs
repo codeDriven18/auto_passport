@@ -25,6 +25,7 @@ public class UserProfileConfiguration : IEntityTypeConfiguration<UserProfile>
         builder.Property(u => u.WebsiteUrl).HasMaxLength(500);
         builder.Property(u => u.PreferredLocations).HasMaxLength(500);
         builder.Property(u => u.WorkArrangement).HasConversion<string>().HasMaxLength(32);
+        builder.Property(u => u.JobSeekingStatus).HasConversion<string>().HasMaxLength(32);
         builder.Property(u => u.ProfileVisibility).HasConversion<string>().HasMaxLength(32);
         builder.Property(u => u.ContactVisibility).HasConversion<string>().HasMaxLength(32);
 

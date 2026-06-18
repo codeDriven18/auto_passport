@@ -54,11 +54,12 @@
 }
 
 .panel {
-  position: absolute;
-  top: calc(100% + 0.5rem);
-  right: 0;
-  width: min(20rem, calc(100vw - 2.5rem));
-  max-height: 22rem;
+  position: fixed;
+  top: calc(env(safe-area-inset-top, 0px) + 3.25rem);
+  right: max(0.75rem, env(safe-area-inset-right, 0px));
+  left: auto;
+  width: min(20rem, calc(100vw - 1.5rem));
+  max-height: min(22rem, calc(100dvh - var(--nav-height) - 5rem));
   overflow-y: auto;
   overscroll-behavior: contain;
   scrollbar-width: none;
@@ -89,13 +90,14 @@
   font-size: 0.9375rem;
 }
 
-.markAll {
+.markAll,
+.settingsLink {
   font-size: 0.75rem;
   font-weight: 600;
   color: var(--color-text-muted);
 }
 
-.markAll:hover {
+.settingsLink:hover {
   color: var(--color-text);
 }
 

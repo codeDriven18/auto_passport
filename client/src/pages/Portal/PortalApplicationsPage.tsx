@@ -6,7 +6,6 @@ import ui from '@/components/employer/ui/employerUi.module.css';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ApplicationStatusLabels } from '@/models/enums';
 import type { PortalApplication } from '@/models/portal';
-import styles from './PortalApplicationsPage.module.css';
 
 export function PortalApplicationsPage() {
   const [searchParams] = useSearchParams();
@@ -28,8 +27,7 @@ export function PortalApplicationsPage() {
 
   const pageTitle = useMemo(() => {
     if (!jobIdFilter) return 'Candidates';
-    const jobTitle = applications[0]?.jobTitle;
-    return jobTitle ?? 'Candidates';
+    return applications[0]?.jobTitle ?? 'Candidates';
   }, [jobIdFilter, applications]);
 
   if (loading) return <p className={ui.statusText}>Loading candidates…</p>;
@@ -44,38 +42,65 @@ export function PortalApplicationsPage() {
 
   return (
     <section className={ui.page}>
-      <header>
-        <h1 className={styles.pageTitle}>{pageTitle}</h1>
-        <p className={styles.pageMeta}>
-          {applications.length} {applications.length === 1 ? 'person' : 'people'} to evaluate
-          {jobIdFilter && (
-            <>
-              {' · '}
-              <Link to="/portal/applications">All candidates</Link>
-            </>
-          )}
-        </p>
-      </header>
-
-      {applications.length === 0 ? (
-        <EmptyState illustration="applications" title="No candidates yet" description="Applications appear when candidates apply to your roles." actions={[{ label: 'View pipeline', to: '/portal/pipeline', primary: true }]} />
-      ) : (
-        <div className={styles.candidateList}>
-          {applications.map((app) => {
-            const parts = app.applicantName.trim().split(/\s+/);
-            return (
-              <Link key={app.id} to={`/portal/applications/${app.id}`} className={styles.candidateRow}>
-                <UserAvatar profile={{ firstName: parts[0] ?? '', lastName: parts.slice(1).join(' '), email: app.applicantEmail, profileImageUrl: app.applicantProfileImageUrl }} size="lg" />
-                <div className={styles.candidateRowMain}>
-                  <h2 className={styles.candidateName}>{app.applicantName || 'Candidate'}</h2>
-                  <p className={styles.candidateRole}>{app.jobTitle}</p>
-                </div>
-                <span className={ui.badge}>{ApplicationStatusLabels[app.status]}</span>
-              </Link>
-            );
-          })}
+      <div className={ui.workboard}>
+        <div className={ui.workboardToolbar}>
+          <div>
+            <h1 className={ui.workboardToolbarTitle}>{pageTitle}</h1>
+            {jobIdFilter && (
+              <p className={ui.workboardToolbarMeta}>
+                <Link to="/portal/applications">View all candidates</Link>
+              </p>
+            )}
+          </div>
+          <span className={ui.workboardToolbarMeta}>{applications.length} total</span>
         </div>
-      )}
+
+        {applications.length === 0 ? (
+          <EmptyState illustration="applications" title="No candidates yet" description="Applications appear when candidates apply to your roles." actions={[{ label: 'View pipeline', to: '/portal/pipeline', primary: true }]} />
+        ) : (
+          <div className={ui.workboardWrap}>
+            <table className={ui.workboardTable}>
+              <thead>
+                <tr>
+                  <th>Candidate</th>
+                  <th>Role</th>
+                  <th>Status</th>
+                  <th>Applied</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {applications.map((app) => {
+                  const parts = app.applicantName.trim().split(/\s+/);
+                  const applied = new Date(app.appliedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+                  return (
+                    <tr key={app.id}>
+                      <td>
+                        <div className={ui.workboardCellName}>
+                          <UserAvatar profile={{ firstName: parts[0] ?? '', lastName: parts.slice(1).join(' '), email: app.applicantEmail, profileImageUrl: app.applicantProfileImageUrl }} size="md" />
+                          <div className={ui.workboardCellStack}>
+                            <span className={ui.workboardCellTitle}>{app.applicantName || 'Candidate'}</span>
+                            <span className={ui.workboardCellSub}>{app.applicantEmail}</span>
+                          </div>
+                        </div>
+                      </td>
+                      <td>{app.jobTitle}</td>
+                      <td><span className={ui.badge}>{ApplicationStatusLabels[app.status]}</span></td>
+                      <td>{applied}{app.unreadMessageCount > 0 ? ` · ${app.unreadMessageCount} unread` : ''}</td>
+                      <td>
+                        <div className={ui.workboardActions}>
+                          <Link to={`/portal/applications/${app.id}`} className={ui.btnPrimary}>Profile</Link>
+                          <Link to="/portal/pipeline" className={ui.btnGhost}>Pipeline</Link>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
     </section>
   );
 }

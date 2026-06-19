@@ -7,6 +7,13 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { CompanyStatus, CompanyStatusLabels } from '@/models/operations';
 import dashStyles from './PortalDashboardPage.module.css';
 
+const QUICK_NAV = [
+  { label: 'Pipeline', to: '/portal/pipeline' },
+  { label: 'Candidates', to: '/portal/applications' },
+  { label: 'Messages', to: '/portal/messages' },
+  { label: 'Roles', to: '/portal/jobs' },
+] as const;
+
 export function PortalDashboardPage() {
   const { stats, loading, refreshStats } = useEmployerWorkspace();
   const { count: unreadMessages } = useUnreadMessages();
@@ -30,7 +37,6 @@ export function PortalDashboardPage() {
 
   const isApproved = stats.companyStatus === CompanyStatus.Approved;
   const attentionItems = buildEmployerAttentionItems({ stats, unreadMessages });
-  const [primaryAction, ...otherActions] = attentionItems;
 
   return (
     <section className={ui.page}>
@@ -43,37 +49,47 @@ export function PortalDashboardPage() {
         </div>
       )}
 
-      <Link to={primaryAction.to} className={dashStyles.primaryFocus}>
-        {primaryAction.count != null && primaryAction.count > 0 && (
-          <span className={dashStyles.primaryCount}>{primaryAction.count}</span>
-        )}
-        <span className={dashStyles.primaryLabel}>Do this next</span>
-        <span className={dashStyles.primaryTitle}>{primaryAction.title}</span>
-        <span className={dashStyles.primaryDesc}>{primaryAction.description}</span>
-        <span className={ui.btnPrimary}>Continue</span>
-      </Link>
-
-      {otherActions.length > 0 && (
-        <div className={dashStyles.secondaryList}>
-          {otherActions.map((item) => (
-            <Link key={item.id} to={item.to} className={dashStyles.secondaryRow}>
-              {item.count != null && item.count > 0 ? (
-                <span className={dashStyles.secondaryCount}>{item.count}</span>
-              ) : (
-                <span className={dashStyles.secondaryCount} aria-hidden>·</span>
-              )}
-              <span className={dashStyles.secondaryTitle}>{item.title}</span>
-            </Link>
-          ))}
+      <div className={ui.workboard}>
+        <div className={ui.workboardToolbar}>
+          <h1 className={ui.workboardToolbarTitle}>Needs your attention</h1>
+          <span className={ui.workboardToolbarMeta}>{attentionItems.length} open</span>
         </div>
-      )}
+        <div className={ui.workboardWrap}>
+          <table className={ui.workboardTable}>
+            <thead>
+              <tr>
+                <th>Task</th>
+                <th>Details</th>
+                <th>Count</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {attentionItems.map((item, index) => (
+                <tr key={item.id} className={index === 0 ? ui.workboardRowPrimary : undefined}>
+                  <td className={ui.workboardCellTitle}>{item.title}</td>
+                  <td className={ui.workboardCellSub}>{item.description}</td>
+                  <td>{item.count ?? '—'}</td>
+                  <td>
+                    <Link to={item.to} className={index === 0 ? ui.btnPrimary : ui.btnGhost}>
+                      {index === 0 ? 'Do now' : 'Open'}
+                    </Link>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <nav className={ui.quickNav} aria-label="Quick navigation">
+        {QUICK_NAV.map((item) => (
+          <Link key={item.to} to={item.to} className={ui.quickNavLink}>{item.label}</Link>
+        ))}
+      </nav>
 
       <p className={dashStyles.contextLine}>
-        {stats.activeJobs} active {stats.activeJobs === 1 ? 'role' : 'roles'}
-        {' · '}
-        {stats.totalApplications} {stats.totalApplications === 1 ? 'candidate' : 'candidates'}
-        {' — '}
-        <Link to="/portal/pipeline">Open pipeline</Link>
+        {stats.activeJobs} active roles · {stats.newApplicationsThisWeek} new this week · {stats.totalApplications} total candidates
       </p>
     </section>
   );

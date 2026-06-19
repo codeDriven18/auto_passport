@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { portalApi } from '@/api/portalApi';
@@ -100,19 +101,23 @@ export function PipelineBoard() {
             {selectedJobTitle ? ` · ${selectedJobTitle}` : ''}
           </span>
         </h1>
-        {jobs.length > 0 && (
-          <select
-            className={styles.jobFilter}
-            value={jobId ?? ''}
-            aria-label="Filter by job"
-            onChange={(event) => handleJobFilter(event.target.value)}
-          >
-            <option value="">All roles</option>
-            {jobs.map((job) => (
-              <option key={job.id} value={job.id}>{job.title}</option>
-            ))}
-          </select>
-        )}
+        <div className={styles.boardToolbarActions}>
+          {jobs.length > 0 && (
+            <select
+              className={styles.jobFilter}
+              value={jobId ?? ''}
+              aria-label="Filter by job"
+              onChange={(event) => handleJobFilter(event.target.value)}
+            >
+              <option value="">All roles</option>
+              {jobs.map((job) => (
+                <option key={job.id} value={job.id}>{job.title}</option>
+              ))}
+            </select>
+          )}
+          <Link to="/portal/applications" className={styles.boardLink}>Candidates</Link>
+          <Link to="/portal/messages" className={styles.boardLink}>Messages</Link>
+        </div>
       </div>
 
       <div className={`${styles.boardShell} ${comp.focalDominant}`}>

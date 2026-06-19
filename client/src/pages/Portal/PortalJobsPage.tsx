@@ -9,7 +9,6 @@ import { getFriendlyErrorMessage } from '@/lib/friendlyError';
 import { JobCategory, JobLevel } from '@/models/enums';
 import { CompanyStatus, CompanyStatusLabels } from '@/models/operations';
 import type { PortalJob } from '@/models/portal';
-import styles from './PortalJobsPage.module.css';
 
 const emptyForm = {
   title: '',
@@ -46,6 +45,7 @@ export function PortalJobsPage() {
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [archivingId, setArchivingId] = useState<string | null>(null);
 
   const load = () => {
     setLoading(true);
@@ -79,9 +79,7 @@ export function PortalJobsPage() {
     setShowForm(true);
   };
 
-  const openEdit = (job: PortalJob, event: React.MouseEvent) => {
-    event.preventDefault();
-    event.stopPropagation();
+  const openEdit = (job: PortalJob) => {
     setEditingId(job.id);
     setForm({
       title: job.title,
@@ -97,6 +95,16 @@ export function PortalJobsPage() {
     });
     setFormError(null);
     setShowForm(true);
+  };
+
+  const handleArchive = async (id: string) => {
+    setArchivingId(id);
+    try {
+      await portalApi.archiveJob(id);
+      load();
+    } finally {
+      setArchivingId(null);
+    }
   };
 
   const handleSubmit = async (e: FormEvent) => {
@@ -138,8 +146,8 @@ export function PortalJobsPage() {
   if (showForm) {
     return (
       <section className={ui.page}>
-        <div className={styles.pageHeader}>
-          <h1 className={styles.pageTitle}>{editingId ? 'Edit role' : 'New role'}</h1>
+        <div className={ui.workboardToolbar}>
+          <h1 className={ui.workboardToolbarTitle}>{editingId ? 'Edit role' : 'New role'}</h1>
           <button type="button" className={ui.btnGhost} onClick={() => { setShowForm(false); setEditingId(null); }}>Back to roles</button>
         </div>
         <form className={ui.formPanel} onSubmit={(e) => void handleSubmit(e)}>
@@ -192,33 +200,55 @@ export function PortalJobsPage() {
 
   return (
     <section className={ui.page}>
-      <div className={styles.pageHeader}>
-        <h1 className={styles.pageTitle}>{activeJobs.length} active {activeJobs.length === 1 ? 'campaign' : 'campaigns'}</h1>
-        <button type="button" className={ui.btnPrimary} disabled={!canPublish} onClick={openCreate}>Post role</button>
-      </div>
-
       {!canPublish && companyStatus !== null && (
         <div className={ui.notice}>Blocked — {CompanyStatusLabels[companyStatus]}. Publishing unlocks after approval.</div>
       )}
 
-      {loading ? <p className={ui.statusText}>Loading roles…</p> : failed ? (
-        <EmptyState illustration="generic" title="Could not load jobs" description="Check your connection." actions={[{ label: 'Retry', onClick: load, primary: true }]} />
-      ) : activeJobs.length === 0 ? (
-        <EmptyState illustration="generic" title="No active campaigns" description="Publish a role to start receiving candidates." actions={canPublish ? [{ label: 'Post role', onClick: openCreate, primary: true }] : []} />
-      ) : (
-        <div className={styles.campaignList}>
-          {activeJobs.map((job) => (
-            <Link key={job.id} to={`/portal/pipeline?jobId=${job.id}`} className={styles.campaignRow}>
-              <div className={styles.campaignRowMain}>
-                <h2 className={styles.campaignTitle}>{job.title}</h2>
-                <p className={styles.campaignMeta}>{job.city ?? job.location ?? 'No location'} · {job.isRemote ? 'Remote' : 'On-site'}</p>
-              </div>
-              <span className={ui.badgeSuccess}>Active</span>
-              <button type="button" className={`${ui.btnGhost} ${styles.campaignEdit}`} onClick={(event) => openEdit(job, event)}>Edit</button>
-            </Link>
-          ))}
+      <div className={ui.workboard}>
+        <div className={ui.workboardToolbar}>
+          <h1 className={ui.workboardToolbarTitle}>Active roles</h1>
+          <div className={ui.workboardActions}>
+            <span className={ui.workboardToolbarMeta}>{activeJobs.length} total</span>
+            <button type="button" className={ui.btnPrimary} disabled={!canPublish} onClick={openCreate}>Post role</button>
+          </div>
         </div>
-      )}
+
+        {loading ? <p className={ui.statusText}>Loading roles…</p> : failed ? (
+          <EmptyState illustration="generic" title="Could not load jobs" description="Check your connection." actions={[{ label: 'Retry', onClick: load, primary: true }]} />
+        ) : activeJobs.length === 0 ? (
+          <EmptyState illustration="generic" title="No active roles" description="Publish a role to start receiving candidates." actions={canPublish ? [{ label: 'Post role', onClick: openCreate, primary: true }] : []} />
+        ) : (
+          <div className={ui.workboardWrap}>
+            <table className={ui.workboardTable}>
+              <thead>
+                <tr>
+                  <th>Role</th>
+                  <th>Location</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {activeJobs.map((job) => (
+                  <tr key={job.id}>
+                    <td className={ui.workboardCellTitle}>{job.title}</td>
+                    <td>{job.city ?? job.location ?? '—'} · {job.isRemote ? 'Remote' : 'On-site'}</td>
+                    <td><span className={ui.badgeSuccess}>Active</span></td>
+                    <td>
+                      <div className={ui.workboardActions}>
+                        <Link to={`/portal/pipeline?jobId=${job.id}`} className={ui.btnPrimary}>Pipeline</Link>
+                        <Link to={`/portal/applications?jobId=${job.id}`} className={ui.btnGhost}>Candidates</Link>
+                        <button type="button" className={ui.btnGhost} onClick={() => openEdit(job)}>Edit</button>
+                        <button type="button" className={ui.btnDanger} disabled={archivingId === job.id} onClick={() => void handleArchive(job.id)}>Archive</button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
     </section>
   );
 }

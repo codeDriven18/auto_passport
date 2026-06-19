@@ -14,10 +14,19 @@
   color: var(--employer-ink);
 }
 
-.heroBanner {
-  height: 7rem;
-  background:
-    linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 45%, color-mix(in srgb, var(--employer-brand) 35%, #1a1a1a) 100%);
+.profileHeader {
+  padding: var(--employer-space-block);
+}
+
+.profileHeaderRow {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-5);
+}
+
+.profileHeaderBody {
+  flex: 1;
+  min-width: 0;
 }
 
 .heroMeta {

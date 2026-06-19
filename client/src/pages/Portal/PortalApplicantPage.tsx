@@ -126,11 +126,7 @@ export function PortalApplicantPage() {
   const fullName = `${applicant.firstName} ${applicant.lastName}`.trim() || 'Candidate';
   const isClosed = applicant.status === ApplicationStatus.Rejected
     || applicant.status === ApplicationStatus.Withdrawn;
-
-  const hasProfileContent = applicant.bio
-    || applicant.skills.length > 0
-    || applicant.experiences.length > 0
-    || applicant.educations.length > 0;
+  const appliedDate = new Date(applicant.appliedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
 
   return (
     <section className={ui.page}>
@@ -138,131 +134,148 @@ export function PortalApplicantPage() {
         <IconChevronLeft size={16} /> Candidates
       </Link>
 
-      <article className={ui.profileHero}>
-        <div className={styles.heroBanner} aria-hidden />
-        <div className={ui.profileHeroBody}>
-          <UserAvatar
-            profile={{
-              firstName: applicant.firstName,
-              lastName: applicant.lastName,
-              email: applicant.email,
-              profileImageUrl: applicant.profileImageUrl,
-            }}
-            size="lg"
-          />
-          <div className={ui.profileHeroContent}>
-            <h1 className={ui.profileName}>{fullName}</h1>
-            {applicant.headline && <p className={ui.profileHeadline}>{applicant.headline}</p>}
-            <div className={styles.heroMeta}>
-              <CandidateTrustBadge level={applicant.candidateTrustLevel} signals={applicant.candidateTrustSignals} />
-              <span className={ui.badge}>{ApplicationStatusLabels[applicant.status]}</span>
-            </div>
-            <p className={ui.profileHeadline}>
-              {formatJobSeekingStatus(applicant.jobSeekingStatus)} · {applicant.jobTitle}
-            </p>
-            <div className={ui.profileActions}>
-              <button type="button" className={ui.btnPrimary} disabled={updating || isClosed} onClick={() => void handleInvite()}>
-                Invite to interview
-              </button>
-              {applicant.conversationId && (
-                <Link to={`/portal/messages/${applicant.conversationId}`} className={ui.btnSecondary}>Message</Link>
-              )}
-              {applicant.hasResume && (
-                <button type="button" className={ui.btnGhost} disabled={downloading} onClick={() => void handleDownloadResume()}>
-                  {downloading ? 'Downloading…' : 'Resume'}
-                </button>
-              )}
-              {!isClosed && (
-                <details className={styles.stageMenu}>
-                  <summary className={ui.btnGhost}>Move stage</summary>
-                  <div className={styles.stageActions}>
-                    <button type="button" className={ui.btnGhost} disabled={updating || applicant.status === ApplicationStatus.UnderReview} onClick={() => void handleStatusChange(ApplicationStatus.UnderReview)}>Review</button>
-                    <button type="button" className={ui.btnGhost} disabled={updating || applicant.status === ApplicationStatus.Shortlisted} onClick={() => void handleShortlist()}>Shortlist</button>
-                    <button type="button" className={ui.btnGhost} disabled={updating} onClick={() => void handleStatusChange(ApplicationStatus.Rejected)}>Reject</button>
-                    {PIPELINE_STATUSES.map((status) => (
-                      <button key={status} type="button" className={ui.btnGhost} disabled={updating || applicant.status === status} onClick={() => void handleStatusChange(status)}>
-                        {ApplicationStatusLabels[status]}
-                      </button>
-                    ))}
-                  </div>
-                </details>
-              )}
-            </div>
-          </div>
-        </div>
-      </article>
-
-      {error && <p className={ui.formError} role="alert">{error}</p>}
-
-      {hasProfileContent && (
-        <article className={`${ui.profileSection} ${comp.profileBody}`}>
-          {applicant.bio && (
-            <section className={comp.profileBlock}>
-              <h2 className={ui.profileSectionTitle}>About</h2>
-              <p className={styles.bodyText}>{applicant.bio}</p>
-            </section>
-          )}
-
-          {applicant.experiences.length > 0 && (
-            <section className={comp.profileBlock}>
-              <h2 className={ui.profileSectionTitle}>Experience</h2>
-              <div className={styles.timeline}>
-                {applicant.experiences.map((exp) => (
-                  <div key={exp.id ?? `${exp.company}-${exp.title}`} className={styles.timelineItem}>
-                    <strong>{exp.title}</strong>
-                    <span className={styles.timelineMeta}> at {exp.company}</span>
-                    {exp.description && <p className={styles.bodyText}>{exp.description}</p>}
-                  </div>
-                ))}
-              </div>
-            </section>
-          )}
-
-          {applicant.skills.length > 0 && (
-            <section className={comp.profileBlock}>
-              <h2 className={ui.profileSectionTitle}>Skills</h2>
-              <ul className={styles.tagList}>
-                {applicant.skills.map((skill) => (
-                  <li key={skill.id ?? skill.name} className={styles.tag}>{skill.name}{skill.level ? ` · ${skill.level}` : ''}</li>
-                ))}
-              </ul>
-            </section>
-          )}
-
-          {applicant.educations.length > 0 && (
-            <section className={comp.profileBlock}>
-              <h2 className={ui.profileSectionTitle}>Education</h2>
-              <div className={styles.timeline}>
-                {applicant.educations.map((edu) => (
-                  <div key={edu.id ?? `${edu.institution}-${edu.degree}`} className={styles.timelineItem}>
-                    <strong>{edu.degree}</strong>
-                    <span className={styles.timelineMeta}> — {edu.institution}</span>
-                    {edu.fieldOfStudy && <p className={styles.bodyText}>{edu.fieldOfStudy}</p>}
-                  </div>
-                ))}
-              </div>
-            </section>
-          )}
-        </article>
-      )}
-
-      {applicant.applicationHistory.length > 1 && (
-        <details className={styles.historyDetails}>
-          <summary>Previous applications ({applicant.applicationHistory.length - 1})</summary>
-          <div className={styles.timeline}>
-            {applicant.applicationHistory.map((entry) => (
-              <div key={entry.applicationId} className={styles.timelineItem}>
-                <strong>Application #{entry.applicationNumber}</strong>
-                <span className={styles.timelineMeta}> — {ApplicationStatusLabels[entry.status]}</span>
-                <p className={styles.bodyText}>
-                  {new Date(entry.appliedAt).toLocaleDateString()}
-                  {entry.applicationId === applicant.applicationId && ' (current)'}
+      <div className={ui.profileLayout}>
+        <div className={ui.profileMain}>
+          <article className={`${ui.profileSection} ${styles.profileHeader}`}>
+            <div className={styles.profileHeaderRow}>
+              <UserAvatar
+                profile={{
+                  firstName: applicant.firstName,
+                  lastName: applicant.lastName,
+                  email: applicant.email,
+                  profileImageUrl: applicant.profileImageUrl,
+                }}
+                size="lg"
+              />
+              <div className={styles.profileHeaderBody}>
+                <h1 className={ui.profileName}>{fullName}</h1>
+                {applicant.headline && <p className={ui.profileHeadline}>{applicant.headline}</p>}
+                <div className={styles.heroMeta}>
+                  <CandidateTrustBadge level={applicant.candidateTrustLevel} signals={applicant.candidateTrustSignals} />
+                </div>
+                <p className={ui.profileHeadline}>
+                  {formatJobSeekingStatus(applicant.jobSeekingStatus)}
+                  {applicant.location ? ` · ${applicant.location}` : ''}
                 </p>
+                <p className={ui.profileHeadline}>{applicant.email}{applicant.phone ? ` · ${applicant.phone}` : ''}</p>
               </div>
-            ))}
+            </div>
+          </article>
+
+          {error && <p className={ui.formError} role="alert">{error}</p>}
+
+          <article className={`${ui.profileSection} ${comp.profileBody}`}>
+            {applicant.bio && (
+              <section className={comp.profileBlock}>
+                <h2 className={ui.profileSectionTitle}>About</h2>
+                <p className={styles.bodyText}>{applicant.bio}</p>
+              </section>
+            )}
+
+            {applicant.experiences.length > 0 && (
+              <section className={comp.profileBlock}>
+                <h2 className={ui.profileSectionTitle}>Experience</h2>
+                <div className={styles.timeline}>
+                  {applicant.experiences.map((exp) => (
+                    <div key={exp.id ?? `${exp.company}-${exp.title}`} className={styles.timelineItem}>
+                      <strong>{exp.title}</strong>
+                      <span className={styles.timelineMeta}> at {exp.company}</span>
+                      {exp.description && <p className={styles.bodyText}>{exp.description}</p>}
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {applicant.skills.length > 0 && (
+              <section className={comp.profileBlock}>
+                <h2 className={ui.profileSectionTitle}>Skills</h2>
+                <ul className={styles.tagList}>
+                  {applicant.skills.map((skill) => (
+                    <li key={skill.id ?? skill.name} className={styles.tag}>{skill.name}{skill.level ? ` · ${skill.level}` : ''}</li>
+                  ))}
+                </ul>
+              </section>
+            )}
+
+            {applicant.educations.length > 0 && (
+              <section className={comp.profileBlock}>
+                <h2 className={ui.profileSectionTitle}>Education</h2>
+                <div className={styles.timeline}>
+                  {applicant.educations.map((edu) => (
+                    <div key={edu.id ?? `${edu.institution}-${edu.degree}`} className={styles.timelineItem}>
+                      <strong>{edu.degree}</strong>
+                      <span className={styles.timelineMeta}> — {edu.institution}</span>
+                      {edu.fieldOfStudy && <p className={styles.bodyText}>{edu.fieldOfStudy}</p>}
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {applicant.hasResume && (
+              <section className={comp.profileBlock}>
+                <h2 className={ui.profileSectionTitle}>Resume</h2>
+                <button type="button" className={ui.btnGhost} disabled={downloading} onClick={() => void handleDownloadResume()}>
+                  {downloading ? 'Downloading…' : `Download ${applicant.resumeFileName ?? 'resume'}`}
+                </button>
+              </section>
+            )}
+          </article>
+
+          {applicant.statusHistory.length > 0 && (
+            <article className={ui.profileSection}>
+              <h2 className={ui.profileSectionTitle}>Activity</h2>
+              <div className={styles.timeline}>
+                {[...applicant.statusHistory].reverse().map((entry, index) => (
+                  <div key={`${entry.status}-${entry.changedAt}-${index}`} className={styles.timelineItem}>
+                    <strong>{ApplicationStatusLabels[entry.status]}</strong>
+                    <p className={styles.bodyText}>{new Date(entry.changedAt).toLocaleString()}</p>
+                  </div>
+                ))}
+              </div>
+            </article>
+          )}
+        </div>
+
+        <aside className={ui.profileSidebar}>
+          <div>
+            <p className={ui.profileSidebarTitle}>Current stage</p>
+            <span className={ui.badge}>{ApplicationStatusLabels[applicant.status]}</span>
           </div>
-        </details>
-      )}
+          <div>
+            <p className={ui.profileSidebarTitle}>Applying for</p>
+            <p className={styles.bodyText}>{applicant.jobTitle}</p>
+            <p className={styles.bodyText}>Applied {appliedDate}</p>
+          </div>
+
+          <div className={ui.profileSidebarActions}>
+            <button type="button" className={ui.btnPrimary} disabled={updating || isClosed} onClick={() => void handleInvite()}>
+              Invite to interview
+            </button>
+            {applicant.conversationId && (
+              <Link to={`/portal/messages/${applicant.conversationId}`} className={ui.btnSecondary}>Message</Link>
+            )}
+            <Link to="/portal/pipeline" className={ui.btnGhost}>Open pipeline</Link>
+          </div>
+
+          {!isClosed && (
+            <div>
+              <p className={ui.profileSidebarTitle}>Move stage</p>
+              <div className={ui.profileSidebarActions}>
+                <button type="button" className={ui.btnGhost} disabled={updating || applicant.status === ApplicationStatus.UnderReview} onClick={() => void handleStatusChange(ApplicationStatus.UnderReview)}>Review</button>
+                <button type="button" className={ui.btnGhost} disabled={updating || applicant.status === ApplicationStatus.Shortlisted} onClick={() => void handleShortlist()}>Shortlist</button>
+                {PIPELINE_STATUSES.map((status) => (
+                  <button key={status} type="button" className={ui.btnGhost} disabled={updating || applicant.status === status} onClick={() => void handleStatusChange(status)}>
+                    {ApplicationStatusLabels[status]}
+                  </button>
+                ))}
+                <button type="button" className={ui.btnDanger} disabled={updating} onClick={() => void handleStatusChange(ApplicationStatus.Rejected)}>Reject</button>
+              </div>
+            </div>
+          )}
+        </aside>
+      </div>
     </section>
   );
 }

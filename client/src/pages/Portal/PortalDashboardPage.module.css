@@ -1,96 +1,13 @@
-.primaryFocus {
-  composes: surfaceHero from '@/components/employer/ui/employerUi.module.css';
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: var(--space-3);
-  text-decoration: none;
-  color: inherit;
-  min-height: 12rem;
-}
-
-.primaryCount {
-  font-size: clamp(2.5rem, 6vw, 3.5rem);
-  font-weight: 800;
-  line-height: 1;
-  letter-spacing: -0.04em;
-}
-
-.primaryLabel {
-  font-size: 0.6875rem;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--employer-muted);
-}
-
-.primaryTitle {
-  font-size: clamp(1.25rem, 2.5vw, 1.625rem);
-  font-weight: 800;
-  letter-spacing: -0.03em;
-  line-height: 1.2;
-}
-
-.primaryDesc {
-  font-size: var(--text-sm);
-  color: var(--employer-muted);
-  line-height: 1.55;
-  max-width: 32rem;
-}
-
-.secondaryList {
-  composes: compactRows from '@/styles/employerComposition.module.css';
-}
-
-.secondaryRow {
-  composes: surface surfacePad from '@/components/employer/ui/employerUi.module.css';
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  min-width: 0;
-  text-decoration: none;
-  color: inherit;
-}
-
-.secondaryCount {
-  flex-shrink: 0;
-  min-width: 1.75rem;
-  height: 1.75rem;
-  padding: 0 0.45rem;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--radius-full);
-  background: var(--employer-brand-soft);
-  font-size: var(--text-sm);
-  font-weight: 700;
-}
-
-.secondaryTitle {
-  font-weight: 600;
-  font-size: var(--text-sm);
-}
-
-.contextLine {
-  margin: 0;
-  font-size: var(--text-sm);
-  color: var(--employer-muted);
-}
-
-.contextLine a {
-  color: var(--employer-ink);
-  font-weight: 600;
-  text-decoration: none;
-}
-
-.contextLine a:hover {
-  text-decoration: underline;
-}
-
 .blockedBanner {
   composes: notice from '@/components/employer/ui/employerUi.module.css';
 }
 
 .blockedBannerDanger {
   composes: noticeDanger from '@/components/employer/ui/employerUi.module.css';
+}
+
+.contextLine {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--employer-muted);
 }

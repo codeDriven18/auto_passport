@@ -508,6 +508,167 @@
   gap: var(--employer-space-block);
 }
 
+/* Workboard — admin-style scannable tables using employer tokens */
+.workboard {
+  composes: surface;
+  overflow: hidden;
+}
+
+.workboardToolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--employer-space-block);
+  border-bottom: 1px solid var(--employer-border);
+}
+
+.workboardToolbarTitle {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.workboardToolbarMeta {
+  font-size: var(--text-sm);
+  color: var(--employer-muted);
+}
+
+.workboardWrap {
+  overflow-x: auto;
+}
+
+.workboardTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+}
+
+.workboardTable th {
+  padding: 0.75rem var(--employer-space-block);
+  text-align: left;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--employer-muted);
+  background: var(--employer-surface-muted);
+  border-bottom: 1px solid var(--employer-border);
+  white-space: nowrap;
+}
+
+.workboardTable td {
+  padding: 0.875rem var(--employer-space-block);
+  border-bottom: 1px solid var(--employer-border);
+  vertical-align: middle;
+}
+
+.workboardTable tbody tr:hover {
+  background: var(--employer-surface-hover);
+}
+
+.workboardTable tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.workboardRowPrimary td {
+  background: var(--employer-brand-soft);
+}
+
+.workboardRowPrimary:hover td {
+  background: color-mix(in srgb, var(--employer-brand) 18%, var(--employer-surface));
+}
+
+.workboardActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.workboardCellName {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.workboardCellStack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  min-width: 0;
+}
+
+.workboardCellTitle {
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.workboardCellSub {
+  font-size: var(--text-xs);
+  color: var(--employer-muted);
+}
+
+.quickNav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.quickNavLink {
+  composes: btnGhost;
+  padding: 0.5rem 1rem;
+}
+
+.profileLayout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--employer-space-section);
+  align-items: start;
+}
+
+.profileMain {
+  display: flex;
+  flex-direction: column;
+  gap: var(--employer-space-block);
+  min-width: 0;
+}
+
+.profileSidebar {
+  composes: surface surfacePad;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.profileSidebarTitle {
+  margin: 0;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--employer-muted);
+}
+
+.profileSidebarActions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+@media (min-width: 900px) {
+  .profileLayout {
+    grid-template-columns: minmax(0, 1fr) 17.5rem;
+  }
+
+  .profileSidebar {
+    position: sticky;
+    top: var(--space-4);
+  }
+}
+
 @media (min-width: 768px) {
   .grid2 {
     grid-template-columns: repeat(2, minmax(0, 1fr));

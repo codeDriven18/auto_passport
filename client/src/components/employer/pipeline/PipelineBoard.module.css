@@ -41,6 +41,27 @@
   color: var(--employer-muted);
 }
 
+.boardToolbarActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.boardLink {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--employer-muted);
+  text-decoration: none;
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius-full);
+}
+
+.boardLink:hover {
+  color: var(--employer-ink);
+  background: var(--employer-surface-hover);
+}
+
 .jobFilter {
   min-width: min(100%, 14rem);
   padding: 0.625rem 0.875rem;

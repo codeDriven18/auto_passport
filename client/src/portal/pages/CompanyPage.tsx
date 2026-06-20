@@ -1,8 +1,9 @@
 import { IconMapPin } from '@/components/icons/Icons';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { portalApi } from '@/api/portalApi';
 import { CompanyAvatar } from '@/components/profile/CompanyAvatar';
+import { ImageDropZone } from '@/portal/components/ImageDropZone';
 import { PageFrame, Panel } from '@/portal/components/PageFrame';
 import ws from '@/portal/workspace.module.css';
 import { useToast } from '@/context/ToastContext';
@@ -10,13 +11,10 @@ import { getApiErrorMessage } from '@/lib/apiErrors';
 import type { Company } from '@/models/company';
 import type { PortalUpdateCompanyRequest } from '@/models/portal';
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className={ws.field}>
-      <label>{label}</label>
-      {children}
-    </div>
-  );
+function brandedBannerStyle() {
+  return {
+    background: 'linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 55%, color-mix(in srgb, #ffd600 35%, #1a1a1a) 100%)',
+  } as const;
 }
 
 export function CompanyPage() {
@@ -46,6 +44,21 @@ export function CompanyPage() {
       .finally(() => setLoading(false));
   }, []);
 
+  const previewCompany = useMemo(() => {
+    if (!company || !form) return null;
+    return {
+      ...company,
+      description: form.description,
+      industry: form.industry,
+      location: form.location,
+      companySize: form.companySize,
+      logoUrl: form.logoUrl || company.logoUrl,
+      bannerUrl: form.bannerUrl || company.bannerUrl,
+      website: form.website,
+      linkedInUrl: form.linkedInUrl,
+    };
+  }, [company, form]);
+
   const save = useCallback(async () => {
     if (!form) return;
     setSaving(true);
@@ -65,7 +78,7 @@ export function CompanyPage() {
     return <p className={ws.statusText}>Loading company profile…</p>;
   }
 
-  if (!company || !form) {
+  if (!company || !form || !previewCompany) {
     return (
       <PageFrame>
         <Panel>
@@ -77,119 +90,167 @@ export function CompanyPage() {
     );
   }
 
+  const display = editing ? previewCompany : company;
+  const bannerStyle = display.bannerUrl
+    ? { backgroundImage: `url(${display.bannerUrl})` }
+    : brandedBannerStyle();
+
   return (
     <PageFrame
-      meta="Your employer brand and open roles"
+      meta="Build your employer brand — candidates see this before they apply."
       actions={(
         <>
-          <Link to={`/companies/${company.slug}`} className={ws.btnGhost}>Public page</Link>
-          <button type="button" className={ws.btnPrimary} onClick={() => setEditing((value) => !value)}>
-            {editing ? 'Done editing' : 'Edit brand'}
-          </button>
+          <Link to={`/companies/${company.slug}`} className={ws.btnGhost} target="_blank" rel="noopener noreferrer">Preview public page</Link>
+          {editing ? (
+            <>
+              <button type="button" className={ws.btnGhost} onClick={() => setEditing(false)}>Cancel</button>
+              <button type="button" className={ws.btnPrimary} disabled={saving} onClick={() => void save()}>
+                {saving ? 'Saving…' : 'Save brand'}
+              </button>
+            </>
+          ) : (
+            <button type="button" className={ws.btnPrimary} onClick={() => setEditing(true)}>Edit brand</button>
+          )}
         </>
       )}
     >
-      <article className={ws.companyHero}>
-        <div
-          className={ws.companyBanner}
-          style={company.bannerUrl ? { backgroundImage: `url(${company.bannerUrl})` } : undefined}
-          aria-hidden
-        />
-        <div className={ws.companyHeroBody}>
-          <CompanyAvatar company={company} size="lg" />
-          <div>
-            <h2 className={ws.profileName}>{company.name}</h2>
-            <p className={ws.profileHeadline}>
-              {company.industry || 'Add your industry'}
-              {company.location && (
-                <>
-                  {' · '}
-                  <IconMapPin size={16} /> {company.location}
-                </>
-              )}
-            </p>
-            <Link to="/portal/jobs" className={ws.btnGhost}>
-              {company.openJobsCount} open {company.openJobsCount === 1 ? 'role' : 'roles'}
-            </Link>
-          </div>
-        </div>
-      </article>
-
-      {editing && (
-        <form className={[ws.panel, ws.formPanel].join(' ')} onSubmit={(e) => { e.preventDefault(); void save(); }}>
-          <h3 className={ws.panelTitle}>Edit company showcase</h3>
-          <Field label="Description">
-            <textarea className={ws.textarea} rows={5} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
-          </Field>
-          <div className={ws.fieldRow}>
-            <Field label="Industry">
-              <input className={ws.input} value={form.industry} onChange={(e) => setForm({ ...form, industry: e.target.value })} />
-            </Field>
-            <Field label="Company size">
-              <input className={ws.input} value={form.companySize} onChange={(e) => setForm({ ...form, companySize: e.target.value })} placeholder="51–200 employees" />
-            </Field>
-          </div>
-          <Field label="Location">
-            <input className={ws.input} value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} />
-          </Field>
-          <Field label="Website">
-            <input className={ws.input} value={form.website ?? ''} onChange={(e) => setForm({ ...form, website: e.target.value })} placeholder="https://..." />
-          </Field>
-          <Field label="LinkedIn">
-            <input className={ws.input} value={form.linkedInUrl ?? ''} onChange={(e) => setForm({ ...form, linkedInUrl: e.target.value })} placeholder="https://linkedin.com/company/..." />
-          </Field>
-          <Field label="Logo URL">
-            <input className={ws.input} value={form.logoUrl ?? ''} onChange={(e) => setForm({ ...form, logoUrl: e.target.value })} placeholder="https://..." />
-          </Field>
-          <Field label="Banner URL">
-            <input className={ws.input} value={form.bannerUrl ?? ''} onChange={(e) => setForm({ ...form, bannerUrl: e.target.value })} placeholder="https://..." />
-          </Field>
-          <button type="submit" className={ws.btnPrimary} disabled={saving}>{saving ? 'Saving…' : 'Save showcase'}</button>
-        </form>
-      )}
-
-      <div className={ws.companyShowcase}>
-        <Panel>
-          <section className={ws.profileBlock}>
-            <h3 className={ws.profileSectionTitle}>Company story</h3>
-            <p className={ws.bodyText}>
-              {company.description.trim() || 'Describe your mission, culture, and what makes your team unique.'}
-            </p>
-          </section>
-
-          <section className={ws.profileBlock}>
-            <h3 className={ws.profileSectionTitle}>Culture</h3>
-            <p className={ws.bodyText}>
-              {company.description.trim()
-                ? 'Your public company page highlights this story to candidates before they apply.'
-                : 'Add a description to showcase your culture and values to candidates.'}
-            </p>
-          </section>
-
-          {(company.website || company.linkedInUrl) && (
-            <section className={ws.profileBlock}>
-              <h3 className={ws.profileSectionTitle}>Links</h3>
-              <ul className={ws.linkList}>
-                {company.website && <li><a href={company.website} target="_blank" rel="noopener noreferrer">Website</a></li>}
-                {company.linkedInUrl && <li><a href={company.linkedInUrl} target="_blank" rel="noopener noreferrer">LinkedIn</a></li>}
-              </ul>
-            </section>
+      <div className={editing ? ws.companyEditLayout : undefined}>
+        <article className={ws.companyHero}>
+          <div className={ws.companyBanner} style={bannerStyle} aria-hidden />
+          {!display.bannerUrl && (
+            <div className={ws.companyBannerLabel} aria-hidden>Branded cover</div>
           )}
-        </Panel>
+          <div className={ws.companyHeroBody}>
+            <CompanyAvatar company={display} size="lg" />
+            <div className={ws.companyHeroInfo}>
+              <h2 className={ws.profileName}>{display.name}</h2>
+              <p className={ws.profileHeadline}>
+                {display.industry || 'Add your industry'}
+                {display.location && (
+                  <>
+                    {' · '}
+                    <IconMapPin size={16} /> {display.location}
+                  </>
+                )}
+              </p>
+              <div className={ws.companyHeroTags}>
+                {display.companySize && <span className={ws.badgeMuted}>{display.companySize}</span>}
+                <span className={ws.badgeOk}>{display.openJobsCount} open {display.openJobsCount === 1 ? 'role' : 'roles'}</span>
+              </div>
+            </div>
+          </div>
+        </article>
 
-        <aside className={ws.stack}>
-          <Panel title="Team size">
-            <p className={ws.bodyText}>{company.companySize || 'Add company size'}</p>
-          </Panel>
-          <Panel title="Open roles">
-            <p className={ws.bodyText}>{company.openJobsCount} active {company.openJobsCount === 1 ? 'role' : 'roles'}</p>
-            <Link to="/portal/jobs" className={ws.btnPrimary}>Manage roles</Link>
-          </Panel>
-          <Panel title="Benefits" muted>
-            <p className={ws.bodyText}>Highlight benefits on your public company page as you expand your employer brand.</p>
-          </Panel>
-        </aside>
+        {editing && (
+          <aside className={ws.companyEditor}>
+            <section className={ws.panel}>
+              <h3 className={ws.panelTitle}>Visual identity</h3>
+              <ImageDropZone
+                label="Cover image"
+                hint="Drag & drop or paste a URL. Without a cover, a branded placeholder is shown."
+                value={form.bannerUrl ?? ''}
+                onChange={(bannerUrl) => setForm({ ...form, bannerUrl })}
+                aspect="banner"
+                placeholder={<span className={ws.dropZonePlaceholder}>Branded cover preview</span>}
+              />
+              <ImageDropZone
+                label="Logo"
+                hint="Square logo works best. Drag & drop or paste a URL."
+                value={form.logoUrl ?? ''}
+                onChange={(logoUrl) => setForm({ ...form, logoUrl })}
+                aspect="square"
+              />
+            </section>
+
+            <section className={ws.panel}>
+              <h3 className={ws.panelTitle}>Company story</h3>
+              <div className={ws.field}>
+                <label htmlFor="description">About your company</label>
+                <textarea
+                  id="description"
+                  className={ws.textarea}
+                  rows={5}
+                  placeholder="Mission, culture, and what makes your team unique."
+                  value={form.description}
+                  onChange={(e) => setForm({ ...form, description: e.target.value })}
+                />
+              </div>
+              <div className={ws.fieldRow}>
+                <div className={ws.field}>
+                  <label htmlFor="industry">Industry</label>
+                  <input id="industry" className={ws.input} value={form.industry} onChange={(e) => setForm({ ...form, industry: e.target.value })} />
+                </div>
+                <div className={ws.field}>
+                  <label htmlFor="size">Team size</label>
+                  <input id="size" className={ws.input} value={form.companySize} onChange={(e) => setForm({ ...form, companySize: e.target.value })} placeholder="51–200" />
+                </div>
+              </div>
+              <div className={ws.field}>
+                <label htmlFor="location">Location</label>
+                <input id="location" className={ws.input} value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} />
+              </div>
+            </section>
+
+            <section className={ws.panel}>
+              <h3 className={ws.panelTitle}>Links</h3>
+              <div className={ws.field}>
+                <label htmlFor="website">Website</label>
+                <input id="website" className={ws.input} value={form.website ?? ''} onChange={(e) => setForm({ ...form, website: e.target.value })} placeholder="https://…" />
+              </div>
+              <div className={ws.field}>
+                <label htmlFor="linkedin">LinkedIn</label>
+                <input id="linkedin" className={ws.input} value={form.linkedInUrl ?? ''} onChange={(e) => setForm({ ...form, linkedInUrl: e.target.value })} placeholder="https://linkedin.com/company/…" />
+              </div>
+            </section>
+          </aside>
+        )}
       </div>
+
+      {!editing && (
+        <div className={ws.companyShowcase}>
+          <Panel>
+            <section className={ws.profileBlock}>
+              <h3 className={ws.profileSectionTitle}>Company story</h3>
+              <p className={ws.bodyText}>
+                {company.description.trim() || 'Describe your mission, culture, and what makes your team unique.'}
+              </p>
+            </section>
+
+            <section className={ws.profileBlock}>
+              <h3 className={ws.profileSectionTitle}>Culture & benefits</h3>
+              <p className={ws.bodyText}>
+                {company.description.trim()
+                  ? 'Your public company page showcases this story to candidates before they apply.'
+                  : 'Add your company story to highlight culture, values, and benefits on your public page.'}
+              </p>
+            </section>
+
+            {(company.website || company.linkedInUrl) && (
+              <section className={ws.profileBlock}>
+                <h3 className={ws.profileSectionTitle}>Links</h3>
+                <ul className={ws.linkList}>
+                  {company.website && <li><a href={company.website} target="_blank" rel="noopener noreferrer">Website</a></li>}
+                  {company.linkedInUrl && <li><a href={company.linkedInUrl} target="_blank" rel="noopener noreferrer">LinkedIn</a></li>}
+                </ul>
+              </section>
+            )}
+          </Panel>
+
+          <aside className={ws.stack}>
+            <Panel title="Team size">
+              <p className={ws.bodyText}>{company.companySize || 'Add team size in brand editor'}</p>
+            </Panel>
+            <Panel title="Open roles">
+              <p className={ws.bodyText}>{company.openJobsCount} active {company.openJobsCount === 1 ? 'role' : 'roles'}</p>
+              <Link to="/portal/jobs" className={ws.btnPrimary}>Manage campaigns</Link>
+            </Panel>
+            <Panel title="Public preview" muted>
+              <p className={ws.bodyText}>See how candidates experience your employer brand.</p>
+              <Link to={`/companies/${company.slug}`} className={ws.btnGhost} target="_blank" rel="noopener noreferrer">View public page</Link>
+            </Panel>
+          </aside>
+        </div>
+      )}
     </PageFrame>
   );
 }

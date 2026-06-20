@@ -58,6 +58,23 @@ export function CommandCenterPage() {
     [PipelineStage.Interview, PipelineStage.Offer, PipelineStage.Hired].includes(s.stage),
   );
 
+  const rolesNeedingAttention = activeJobs.filter((job) => {
+    const m = getJobCampaignMetrics(job.id, applications);
+    return m.applicants > 0 && m.reviewing > 0;
+  }).slice(0, 3);
+
+  const hiringHealth = reviewCount === 0 && unreadMessages === 0
+    ? 'healthy'
+    : reviewCount >= 5 || unreadMessages >= 3
+      ? 'attention'
+      : 'active';
+
+  const healthClass = hiringHealth === 'healthy'
+    ? ws.healthCardHealthy
+    : hiringHealth === 'attention'
+      ? ws.healthCardAttention
+      : ws.healthCardActive;
+
   return (
     <PageFrame fill>
       {!isApproved && (
@@ -67,26 +84,42 @@ export function CommandCenterPage() {
         </div>
       )}
 
-      <header className={ws.homeHeader}>
-        <div>
-          <p className={ws.homeEyebrow}>Recruiting workspace</p>
+      <section className={ws.homeHero}>
+        <div className={ws.homeHeroBody}>
+          <p className={ws.homeEyebrow}>Command center</p>
           <h2 className={ws.homeTitle}>
             {attentionItems[0]?.priority === 'high'
               ? attentionItems[0].title
-              : 'Your pipeline is up to date'}
+              : 'Your hiring workspace is ready'}
           </h2>
           <p className={ws.homeMeta}>
-            {reviewCount > 0 && `${reviewCount} awaiting review · `}
+            {reviewCount > 0 && `${reviewCount} to review · `}
             {unreadMessages > 0 && `${unreadMessages} unread · `}
             {interviewQueue.length > 0 && `${interviewQueue.length} interviews · `}
-            {stats.activeJobs} open roles
+            {stats.activeJobs} active roles · {totalInPipeline} in pipeline
           </p>
+          <div className={ws.homeHeroActions}>
+            <Link to="/portal/pipeline" className={ws.btnPrimary}>Review pipeline</Link>
+            {reviewCount > 0 && (
+              <Link to="/portal/applications" className={ws.btnGhost}>Review {reviewCount} candidates</Link>
+            )}
+            <Link to="/portal/jobs" className={ws.btnGhost}>Post role</Link>
+          </div>
         </div>
-        <div className={ws.pageActions}>
-          <Link to="/portal/pipeline" className={ws.btnPrimary}>Open pipeline</Link>
-          <Link to="/portal/jobs" className={ws.btnGhost}>Post role</Link>
+        <div className={ws.homeHeroAside}>
+          <div className={[ws.healthCard, healthClass].join(' ')}>
+            <span className={ws.healthLabel}>Hiring health</span>
+            <strong className={ws.healthValue}>
+              {hiringHealth === 'healthy' ? 'On track' : hiringHealth === 'attention' ? 'Needs focus' : 'Active'}
+            </strong>
+          </div>
+          <dl className={ws.heroStats}>
+            <div><dt>New this week</dt><dd>{stats.newApplicationsThisWeek}</dd></div>
+            <div><dt>Interviews</dt><dd>{interviewQueue.length}</dd></div>
+            <div><dt>Offers</dt><dd>{pipelineCounts.find((s) => s.stage === PipelineStage.Offer)?.count ?? 0}</dd></div>
+          </dl>
         </div>
-      </header>
+      </section>
 
       <section className={ws.attentionStrip} aria-label="Requires attention">
         {attentionItems.map((item) => (
@@ -118,6 +151,24 @@ export function CommandCenterPage() {
               </div>
             ) : (
               recentApplicants.map((app) => <ApplicantWorkRow key={app.id} application={app} />)
+            )}
+          </section>
+
+          <section className={ws.workSection}>
+            <div className={ws.workSectionHeader}>
+              <h3 className={ws.workSectionTitle}>Roles needing attention</h3>
+              <Link to="/portal/jobs" className={ws.workSectionLink}>All roles</Link>
+            </div>
+            {rolesNeedingAttention.length === 0 ? (
+              <p className={ws.workEmptyInline}>All roles are up to date — no pending reviews.</p>
+            ) : (
+              rolesNeedingAttention.map((job) => (
+                <RoleWorkRow
+                  key={job.id}
+                  job={job}
+                  applicantCount={getJobCampaignMetrics(job.id, applications).reviewing}
+                />
+              ))
             )}
           </section>
 

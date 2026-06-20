@@ -2,42 +2,35 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   SettingsAccountSection,
-  SettingsAppearanceSection,
   SettingsSecuritySection,
 } from '@/portal/components/SettingsSections';
+import { SettingsThemeToggle } from '@/portal/components/SettingsThemeToggle';
 import { PageFrame } from '@/portal/components/PageFrame';
 import ws from '@/portal/workspace.module.css';
 
 type SettingsSectionId =
   | 'account'
-  | 'appearance'
+  | 'security'
   | 'notifications'
-  | 'team'
+  | 'workspace'
   | 'company'
-  | 'integrations'
-  | 'billing'
-  | 'security';
+  | 'sessions';
 
 interface SettingsSectionDef {
   id: SettingsSectionId;
   label: string;
   description: string;
   status?: 'coming-soon';
-  group: 'Workspace' | 'Account';
 }
 
 const SECTIONS: SettingsSectionDef[] = [
-  { id: 'account', label: 'Account', description: 'Profile, email, and session.', group: 'Account' },
-  { id: 'security', label: 'Security', description: 'Password and sign-in.', group: 'Account' },
-  { id: 'appearance', label: 'Appearance', description: 'Theme and display.', group: 'Workspace' },
-  { id: 'notifications', label: 'Notifications', description: 'Alerts for applicants and messages.', status: 'coming-soon', group: 'Workspace' },
-  { id: 'team', label: 'Team Members', description: 'Recruiter access and roles.', status: 'coming-soon', group: 'Workspace' },
-  { id: 'company', label: 'Company', description: 'Employer brand and open roles.', group: 'Workspace' },
-  { id: 'integrations', label: 'Integrations', description: 'Email, calendar, and ATS connections.', status: 'coming-soon', group: 'Workspace' },
-  { id: 'billing', label: 'Billing', description: 'Plans, invoices, and payment methods.', status: 'coming-soon', group: 'Workspace' },
+  { id: 'account', label: 'Account', description: 'Profile, email, and sign-in.' },
+  { id: 'security', label: 'Security', description: 'Password and account protection.' },
+  { id: 'notifications', label: 'Notifications', description: 'Alerts for applicants and messages.', status: 'coming-soon' },
+  { id: 'workspace', label: 'Workspace', description: 'Hiring defaults and team preferences.', status: 'coming-soon' },
+  { id: 'company', label: 'Company', description: 'Employer brand and public profile.' },
+  { id: 'sessions', label: 'Sessions', description: 'Devices signed in to your account.', status: 'coming-soon' },
 ];
-
-const GROUP_ORDER: SettingsSectionDef['group'][] = ['Workspace', 'Account'];
 
 function PlaceholderSection({ description }: { description: string }) {
   return (
@@ -52,25 +45,21 @@ function renderSectionContent(id: SettingsSectionId) {
   switch (id) {
     case 'account':
       return <SettingsAccountSection />;
-    case 'appearance':
-      return <SettingsAppearanceSection />;
     case 'security':
       return <SettingsSecuritySection />;
     case 'notifications':
       return <PlaceholderSection description="Configure email and in-app alerts when new candidates apply or message you." />;
-    case 'team':
-      return <PlaceholderSection description="Invite teammates and assign recruiter permissions." />;
+    case 'workspace':
+      return <PlaceholderSection description="Set hiring defaults, pipeline preferences, and team workspace options." />;
     case 'company':
       return (
         <div className={ws.settingsSectionBody}>
-          <p className={ws.bodyText}>Manage your public employer brand, culture story, and open roles.</p>
+          <p className={ws.bodyText}>Manage your public employer brand, cover image, logo, and company story.</p>
           <Link to="/portal/company" className={ws.btnPrimary}>Open company profile</Link>
         </div>
       );
-    case 'billing':
-      return <PlaceholderSection description="View plans, payment methods, and invoices." />;
-    case 'integrations':
-      return <PlaceholderSection description="Connect calendar, email, and ATS tools." />;
+    case 'sessions':
+      return <PlaceholderSection description="Review active sessions and sign out from other devices." />;
     default:
       return null;
   }
@@ -81,30 +70,33 @@ export function SettingsPage() {
   const current = SECTIONS.find((s) => s.id === active) ?? SECTIONS[0];
 
   return (
-    <PageFrame meta="Workspace preferences and account controls">
+    <PageFrame>
+      <div className={ws.settingsPageHeader}>
+        <div>
+          <h2 className={ws.settingsPageTitle}>Settings</h2>
+          <p className={ws.candidateSub}>Workspace preferences and account controls</p>
+        </div>
+        <SettingsThemeToggle />
+      </div>
+
       <div className={ws.settingsWorkspace}>
         <nav className={ws.settingsNav} aria-label="Settings sections">
-          {GROUP_ORDER.map((group) => (
-            <div key={group} className={ws.settingsNavGroup}>
-              <p className={ws.settingsNavGroupLabel}>{group}</p>
-              {SECTIONS.filter((s) => s.group === group).map((section) => (
-                <button
-                  key={section.id}
-                  type="button"
-                  className={[ws.settingsNavItem, active === section.id ? ws.settingsNavItemActive : ''].filter(Boolean).join(' ')}
-                  onClick={() => setActive(section.id)}
-                >
-                  <span className={ws.settingsNavLabel}>{section.label}</span>
-                  {section.status === 'coming-soon' && <span className={ws.settingsNavHint}>Soon</span>}
-                </button>
-              ))}
-            </div>
+          {SECTIONS.map((section) => (
+            <button
+              key={section.id}
+              type="button"
+              className={[ws.settingsNavItem, active === section.id ? ws.settingsNavItemActive : ''].filter(Boolean).join(' ')}
+              onClick={() => setActive(section.id)}
+            >
+              <span className={ws.settingsNavLabel}>{section.label}</span>
+              {section.status === 'coming-soon' && <span className={ws.settingsNavHint}>Soon</span>}
+            </button>
           ))}
         </nav>
 
         <section className={ws.settingsContent}>
           <header className={ws.settingsContentHeader}>
-            <h2 className={ws.settingsContentTitle}>{current.label}</h2>
+            <h3 className={ws.settingsContentTitle}>{current.label}</h3>
             <p className={ws.candidateSub}>{current.description}</p>
           </header>
           {renderSectionContent(current.id)}

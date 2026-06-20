@@ -6,46 +6,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useProfile } from '@/hooks/useProfile';
 import { UserRole } from '@/models/auth';
 import { PasswordField } from '@/components/forms/PasswordField';
-import { useTheme } from '@/theme/ThemeProvider';
-import type { ThemePreference } from '@/theme/theme';
 import ws from '@/portal/workspace.module.css';
-
-const THEME_OPTIONS: { value: ThemePreference; label: string; hint: string }[] = [
-  { value: 'light', label: 'Light', hint: 'White surfaces, yellow accent' },
-  { value: 'dark', label: 'Dark', hint: 'Black surfaces, high contrast' },
-  { value: 'system', label: 'System', hint: 'Match device setting' },
-];
-
-export function SettingsAppearanceSection() {
-  const { preference, resolvedTheme, setPreference } = useTheme();
-
-  return (
-    <div className={ws.settingsSectionBody}>
-      <p className={ws.candidateSub}>
-        Theme is currently {resolvedTheme === 'dark' ? 'dark' : 'light'}
-        {preference === 'system' ? ' (following your device)' : ''}.
-      </p>
-      <div className={ws.themeOptions} role="radiogroup" aria-label="Theme">
-        {THEME_OPTIONS.map((option) => {
-          const active = preference === option.value;
-          return (
-            <button
-              key={option.value}
-              type="button"
-              role="radio"
-              aria-checked={active}
-              className={[ws.themeOption, active ? ws.themeOptionActive : ''].filter(Boolean).join(' ')}
-              onClick={() => setPreference(option.value)}
-            >
-              <span className={ws.themeOptionLabel}>{option.label}</span>
-              <span className={ws.candidateSub}>{option.hint}</span>
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
 
 function getErrorMessage(error: unknown): string {
   if (error instanceof ApiError && error.body && typeof error.body === 'object' && 'error' in error.body) {
@@ -130,48 +91,57 @@ export function SettingsSecuritySection() {
   };
 
   return (
-    <form className={[ws.settingsSectionBody, ws.formPanel].join(' ')} onSubmit={(e) => void handleChangePassword(e)}>
-      <p className={ws.candidateSub}>Use at least 8 characters. You will be signed out after updating.</p>
-      <div className={ws.field}>
-        <label htmlFor="current-password">Current password</label>
-        <PasswordField
-          id="current-password"
-          inputClassName={ws.input}
-          autoComplete="current-password"
-          required
-          value={currentPassword}
-          onChange={(e) => setCurrentPassword(e.target.value)}
-        />
+    <div className={ws.settingsSectionBody}>
+      <div className={ws.securityCard}>
+        <div className={ws.securityCardHead}>
+          <h4 className={ws.securityCardTitle}>Password</h4>
+          <p className={ws.candidateSub}>Use at least 8 characters. You will be signed out after updating.</p>
+        </div>
+        <form className={ws.formPanel} onSubmit={(e) => void handleChangePassword(e)}>
+          <div className={ws.field}>
+            <label htmlFor="current-password">Current password</label>
+            <PasswordField
+              id="current-password"
+              inputClassName={ws.input}
+              autoComplete="current-password"
+              required
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+            />
+          </div>
+          <div className={ws.fieldRow}>
+            <div className={ws.field}>
+              <label htmlFor="new-password">New password</label>
+              <PasswordField
+                id="new-password"
+                inputClassName={ws.input}
+                autoComplete="new-password"
+                required
+                minLength={8}
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+              />
+            </div>
+            <div className={ws.field}>
+              <label htmlFor="confirm-password">Confirm</label>
+              <PasswordField
+                id="confirm-password"
+                inputClassName={ws.input}
+                autoComplete="new-password"
+                required
+                minLength={8}
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+              />
+            </div>
+          </div>
+          {error && <p className={ws.formError} role="alert">{error}</p>}
+          {message && <p className={ws.notice}>{message}</p>}
+          <button type="submit" className={ws.btnPrimary} disabled={loading}>
+            {loading ? 'Updating…' : 'Update password'}
+          </button>
+        </form>
       </div>
-      <div className={ws.field}>
-        <label htmlFor="new-password">New password</label>
-        <PasswordField
-          id="new-password"
-          inputClassName={ws.input}
-          autoComplete="new-password"
-          required
-          minLength={8}
-          value={newPassword}
-          onChange={(e) => setNewPassword(e.target.value)}
-        />
-      </div>
-      <div className={ws.field}>
-        <label htmlFor="confirm-password">Confirm new password</label>
-        <PasswordField
-          id="confirm-password"
-          inputClassName={ws.input}
-          autoComplete="new-password"
-          required
-          minLength={8}
-          value={confirmPassword}
-          onChange={(e) => setConfirmPassword(e.target.value)}
-        />
-      </div>
-      {error && <p className={ws.formError} role="alert">{error}</p>}
-      {message && <p className={ws.notice}>{message}</p>}
-      <button type="submit" className={ws.btnPrimary} disabled={loading}>
-        {loading ? 'Updating…' : 'Update password'}
-      </button>
-    </form>
+    </div>
   );
 }

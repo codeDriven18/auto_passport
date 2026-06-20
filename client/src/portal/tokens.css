@@ -13,9 +13,9 @@
   --ws-panel-muted: #f4f4f5;
   --ws-border: var(--color-border);
   --ws-brand: var(--color-accent);
-  --ws-brand-soft: color-mix(in srgb, var(--color-accent) 16%, #ffffff);
-  --ws-nav-hover: rgba(10, 10, 10, 0.06);
-  --ws-nav-active: rgba(10, 10, 10, 0.1);
+  --ws-brand-soft: color-mix(in srgb, var(--color-accent) 14%, #ffffff);
+  --ws-nav-hover: color-mix(in srgb, var(--color-accent) 6%, transparent);
+  --ws-nav-active: color-mix(in srgb, var(--color-accent) 12%, transparent);
   --ws-radius: 0.625rem;
   --ws-radius-lg: 0.875rem;
   --ws-gap: 1.25rem;
@@ -44,7 +44,7 @@
 [data-theme='dark'] .employer-portal {
   --ws-canvas: var(--color-bg);
   --ws-panel-muted: var(--color-surface-raised);
-  --ws-brand-soft: color-mix(in srgb, var(--color-accent) 16%, var(--color-surface));
-  --ws-nav-hover: rgba(255, 255, 255, 0.08);
-  --ws-nav-active: rgba(255, 255, 255, 0.14);
+  --ws-brand-soft: color-mix(in srgb, var(--color-accent) 14%, var(--color-surface));
+  --ws-nav-hover: color-mix(in srgb, var(--color-accent) 8%, transparent);
+  --ws-nav-active: color-mix(in srgb, var(--color-accent) 14%, transparent);
 }

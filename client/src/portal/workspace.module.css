@@ -231,6 +231,13 @@
   border-radius: var(--ws-radius-lg);
 }
 
+.campaignCardHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
 .campaignTitle {
   margin: 0;
   font-size: 1.0625rem;
@@ -244,23 +251,34 @@
 }
 
 .metricsRow {
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  display: flex;
+  flex-wrap: wrap;
   gap: 0.5rem;
 }
 
 .metric {
-  text-align: center;
-  padding: 0.5rem;
+  flex: 1 1 calc(33.333% - 0.5rem);
+  min-width: 5.5rem;
+  text-align: left;
+  padding: 0.625rem 0.75rem;
   background: var(--ws-panel-muted);
+  border: 1px solid var(--ws-border);
   border-radius: var(--ws-radius);
-  font-size: 0.75rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--ws-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
 }
 
 .metric strong {
   display: block;
-  font-size: 1.125rem;
+  font-size: 1.25rem;
   font-weight: 800;
+  color: var(--ws-ink);
+  text-transform: none;
+  letter-spacing: -0.02em;
+  margin-bottom: 0.15rem;
 }
 
 .pipelineBar {
@@ -322,7 +340,11 @@
 
 .btnPrimary {
   background: var(--ws-brand);
-  color: var(--ws-ink);
+  color: #0a0a0a;
+}
+
+.btnPrimary:hover {
+  background: var(--color-accent-hover, #ffea00);
 }
 
 .btnGhost {
@@ -348,7 +370,8 @@
 }
 
 .badge {
-  background: var(--ws-brand-soft);
+  background: var(--ws-brand);
+  color: #0a0a0a;
 }
 
 .badgeMuted {
@@ -390,21 +413,25 @@
 .inbox {
   display: grid;
   grid-template-columns: 1fr;
-  min-height: calc(100dvh - var(--ws-header-height));
+  height: calc(100dvh - var(--ws-header-height));
+  max-height: calc(100dvh - var(--ws-header-height));
+  overflow: hidden;
 }
 
 @media (min-width: 900px) {
   .inbox {
-    grid-template-columns: 22rem minmax(0, 1fr);
-    border-top: 1px solid var(--ws-border);
+    grid-template-columns: 20rem minmax(0, 1fr);
+    border: 1px solid var(--ws-border);
+    border-radius: var(--ws-radius-lg);
+    background: var(--ws-panel);
   }
 }
 
 .inboxList {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
-  padding: 1rem;
+  gap: 0.5rem;
+  padding: 0.875rem;
   overflow-y: auto;
   border-right: 1px solid var(--ws-border);
   background: var(--ws-panel);
@@ -415,7 +442,8 @@
   min-height: 0;
   display: flex;
   flex-direction: column;
-  background: var(--ws-canvas);
+  background: var(--ws-panel);
+  overflow: hidden;
 }
 
 .profileLayout {
@@ -632,6 +660,7 @@
 }
 
 .companyHero {
+  position: relative;
   overflow: hidden;
   border-radius: var(--ws-radius-lg);
   border: 1px solid var(--ws-border);
@@ -639,10 +668,24 @@
 }
 
 .companyBanner {
-  height: 8rem;
+  height: 9rem;
   background: linear-gradient(135deg, #0a0a0a, #1a1a1a 60%, color-mix(in srgb, var(--ws-brand) 30%, #1a1a1a));
   background-size: cover;
   background-position: center;
+}
+
+.companyBannerLabel {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  padding: 0.25rem 0.625rem;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.45);
+  color: #fff;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .companyHeroBody {
@@ -651,6 +694,37 @@
   gap: 1rem;
   padding: 0 1.25rem 1.25rem;
   margin-top: -2.5rem;
+}
+
+.companyHeroInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.companyHeroTags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.625rem;
+}
+
+.companyEditLayout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--ws-gap);
+  align-items: start;
+}
+
+@media (min-width: 960px) {
+  .companyEditLayout {
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  }
+}
+
+.companyEditor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ws-gap);
 }
 
 .companyShowcase {
@@ -724,18 +798,22 @@
   padding: 0.875rem 1rem;
   background: var(--ws-panel);
   border: 1px solid var(--ws-border);
+  border-left: 3px solid transparent;
   border-radius: var(--ws-radius);
   text-decoration: none;
   color: inherit;
 }
 
 .conversationRow:hover {
-  border-color: color-mix(in srgb, var(--ws-brand) 35%, var(--ws-border));
+  background: var(--ws-panel-muted);
+  border-color: var(--ws-border);
+  border-left-color: color-mix(in srgb, var(--ws-brand) 40%, transparent);
 }
 
 .conversationRowActive {
-  border-color: var(--ws-brand);
-  background: var(--ws-brand-soft);
+  background: var(--ws-panel-muted);
+  border-color: var(--ws-border);
+  border-left-color: var(--ws-brand);
 }
 
 .conversationTop {
@@ -812,16 +890,117 @@
 .pipelineWrap {
   display: flex;
   flex-direction: column;
-  min-height: calc(100dvh - var(--ws-header-height) - 2.75rem);
-}
-
-@media (max-width: 899px) {
-  .inboxActive .inboxList {
-    display: none;
-  }
+  height: calc(100dvh - var(--ws-header-height) - 2.5rem);
+  max-height: calc(100dvh - var(--ws-header-height) - 2.5rem);
+  overflow: hidden;
 }
 
 /* Command center — recruiter home */
+.homeHero {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.25rem;
+  padding: 1.5rem;
+  border-radius: var(--ws-radius-lg);
+  border: 1px solid var(--ws-border);
+  background: var(--ws-panel);
+}
+
+@media (min-width: 900px) {
+  .homeHero {
+    grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+    align-items: stretch;
+  }
+}
+
+.homeHeroBody {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.homeHeroActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.homeHeroAside {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem;
+  border-radius: var(--ws-radius);
+  background: var(--ws-panel-muted);
+  border: 1px solid var(--ws-border);
+}
+
+.healthCard {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.875rem 1rem;
+  border-radius: var(--ws-radius);
+  border: 1px solid var(--ws-border);
+  background: var(--ws-panel);
+}
+
+.healthCardHealthy {
+  border-left: 3px solid var(--ws-brand);
+}
+
+.healthCardActive {
+  border-left: 3px solid color-mix(in srgb, var(--ws-ink) 40%, transparent);
+}
+
+.healthCardAttention {
+  border-left: 3px solid var(--ws-brand);
+}
+
+.healthLabel {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ws-muted);
+}
+
+.healthValue {
+  font-size: 1.125rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.heroStats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+  margin: 0;
+}
+
+.heroStats div {
+  padding: 0.625rem;
+  border-radius: var(--ws-radius);
+  background: var(--ws-panel);
+  border: 1px solid var(--ws-border);
+}
+
+.heroStats dt {
+  margin: 0;
+  font-size: 0.625rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ws-muted);
+}
+
+.heroStats dd {
+  margin: 0.2rem 0 0;
+  font-size: 1.125rem;
+  font-weight: 800;
+}
+
 .homeHeader {
   display: flex;
   align-items: flex-start;
@@ -882,11 +1061,12 @@
 }
 
 .attentionRowUrgent {
-  background: var(--ws-brand-soft);
+  border-left: 3px solid var(--ws-brand);
+  padding-left: calc(1rem - 3px);
 }
 
 .attentionRowUrgent:hover {
-  background: color-mix(in srgb, var(--ws-brand) 22%, var(--ws-panel));
+  background: var(--ws-panel-muted);
 }
 
 .attentionRowBody {
@@ -1105,16 +1285,60 @@
 }
 
 /* Settings workspace */
+.settingsPageHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding-bottom: 0.25rem;
+}
+
+.settingsPageTitle {
+  margin: 0;
+  font-size: 1.375rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+.themeToggle {
+  display: inline-flex;
+  padding: 0.2rem;
+  border-radius: 999px;
+  border: 1px solid var(--ws-border);
+  background: var(--ws-panel-muted);
+}
+
+.themeToggleBtn {
+  padding: 0.4rem 0.75rem;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  font-family: inherit;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--ws-muted);
+  cursor: pointer;
+}
+
+.themeToggleBtn:hover {
+  color: var(--ws-ink);
+}
+
+.themeToggleBtnActive {
+  background: var(--ws-brand);
+  color: #0a0a0a;
+}
+
 .settingsWorkspace {
   display: grid;
   grid-template-columns: 1fr;
   gap: var(--ws-gap);
-  min-height: calc(100dvh - var(--ws-header-height) - 4rem);
 }
 
 @media (min-width: 900px) {
   .settingsWorkspace {
-    grid-template-columns: 13rem minmax(0, 1fr);
+    grid-template-columns: 11.5rem minmax(0, 1fr);
     align-items: start;
   }
 }
@@ -1246,6 +1470,7 @@
   color: var(--ws-ink);
   font-weight: 700;
   background: var(--ws-nav-active);
+  box-shadow: inset 2px 0 0 var(--ws-brand);
 }
 
 .settingsNavHint {
@@ -1260,7 +1485,7 @@
   border: 1px solid var(--ws-border);
   border-radius: var(--ws-radius-lg);
   background: var(--ws-panel);
-  min-height: 16rem;
+  overflow: hidden;
 }
 
 .settingsContentHeader {
@@ -1303,4 +1528,90 @@
   margin: 0.25rem 0 0;
   font-size: 1rem;
   font-weight: 700;
+}
+
+.securityCard {
+  padding: 1.25rem;
+  border: 1px solid var(--ws-border);
+  border-radius: var(--ws-radius-lg);
+  background: var(--ws-panel-muted);
+}
+
+.securityCardHead {
+  margin-bottom: 1rem;
+}
+
+.securityCardTitle {
+  margin: 0 0 0.25rem;
+  font-size: 0.9375rem;
+  font-weight: 700;
+}
+
+.dropZoneField {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.dropZoneLabel {
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+
+.dropZone {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border: 1px dashed color-mix(in srgb, var(--ws-brand) 35%, var(--ws-border));
+  border-radius: var(--ws-radius);
+  background: var(--ws-panel-muted);
+  cursor: pointer;
+}
+
+.dropZone:hover,
+.dropZoneDragging {
+  border-color: var(--ws-brand);
+  background: var(--ws-brand-soft);
+}
+
+.dropZoneBanner {
+  aspect-ratio: 16 / 6;
+  min-height: 5rem;
+}
+
+.dropZoneSquare {
+  aspect-ratio: 1;
+  max-width: 7rem;
+}
+
+.dropZonePreview {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.dropZonePlaceholder {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--ws-muted);
+  text-align: center;
+  padding: 1rem;
+}
+
+.dropZoneFileInput {
+  display: none;
+}
+
+.dropZoneHint {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--ws-muted);
+}
+
+@media (max-width: 899px) {
+  .inboxActive .inboxList {
+    display: none;
+  }
 }

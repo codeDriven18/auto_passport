@@ -11,6 +11,10 @@ public class Application : BaseEntity
     public InterviewPhase InterviewPhase { get; set; } = InterviewPhase.None;
     /// <summary>Reserved for calendar integration. Null until an interview is scheduled.</summary>
     public DateTime? InterviewScheduledAtUtc { get; set; }
+    /// <summary>Interview location or meeting link (set when an interview is scheduled).</summary>
+    public string? InterviewLocation { get; set; }
+    /// <summary>Recruiter-only notes for the scheduled interview.</summary>
+    public string? InterviewNotes { get; set; }
     /// <summary>Number of prior applications for the same job (0 = first attempt).</summary>
     public int ReapplicationCount { get; set; }
     public string StatusHistoryJson { get; set; } = "[]";

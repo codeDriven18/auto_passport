@@ -58,11 +58,18 @@ public record PortalApplicationDto(
     PipelineStage PipelineStage,
     InterviewPhase InterviewPhase,
     DateTime? InterviewScheduledAtUtc,
+    string? InterviewLocation,
+    string? InterviewNotes,
     bool HasResume,
     int UnreadMessageCount,
     bool IsWithdrawn);
 
 public record PortalUpdateApplicationStatusDto(ApplicationStatus Status);
+
+public record PortalScheduleInterviewDto(
+    DateTime ScheduledAtUtc,
+    string? Location,
+    string? Notes);
 
 public record PortalApplicationSummaryDto(
     Guid ApplicationId,
@@ -92,6 +99,10 @@ public record PortalApplicantDetailDto(
     DateTime? ResumeUploadedAt,
     int ReapplicationCount,
     int ApplicationNumber,
+    InterviewPhase InterviewPhase,
+    DateTime? InterviewScheduledAtUtc,
+    string? InterviewLocation,
+    string? InterviewNotes,
     IReadOnlyList<ApplicationStatusHistoryDto> StatusHistory,
     IReadOnlyList<PortalApplicationSummaryDto> ApplicationHistory,
     IReadOnlyList<SkillDto> Skills,

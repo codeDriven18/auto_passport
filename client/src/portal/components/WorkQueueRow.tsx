@@ -9,6 +9,11 @@ import ws from '@/portal/workspace.module.css';
 export function ApplicantWorkRow({ application }: { application: PortalApplication }) {
   const parts = application.applicantName.trim().split(/\s+/);
   const applied = new Date(application.appliedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  const interviewAt = application.interviewScheduledAtUtc
+    ? new Date(application.interviewScheduledAtUtc).toLocaleString(undefined, {
+        weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit',
+      })
+    : null;
 
   return (
     <Link to={`/portal/applications/${application.id}`} className={ws.workRow}>
@@ -23,7 +28,9 @@ export function ApplicantWorkRow({ application }: { application: PortalApplicati
       />
       <div className={ws.workRowBody}>
         <span className={ws.workRowTitle}>{application.applicantName || 'Candidate'}</span>
-        <span className={ws.workRowMeta}>{application.jobTitle} · Applied {applied}</span>
+        <span className={ws.workRowMeta}>
+          {interviewAt ? `${application.jobTitle} · Interview ${interviewAt}` : `${application.jobTitle} · Applied ${applied}`}
+        </span>
       </div>
       <span className={ws.badgeMuted}>{pipelineStageLabel(application)}</span>
     </Link>

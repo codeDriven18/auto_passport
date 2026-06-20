@@ -359,6 +359,187 @@
   border: 1px solid color-mix(in srgb, #dc2626 25%, var(--ws-border));
 }
 
+.btnPrimary:disabled,
+.btnGhost:disabled,
+.btnDanger:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.inboxSearch {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border-radius: 10px;
+  border: 1px solid var(--ws-border);
+  background: var(--ws-canvas);
+  color: var(--ws-ink);
+  font-size: 0.8125rem;
+  font-family: inherit;
+  margin-bottom: 0.5rem;
+}
+
+.inboxSearch:focus {
+  outline: none;
+  border-color: var(--ws-brand);
+}
+
+.inboxSearch::placeholder {
+  color: var(--ws-muted);
+}
+
+.conversationWithActions {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.recruiterActions {
+  flex: none;
+  border-bottom: 1px solid var(--ws-border);
+  background: var(--ws-panel);
+  padding: 0.625rem 1rem;
+}
+
+.recruiterActionsRow {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.75rem;
+}
+
+.recruiterActionsStatus {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--ws-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.recruiterActionsDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--ws-brand);
+}
+
+.recruiterActionsButtons {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.recruiterActionsButtons .btnPrimary,
+.recruiterActionsButtons .btnGhost,
+.recruiterActionsButtons .btnDanger {
+  padding: 0.4rem 0.75rem;
+  font-size: 0.75rem;
+}
+
+.recruiterActionsLink {
+  margin-left: auto;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--ws-muted);
+  text-decoration: none;
+}
+
+.recruiterActionsLink:hover {
+  color: var(--ws-ink);
+}
+
+.recruiterActionsError {
+  margin: 0.5rem 0 0;
+  font-size: 0.75rem;
+  color: #dc2626;
+}
+
+.scheduler {
+  margin-top: 0.75rem;
+  padding: 0.875rem;
+  border: 1px solid var(--ws-border);
+  border-radius: 12px;
+  background: var(--ws-canvas);
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+}
+
+.schedulerFields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.625rem;
+}
+
+@media (max-width: 640px) {
+  .schedulerFields {
+    grid-template-columns: 1fr;
+  }
+}
+
+.schedulerField {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.schedulerField > span {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--ws-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.schedulerInput {
+  width: 100%;
+  padding: 0.5rem 0.625rem;
+  border-radius: 9px;
+  border: 1px solid var(--ws-border);
+  background: var(--ws-panel);
+  color: var(--ws-ink);
+  font-size: 0.8125rem;
+  font-family: inherit;
+  resize: vertical;
+}
+
+.schedulerInput:focus {
+  outline: none;
+  border-color: var(--ws-brand);
+}
+
+.schedulerActions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.interviewCallout {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.25rem 0.6rem;
+  margin: 0.75rem 0;
+  padding: 0.75rem 0.875rem;
+  border: 1px solid color-mix(in srgb, var(--ws-brand) 35%, var(--ws-border));
+  border-left: 3px solid var(--ws-brand);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--ws-brand) 8%, var(--ws-panel));
+}
+
+.interviewCalloutTime {
+  font-weight: 700;
+  color: var(--ws-ink);
+}
+
+.interviewCalloutMeta {
+  font-size: 0.8125rem;
+  color: var(--ws-muted);
+}
+
 .badge,
 .badgeMuted,
 .badgeOk {

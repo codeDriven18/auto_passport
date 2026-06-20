@@ -8,6 +8,7 @@ import type {
 } from '@/models/portal';
 import type {
   PortalApplicantDetail,
+  PortalScheduleInterviewRequest,
   PortalUpdateApplicationStatusRequest,
 } from '@/models/portalApplicant';
 import { apiClient, apiClientBlob } from './client';
@@ -49,6 +50,12 @@ export const portalApi = {
   shortlistApplication: (applicationId: string) =>
     apiClient<PortalApplication>(`/portal/applications/${applicationId}/shortlist`, {
       method: 'POST',
+    }),
+
+  scheduleInterview: (applicationId: string, data: PortalScheduleInterviewRequest) =>
+    apiClient<PortalApplication>(`/portal/applications/${applicationId}/interview`, {
+      method: 'POST',
+      body: data,
     }),
 
   downloadApplicantResume: (applicationId: string) =>

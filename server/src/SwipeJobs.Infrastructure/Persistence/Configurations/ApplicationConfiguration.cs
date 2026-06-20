@@ -29,6 +29,8 @@ public class ApplicationConfiguration : IEntityTypeConfiguration<Domain.Entities
         builder.Property(a => a.ReapplicationCount).HasDefaultValue(0);
         builder.Property(a => a.InterviewPhase).HasConversion<string>().HasMaxLength(32);
         builder.Property(a => a.InterviewScheduledAtUtc);
+        builder.Property(a => a.InterviewLocation).HasMaxLength(512);
+        builder.Property(a => a.InterviewNotes).HasColumnType("text");
         builder.HasIndex(a => a.InterviewScheduledAtUtc);
     }
 }

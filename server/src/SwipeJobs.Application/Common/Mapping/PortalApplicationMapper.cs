@@ -36,6 +36,8 @@ public static class PortalApplicationMapper
             ApplicationStatusCatalog.ResolveStage(application.Status, application.InterviewPhase),
             interviewPhase,
             application.InterviewScheduledAtUtc,
+            application.InterviewLocation,
+            application.InterviewNotes,
             HasResume(profile),
             unreadMessageCount,
             application.Status == ApplicationStatus.Withdrawn);

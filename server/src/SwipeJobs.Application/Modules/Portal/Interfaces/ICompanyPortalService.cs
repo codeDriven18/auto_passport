@@ -14,6 +14,8 @@ public interface ICompanyPortalService
     Task<PortalApplicantDetailDto?> GetApplicantDetailAsync(Guid companyId, Guid applicationId, CancellationToken cancellationToken = default);
     Task<PortalApplicationDto?> UpdateApplicationStatusAsync(
         Guid companyId, Guid applicationId, ApplicationStatus status, CancellationToken cancellationToken = default);
+    Task<PortalApplicationDto?> ScheduleInterviewAsync(
+        Guid companyId, Guid applicationId, PortalScheduleInterviewDto dto, CancellationToken cancellationToken = default);
     Task<(Stream Content, string ContentType, string FileName)?> OpenApplicantResumeAsync(
         Guid companyId, Guid applicationId, CancellationToken cancellationToken = default);
     Task<CompanyDto?> GetCompanyAsync(Guid companyId, CancellationToken cancellationToken = default);

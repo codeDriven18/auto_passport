@@ -7,6 +7,7 @@ import { CandidateTrustBadge } from '@/components/portal/CandidateTrustBadge';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { UserAvatar } from '@/components/profile/UserAvatar';
 import { PageFrame, Panel } from '@/portal/components/PageFrame';
+import { InterviewScheduler } from '@/portal/components/InterviewScheduler';
 import ws from '@/portal/workspace.module.css';
 import { ApplicationStatus, ApplicationStatusLabels } from '@/models/enums';
 import type { PortalApplicantDetail } from '@/models/portalApplicant';
@@ -45,6 +46,7 @@ export function CandidateProfilePage() {
   const [updating, setUpdating] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [schedulerOpen, setSchedulerOpen] = useState(false);
 
   const loadApplicant = useCallback(async () => {
     if (!applicationId) return;
@@ -266,6 +268,46 @@ export function CandidateProfilePage() {
             <p className={ws.bodyText}>{applicant.jobTitle}</p>
             <p className={ws.candidateSub}>Applied {appliedDate}</p>
           </div>
+
+          {!isClosed && (
+            <div>
+              <p className={ws.railTitle}>Interview</p>
+              {applicant.interviewScheduledAtUtc ? (
+                <div className={ws.interviewCallout}>
+                  <span className={ws.interviewCalloutTime}>
+                    {new Date(applicant.interviewScheduledAtUtc).toLocaleString(undefined, {
+                      weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit',
+                    })}
+                  </span>
+                  {applicant.interviewLocation && (
+                    <span className={ws.interviewCalloutMeta}>{applicant.interviewLocation}</span>
+                  )}
+                  {applicant.interviewNotes && (
+                    <span className={ws.interviewCalloutMeta}>{applicant.interviewNotes}</span>
+                  )}
+                </div>
+              ) : (
+                <p className={ws.candidateSub}>No interview scheduled yet.</p>
+              )}
+              {schedulerOpen ? (
+                <InterviewScheduler
+                  applicationId={applicationId!}
+                  initialDate={applicant.interviewScheduledAtUtc}
+                  initialLocation={applicant.interviewLocation}
+                  initialNotes={applicant.interviewNotes}
+                  onScheduled={() => {
+                    setSchedulerOpen(false);
+                    void loadApplicant();
+                  }}
+                  onCancel={() => setSchedulerOpen(false)}
+                />
+              ) : (
+                <button type="button" className={ws.btnGhost} onClick={() => setSchedulerOpen(true)}>
+                  {applicant.interviewScheduledAtUtc ? 'Reschedule' : 'Schedule interview'}
+                </button>
+              )}
+            </div>
+          )}
 
           <div className={ws.railActions}>
             <button type="button" className={ws.btnPrimary} disabled={updating || isClosed} onClick={() => void handleInvite()}>

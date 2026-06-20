@@ -59,9 +59,15 @@ export const PipelineCard = memo(function PipelineCard({
     attention.includes('interview') ? styles.cardAttentionInterview : '',
   ].filter(Boolean).join(' ');
 
-  const interviewLabel = application.interviewPhase !== InterviewPhase.None
-    ? INTERVIEW_PHASE_LABELS[application.interviewPhase]
+  const interviewTime = application.interviewScheduledAtUtc
+    ? new Date(application.interviewScheduledAtUtc).toLocaleString(undefined, {
+        month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit',
+      })
     : null;
+  const interviewLabel = interviewTime
+    ?? (application.interviewPhase !== InterviewPhase.None
+      ? INTERVIEW_PHASE_LABELS[application.interviewPhase]
+      : null);
 
   const nameParts = application.applicantName.trim().split(/\s+/);
   const firstName = nameParts[0] ?? '';

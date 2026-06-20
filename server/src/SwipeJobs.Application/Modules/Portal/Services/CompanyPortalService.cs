@@ -285,6 +285,10 @@ public class CompanyPortalService : ICompanyPortalService
             profile.ResumeUploadedAt,
             application.ReapplicationCount,
             ApplicationWorkflow.ToApplicationNumber(application.ReapplicationCount),
+            ApplicationStatusCatalog.ResolveInterviewPhase(application.Status, application.InterviewPhase),
+            application.InterviewScheduledAtUtc,
+            application.InterviewLocation,
+            application.InterviewNotes,
             statusHistory,
             applicationHistory,
             profile.Skills.Select(s => new SkillDto(s.Id, s.Name, s.Level)).ToList(),
@@ -346,6 +350,66 @@ public class CompanyPortalService : ICompanyPortalService
             status,
             jobTitle,
             cancellationToken);
+
+        var refreshed = await _applicationRepository.GetByIdForCompanyAsync(applicationId, companyId, cancellationToken);
+        return refreshed is null ? null : PortalApplicationMapper.ToDto(refreshed);
+    }
+
+    public async Task<PortalApplicationDto?> ScheduleInterviewAsync(
+        Guid companyId, Guid applicationId, PortalScheduleInterviewDto dto, CancellationToken cancellationToken = default)
+    {
+        var application = await _applicationRepository.GetByIdAsync(applicationId, cancellationToken);
+        if (application is null) return null;
+
+        var job = await _jobRepository.GetByIdAsync(application.JobId, cancellationToken);
+        if (job is null || job.CompanyId != companyId) return null;
+
+        if (application.Status is ApplicationStatus.Withdrawn or ApplicationStatus.Rejected or ApplicationStatus.Hired)
+            throw new InvalidOperationException("Cannot schedule an interview for a closed application.");
+
+        var previous = application.Status;
+        var changedAt = DateTime.UtcNow;
+
+        application.InterviewScheduledAtUtc = DateTime.SpecifyKind(dto.ScheduledAtUtc, DateTimeKind.Utc);
+        application.InterviewLocation = string.IsNullOrWhiteSpace(dto.Location) ? null : dto.Location.Trim();
+        application.InterviewNotes = string.IsNullOrWhiteSpace(dto.Notes) ? null : dto.Notes.Trim();
+        application.InterviewPhase = InterviewPhase.Scheduled;
+        application.Status = ApplicationStatus.Interviewing;
+
+        if (previous != ApplicationStatus.Interviewing)
+        {
+            application.StatusHistoryJson = ApplicationStatusHistorySerializer.Append(
+                application.StatusHistoryJson, ApplicationStatus.Interviewing, changedAt);
+        }
+
+        await _applicationRepository.UpdateAsync(application, cancellationToken);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        await _messagingService.SyncConversationStatusForApplicationAsync(
+            applicationId, ApplicationStatus.Interviewing, previous, cancellationToken);
+
+        _logger.LogInformation(
+            "Interview scheduled applicationId={ApplicationId} companyId={CompanyId} scheduledAt={ScheduledAt}",
+            applicationId,
+            companyId,
+            application.InterviewScheduledAtUtc);
+
+        await _auditLogService.LogAsync(
+            AuditAction.AdminAction,
+            AuditEntityType.Application,
+            applicationId,
+            $"Interview scheduled for {application.InterviewScheduledAtUtc:u}",
+            cancellationToken: cancellationToken);
+
+        if (previous != ApplicationStatus.Interviewing)
+        {
+            await _notificationService.NotifyApplicationStatusChangedAsync(
+                application.UserProfileId,
+                applicationId,
+                ApplicationStatus.Interviewing,
+                job.Title,
+                cancellationToken);
+        }
 
         var refreshed = await _applicationRepository.GetByIdForCompanyAsync(applicationId, companyId, cancellationToken);
         return refreshed is null ? null : PortalApplicationMapper.ToDto(refreshed);

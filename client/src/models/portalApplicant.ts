@@ -1,4 +1,4 @@
-import type { ApplicationStatus, CandidateTrustLevel } from './enums';
+import type { ApplicationStatus, CandidateTrustLevel, InterviewPhase } from './enums';
 import type { Education, Experience, Skill } from './userProfile';
 
 export interface ApplicationStatusHistoryEntry {
@@ -35,6 +35,10 @@ export interface PortalApplicantDetail {
   resumeUploadedAt?: string;
   reapplicationCount: number;
   applicationNumber: number;
+  interviewPhase: InterviewPhase;
+  interviewScheduledAtUtc?: string;
+  interviewLocation?: string;
+  interviewNotes?: string;
   statusHistory: ApplicationStatusHistoryEntry[];
   applicationHistory: PortalApplicationSummary[];
   skills: Skill[];
@@ -48,4 +52,10 @@ export interface PortalApplicantDetail {
 
 export interface PortalUpdateApplicationStatusRequest {
   status: ApplicationStatus;
+}
+
+export interface PortalScheduleInterviewRequest {
+  scheduledAtUtc: string;
+  location?: string;
+  notes?: string;
 }

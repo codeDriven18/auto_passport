@@ -158,6 +158,26 @@ public class CompanyPortalController : ControllerBase
         }
     }
 
+    [HttpPost("applications/{id:guid}/interview")]
+    public async Task<IActionResult> ScheduleInterview(
+        Guid id,
+        [FromBody] PortalScheduleInterviewDto dto,
+        CancellationToken cancellationToken)
+    {
+        _currentUser.RequireRole(UserRole.Company, UserRole.Admin);
+        var companyId = _currentUser.GetRequiredCompanyId();
+
+        try
+        {
+            var updated = await _portalService.ScheduleInterviewAsync(companyId, id, dto, cancellationToken);
+            return updated is null ? NotFound() : Ok(updated);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { error = ex.Message, code = "invalid_interview" });
+        }
+    }
+
     [HttpGet("applications/{id:guid}/resume")]
     public async Task<IActionResult> DownloadApplicantResume(Guid id, CancellationToken cancellationToken)
     {

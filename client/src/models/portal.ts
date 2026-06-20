@@ -17,6 +17,8 @@ export interface PortalApplication {
   appliedAt: string;
   interviewPhase: InterviewPhase;
   interviewScheduledAtUtc?: string;
+  interviewLocation?: string;
+  interviewNotes?: string;
   jobId: string;
   jobTitle: string;
   userProfileId: string;

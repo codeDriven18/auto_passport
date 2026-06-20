@@ -14,6 +14,7 @@ const FILTERS = [
 
 export function InboxPage() {
   const [filter, setFilter] = useState('');
+  const [search, setSearch] = useState('');
   const [conversations, setConversations] = useState<ConversationSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const location = useLocation();
@@ -29,6 +30,12 @@ export function InboxPage() {
     void refreshUnread();
   }, [filter, location.pathname, refreshUnread]);
 
+  const query = search.trim().toLowerCase();
+  const visibleConversations = query
+    ? conversations.filter((c) =>
+        c.candidateName.toLowerCase().includes(query) || c.jobTitle.toLowerCase().includes(query))
+    : conversations;
+
   return (
     <div className={[ws.inbox, hasSelection ? ws.inboxActive : ''].filter(Boolean).join(' ')}>
       <div className={ws.inboxList}>
@@ -39,6 +46,15 @@ export function InboxPage() {
           </p>
           <Link to="/portal/pipeline" className={ws.btnGhost}>Pipeline</Link>
         </div>
+
+        <input
+          type="search"
+          className={ws.inboxSearch}
+          placeholder="Search candidates or roles…"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          aria-label="Search conversations"
+        />
 
         <div className={ws.pillRow} role="tablist" aria-label="Conversation filters">
           {FILTERS.map((item) => (
@@ -55,8 +71,10 @@ export function InboxPage() {
             <p className={ws.candidateSub}>No conversations yet. Invite candidates to interview to unlock messaging.</p>
             <Link to="/portal/pipeline" className={ws.btnPrimary}>Open pipeline</Link>
           </div>
+        ) : visibleConversations.length === 0 ? (
+          <p className={ws.statusText}>No conversations match “{search.trim()}”.</p>
         ) : (
-          conversations.map((conversation) => (
+          visibleConversations.map((conversation) => (
             <ConversationRow key={conversation.id} conversation={conversation} />
           ))
         )}

@@ -67,9 +67,13 @@ export function getInterviewQueue(applications: PortalApplication[], limit = 6):
       || app.status === ApplicationStatus.Interviewing
     ))
     .sort((a, b) => {
-      const aTime = a.interviewScheduledAtUtc ? new Date(a.interviewScheduledAtUtc).getTime() : 0;
-      const bTime = b.interviewScheduledAtUtc ? new Date(b.interviewScheduledAtUtc).getTime() : 0;
-      return bTime - aTime || new Date(b.appliedAt).getTime() - new Date(a.appliedAt).getTime();
+      // Scheduled interviews first, soonest upcoming at the top; unscheduled fall back to recency.
+      const aTime = a.interviewScheduledAtUtc ? new Date(a.interviewScheduledAtUtc).getTime() : null;
+      const bTime = b.interviewScheduledAtUtc ? new Date(b.interviewScheduledAtUtc).getTime() : null;
+      if (aTime !== null && bTime !== null) return aTime - bTime;
+      if (aTime !== null) return -1;
+      if (bTime !== null) return 1;
+      return new Date(b.appliedAt).getTime() - new Date(a.appliedAt).getTime();
     })
     .slice(0, limit);
 }

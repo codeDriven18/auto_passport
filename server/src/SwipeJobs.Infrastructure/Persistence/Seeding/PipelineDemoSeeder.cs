@@ -1,7 +1,9 @@
+using System.Text;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using SwipeJobs.Application.Common;
+using SwipeJobs.Application.Common.Interfaces;
 using SwipeJobs.Domain.Entities;
 using SwipeJobs.Domain.Enums;
 using ApplicationEntity = SwipeJobs.Domain.Entities.Application;
@@ -20,15 +22,18 @@ public class PipelineDemoSeeder
 
     private readonly AppDbContext _context;
     private readonly IConfiguration _configuration;
+    private readonly IResumeStorageService _resumeStorage;
     private readonly ILogger<PipelineDemoSeeder> _logger;
 
     public PipelineDemoSeeder(
         AppDbContext context,
         IConfiguration configuration,
+        IResumeStorageService resumeStorage,
         ILogger<PipelineDemoSeeder> logger)
     {
         _context = context;
         _configuration = configuration;
+        _resumeStorage = resumeStorage;
         _logger = logger;
     }
 
@@ -52,6 +57,8 @@ public class PipelineDemoSeeder
         if (await _context.Applications.AnyAsync(a => a.Notes == SeedMarker, cancellationToken))
         {
             _logger.LogInformation("Pipeline demo seed already applied.");
+            // Repair stale demo resume paths from earlier seeds that never wrote a file.
+            await RepairDemoResumesAsync(cancellationToken);
             return;
         }
 
@@ -242,14 +249,114 @@ public class PipelineDemoSeeder
             Headline = $"{first} — demo pipeline candidate",
             Location = "Berlin, Germany",
             ProfileImageUrl = $"https://api.dicebear.com/7.x/avataaars/svg?seed={Uri.EscapeDataString(email)}",
-            ResumeFileName = hasResume ? $"{first}_{last}_Resume.pdf" : null,
-            ResumeUrl = hasResume ? $"pipeline-demo/{email}/resume.pdf" : null,
-            ResumeFileSize = hasResume ? 245_760 : null,
-            ResumeUploadedAt = hasResume ? DateTime.UtcNow.AddDays(-14) : null,
             IsProfileComplete = true,
         };
         _context.UserProfiles.Add(profile);
         await _context.SaveChangesAsync(cancellationToken);
+
+        if (hasResume)
+        {
+            await StoreDemoResumeAsync(profile, first, last, cancellationToken);
+            await _context.SaveChangesAsync(cancellationToken);
+        }
+
         return profile;
     }
+
+    /// <summary>
+    /// Writes a real placeholder PDF to resume storage and points the profile at the
+    /// returned storage key, so the employer download endpoint can stream a valid file.
+    /// </summary>
+    private async Task StoreDemoResumeAsync(
+        UserProfile profile,
+        string first,
+        string last,
+        CancellationToken cancellationToken)
+    {
+        var fileName = $"{first}_{last}_Resume.pdf";
+        var pdf = CreatePlaceholderPdf($"{first} {last}");
+        using var stream = new MemoryStream(pdf);
+        var storageKey = await _resumeStorage.SaveAsync(
+            profile.Id, stream, fileName, "application/pdf", cancellationToken);
+
+        profile.ResumeFileName = fileName;
+        profile.ResumeUrl = storageKey;
+        profile.ResumeFileSize = pdf.Length;
+        profile.ResumeUploadedAt = DateTime.UtcNow.AddDays(-14);
+    }
+
+    /// <summary>
+    /// Repairs demo candidates seeded before resumes were persisted to storage. Earlier seeds
+    /// stored a fake ResumeUrl ("pipeline-demo/...") with no underlying file, producing 404s on
+    /// download. This rewrites any demo resume whose file is missing.
+    /// </summary>
+    private async Task RepairDemoResumesAsync(CancellationToken cancellationToken)
+    {
+        var demoProfiles = await _context.UserProfiles
+            .Where(p => p.Email != null
+                && p.Email.EndsWith("@demo.swipejobs")
+                && p.ResumeFileName != null)
+            .ToListAsync(cancellationToken);
+
+        var repaired = 0;
+        foreach (var profile in demoProfiles)
+        {
+            var existing = string.IsNullOrWhiteSpace(profile.ResumeUrl)
+                ? null
+                : await _resumeStorage.OpenReadAsync(profile.ResumeUrl, cancellationToken);
+
+            if (existing is not null)
+            {
+                await existing.Value.Content.DisposeAsync();
+                continue;
+            }
+
+            await StoreDemoResumeAsync(profile, profile.FirstName ?? "Demo", profile.LastName ?? "Candidate", cancellationToken);
+            repaired++;
+        }
+
+        if (repaired > 0)
+        {
+            await _context.SaveChangesAsync(cancellationToken);
+            _logger.LogInformation("Repaired {Count} demo candidate resume file(s).", repaired);
+        }
+    }
+
+    /// <summary>Builds a minimal, valid single-page PDF with the candidate's name.</summary>
+    private static byte[] CreatePlaceholderPdf(string name)
+    {
+        var contentText = $"BT /F1 18 Tf 72 720 Td ({EscapePdfText(name)} - Demo Resume) Tj ET";
+        var objects = new[]
+        {
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+            $"<< /Length {contentText.Length} >>\nstream\n{contentText}\nendstream",
+        };
+
+        var builder = new StringBuilder();
+        builder.Append("%PDF-1.4\n");
+
+        var offsets = new int[objects.Length];
+        for (var i = 0; i < objects.Length; i++)
+        {
+            offsets[i] = builder.Length;
+            builder.Append(i + 1).Append(" 0 obj\n").Append(objects[i]).Append("\nendobj\n");
+        }
+
+        var xrefOffset = builder.Length;
+        builder.Append("xref\n0 ").Append(objects.Length + 1).Append('\n');
+        builder.Append("0000000000 65535 f \n");
+        foreach (var offset in offsets)
+            builder.Append(offset.ToString("D10")).Append(" 00000 n \n");
+
+        builder.Append("trailer\n<< /Size ").Append(objects.Length + 1).Append(" /Root 1 0 R >>\n");
+        builder.Append("startxref\n").Append(xrefOffset).Append("\n%%EOF");
+
+        return Encoding.ASCII.GetBytes(builder.ToString());
+    }
+
+    private static string EscapePdfText(string value) =>
+        value.Replace("\\", "\\\\").Replace("(", "\\(").Replace(")", "\\)");
 }

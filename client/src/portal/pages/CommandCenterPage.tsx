@@ -15,6 +15,7 @@ import { ApplicantWorkRow, ConversationWorkRow, RoleWorkRow } from '@/portal/com
 import { PageFrame } from '@/portal/components/PageFrame';
 import ws from '@/portal/workspace.module.css';
 import { CompanyStatus, CompanyStatusLabels } from '@/models/operations';
+import { PipelineStage } from '@/models/enums';
 
 export function CommandCenterPage() {
   const { stats, loading: statsLoading, refreshStats } = useEmployerWorkspace();
@@ -53,6 +54,9 @@ export function CommandCenterPage() {
   const recentApplicants = getRecentApplicants(applications, 5);
   const unreadConversations = conversations.filter((c) => c.unreadCount > 0).slice(0, 5);
   const totalInPipeline = pipelineCounts.reduce((sum, s) => sum + s.count, 0);
+  const progressStages = pipelineCounts.filter((s) =>
+    [PipelineStage.Interview, PipelineStage.Offer, PipelineStage.Hired].includes(s.stage),
+  );
 
   return (
     <PageFrame fill>
@@ -185,13 +189,28 @@ export function CommandCenterPage() {
 
           <section className={ws.workSection}>
             <div className={ws.workSectionHeader}>
-              <h3 className={ws.workSectionTitle}>Hiring activity</h3>
+              <h3 className={ws.workSectionTitle}>Hiring progress</h3>
+              <Link to="/portal/pipeline" className={ws.workSectionLink}>Pipeline</Link>
+            </div>
+            <div className={ws.progressFunnel}>
+              {progressStages.map((stage) => {
+                const pct = totalInPipeline > 0 ? Math.round((stage.count / totalInPipeline) * 100) : 0;
+                return (
+                  <div key={stage.label} className={ws.progressStep}>
+                    <div className={ws.progressStepHead}>
+                      <span>{stage.label}</span>
+                      <strong>{stage.count}</strong>
+                    </div>
+                    <div className={ws.progressTrack}>
+                      <div className={ws.progressFill} style={{ width: `${pct}%` }} />
+                    </div>
+                  </div>
+                );
+              })}
             </div>
             <dl className={ws.activityStats}>
-              <div><dt>Total candidates</dt><dd>{stats.totalApplications}</dd></div>
               <div><dt>New this week</dt><dd>{stats.newApplicationsThisWeek}</dd></div>
               <div><dt>Active roles</dt><dd>{stats.activeJobs}</dd></div>
-              <div><dt>In pipeline</dt><dd>{totalInPipeline}</dd></div>
             </dl>
           </section>
         </aside>

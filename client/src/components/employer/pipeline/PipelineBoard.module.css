@@ -1,9 +1,9 @@
 .pipelineBoardPage {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--space-3);
   min-width: 0;
-  min-height: calc(100dvh - var(--employer-header-height) - var(--space-16));
+  flex: 1;
 }
 
 .boardToolbar {
@@ -12,17 +12,7 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--space-3);
-  position: sticky;
-  top: 0;
-  z-index: 20;
-  padding: var(--space-3) 0;
-  margin: calc(-1 * var(--space-3)) 0 0;
-  background: linear-gradient(
-    to bottom,
-    var(--employer-canvas) 70%,
-    color-mix(in srgb, var(--employer-canvas) 85%, transparent) 100%
-  );
-  backdrop-filter: blur(8px);
+  padding: 0 0 var(--space-1);
 }
 
 .boardTitle {

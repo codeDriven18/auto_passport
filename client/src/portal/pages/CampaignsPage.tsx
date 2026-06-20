@@ -23,6 +23,7 @@ const emptyForm = {
   isRemote: false,
   salaryMin: '',
   salaryMax: '',
+  coverImageUrl: '',
   isActive: true,
 };
 
@@ -77,6 +78,7 @@ export function CampaignsPage() {
       isRemote: job.isRemote,
       salaryMin: job.salaryMin?.toString() ?? '',
       salaryMax: job.salaryMax?.toString() ?? '',
+      coverImageUrl: job.jobImageUrl ?? '',
       isActive: job.isActive,
     });
     setFormError(null);
@@ -108,6 +110,7 @@ export function CampaignsPage() {
         isRemote: form.isRemote,
         salaryMin: form.salaryMin ? Number(form.salaryMin) : undefined,
         salaryMax: form.salaryMax ? Number(form.salaryMax) : undefined,
+        jobImageUrl: form.coverImageUrl.trim() || undefined,
       };
       if (editingId) {
         await portalApi.updateJob(editingId, { ...payload, isActive: form.isActive });
@@ -130,58 +133,126 @@ export function CampaignsPage() {
   };
 
   if (showForm) {
+    const coverPreview = form.coverImageUrl.trim();
     return (
       <PageFrame
-        meta={editingId ? 'Update role details and visibility' : 'Publish a new hiring campaign'}
+        meta={editingId ? 'Update this hiring campaign' : 'Launch a new hiring campaign'}
         actions={(
           <button type="button" className={ws.btnGhost} onClick={() => { setShowForm(false); setEditingId(null); }}>
             Back to campaigns
           </button>
         )}
       >
-        <form className={[ws.panel, ws.formPanel].join(' ')} onSubmit={(e) => void handleSubmit(e)}>
+        <form className={ws.campaignForm} onSubmit={(e) => void handleSubmit(e)}>
           {formError && <p className={ws.formError} role="alert">{formError}</p>}
-          <div className={ws.field}>
-            <label htmlFor="title">Title</label>
-            <input id="title" className={ws.input} required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
-          </div>
-          <div className={ws.field}>
-            <label htmlFor="description">Description</label>
-            <textarea id="description" className={ws.textarea} required rows={5} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
-          </div>
-          <div className={ws.fieldRow}>
-            <div className={ws.field}>
-              <label htmlFor="city">City</label>
-              <input id="city" className={ws.input} value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} />
+
+          <div className={ws.campaignFormGrid}>
+            <div className={ws.stack}>
+              <section className={ws.panel}>
+                <div className={ws.formSectionHead}>
+                  <h2 className={ws.panelTitle}>Role basics</h2>
+                  <p className={ws.candidateSub}>What you're hiring for and why someone should care.</p>
+                </div>
+                <div className={ws.field}>
+                  <label htmlFor="title">Role title</label>
+                  <input id="title" className={ws.input} required placeholder="e.g. Senior Frontend Engineer" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
+                </div>
+                <div className={ws.field}>
+                  <label htmlFor="description">About the role</label>
+                  <textarea id="description" className={ws.textarea} required rows={7} placeholder="Describe the mission, responsibilities, and what success looks like." value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+                </div>
+              </section>
+
+              <section className={ws.panel}>
+                <div className={ws.formSectionHead}>
+                  <h2 className={ws.panelTitle}>Location & type</h2>
+                  <p className={ws.candidateSub}>Where the work happens and the seniority you need.</p>
+                </div>
+                <div className={ws.fieldRow}>
+                  <div className={ws.field}>
+                    <label htmlFor="city">City</label>
+                    <input id="city" className={ws.input} placeholder="Berlin" value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} />
+                  </div>
+                  <div className={ws.field}>
+                    <label htmlFor="location">Region / country</label>
+                    <input id="location" className={ws.input} placeholder="Germany" value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} />
+                  </div>
+                </div>
+                <div className={ws.fieldRow}>
+                  <div className={ws.field}>
+                    <label htmlFor="category">Category</label>
+                    <select id="category" className={ws.select} value={form.category} onChange={(e) => setForm({ ...form, category: Number(e.target.value) })}>
+                      <option value={JobCategory.It}>IT</option>
+                      <option value={JobCategory.Gig}>Gig</option>
+                    </select>
+                  </div>
+                  <div className={ws.field}>
+                    <label htmlFor="level">Level</label>
+                    <select id="level" className={ws.select} value={form.level} onChange={(e) => setForm({ ...form, level: Number(e.target.value) })}>
+                      <option value={JobLevel.Internship}>Internship</option>
+                      <option value={JobLevel.Junior}>Junior</option>
+                      <option value={JobLevel.MidLevel}>Mid-Level</option>
+                      <option value={JobLevel.NotApplicable}>N/A</option>
+                    </select>
+                  </div>
+                </div>
+                <label className={ws.checkboxRow}><input type="checkbox" checked={form.isRemote} onChange={(e) => setForm({ ...form, isRemote: e.target.checked })} /> Open to remote candidates</label>
+              </section>
+
+              <section className={ws.panel}>
+                <div className={ws.formSectionHead}>
+                  <h2 className={ws.panelTitle}>Compensation</h2>
+                  <p className={ws.candidateSub}>Optional, but roles with salary ranges attract more applicants.</p>
+                </div>
+                <div className={ws.fieldRow}>
+                  <div className={ws.field}>
+                    <label htmlFor="salaryMin">Minimum (annual)</label>
+                    <input id="salaryMin" className={ws.input} type="number" min="0" placeholder="65000" value={form.salaryMin} onChange={(e) => setForm({ ...form, salaryMin: e.target.value })} />
+                  </div>
+                  <div className={ws.field}>
+                    <label htmlFor="salaryMax">Maximum (annual)</label>
+                    <input id="salaryMax" className={ws.input} type="number" min="0" placeholder="85000" value={form.salaryMax} onChange={(e) => setForm({ ...form, salaryMax: e.target.value })} />
+                  </div>
+                </div>
+              </section>
             </div>
-            <div className={ws.field}>
-              <label htmlFor="location">Location</label>
-              <input id="location" className={ws.input} value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} />
-            </div>
+
+            <aside className={ws.stack}>
+              <section className={ws.panel}>
+                <div className={ws.formSectionHead}>
+                  <h2 className={ws.panelTitle}>Campaign cover</h2>
+                  <p className={ws.candidateSub}>Optional. Leave blank and we'll use a branded cover for this category automatically.</p>
+                </div>
+                <div className={ws.coverPreview} aria-hidden>
+                  {coverPreview ? (
+                    <img src={coverPreview} alt="" className={ws.coverPreviewImg} />
+                  ) : (
+                    <div className={ws.coverPreviewFallback}>
+                      <span>Auto cover</span>
+                    </div>
+                  )}
+                </div>
+                <div className={ws.field}>
+                  <label htmlFor="cover">Cover image URL</label>
+                  <input id="cover" className={ws.input} placeholder="https://…" value={form.coverImageUrl} onChange={(e) => setForm({ ...form, coverImageUrl: e.target.value })} />
+                </div>
+              </section>
+
+              {editingId && (
+                <section className={ws.panel}>
+                  <div className={ws.formSectionHead}>
+                    <h2 className={ws.panelTitle}>Visibility</h2>
+                  </div>
+                  <label className={ws.checkboxRow}><input type="checkbox" checked={form.isActive} onChange={(e) => setForm({ ...form, isActive: e.target.checked })} /> Active listing</label>
+                </section>
+              )}
+
+              <div className={ws.campaignFormActions}>
+                <button type="submit" className={ws.btnPrimary} disabled={saving}>{saving ? 'Saving…' : editingId ? 'Update campaign' : 'Publish campaign'}</button>
+                <button type="button" className={ws.btnGhost} onClick={() => { setShowForm(false); setEditingId(null); }}>Cancel</button>
+              </div>
+            </aside>
           </div>
-          <div className={ws.fieldRow}>
-            <div className={ws.field}>
-              <label htmlFor="category">Category</label>
-              <select id="category" className={ws.select} value={form.category} onChange={(e) => setForm({ ...form, category: Number(e.target.value) })}>
-                <option value={JobCategory.It}>IT</option>
-                <option value={JobCategory.Gig}>Gig</option>
-              </select>
-            </div>
-            <div className={ws.field}>
-              <label htmlFor="level">Level</label>
-              <select id="level" className={ws.select} value={form.level} onChange={(e) => setForm({ ...form, level: Number(e.target.value) })}>
-                <option value={JobLevel.Internship}>Internship</option>
-                <option value={JobLevel.Junior}>Junior</option>
-                <option value={JobLevel.MidLevel}>Mid-Level</option>
-                <option value={JobLevel.NotApplicable}>N/A</option>
-              </select>
-            </div>
-          </div>
-          <label className={ws.checkboxRow}><input type="checkbox" checked={form.isRemote} onChange={(e) => setForm({ ...form, isRemote: e.target.checked })} /> Remote role</label>
-          {editingId && (
-            <label className={ws.checkboxRow}><input type="checkbox" checked={form.isActive} onChange={(e) => setForm({ ...form, isActive: e.target.checked })} /> Active listing</label>
-          )}
-          <button type="submit" className={ws.btnPrimary} disabled={saving}>{saving ? 'Saving…' : editingId ? 'Update role' : 'Publish role'}</button>
         </form>
       </PageFrame>
     );

@@ -55,6 +55,7 @@ export interface PortalCreateJobRequest {
   salaryMax?: number;
   expiresAt?: string;
   externalUrl?: string;
+  jobImageUrl?: string;
   tagIds?: string[];
 }
 

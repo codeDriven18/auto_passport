@@ -92,7 +92,7 @@ export function PipelineBoard() {
   }
 
   return (
-    <div className={`${styles.pipelineBoardPage} ${comp.focalPage} ${comp.fillViewport}`}>
+    <div className={`${styles.pipelineBoardPage} ${comp.focalPage}`}>
       <div className={styles.boardToolbar}>
         <h1 className={styles.boardTitle}>
           Pipeline

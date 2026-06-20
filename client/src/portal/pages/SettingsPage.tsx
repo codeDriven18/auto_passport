@@ -1,34 +1,43 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { SettingsAccountSection, SettingsSecuritySection } from '@/portal/components/SettingsSections';
+import {
+  SettingsAccountSection,
+  SettingsAppearanceSection,
+  SettingsSecuritySection,
+} from '@/portal/components/SettingsSections';
 import { PageFrame } from '@/portal/components/PageFrame';
 import ws from '@/portal/workspace.module.css';
 
 type SettingsSectionId =
   | 'account'
-  | 'security'
+  | 'appearance'
   | 'notifications'
   | 'team'
   | 'company'
+  | 'integrations'
   | 'billing'
-  | 'integrations';
+  | 'security';
 
 interface SettingsSectionDef {
   id: SettingsSectionId;
   label: string;
   description: string;
   status?: 'coming-soon';
+  group: 'Workspace' | 'Account';
 }
 
 const SECTIONS: SettingsSectionDef[] = [
-  { id: 'account', label: 'Account', description: 'Profile, email, and session.' },
-  { id: 'security', label: 'Security', description: 'Password and sign-in.' },
-  { id: 'notifications', label: 'Notifications', description: 'Alerts for applicants and messages.', status: 'coming-soon' },
-  { id: 'team', label: 'Team', description: 'Recruiter access and roles.', status: 'coming-soon' },
-  { id: 'company', label: 'Company', description: 'Employer brand and defaults.' },
-  { id: 'billing', label: 'Billing', description: 'Plans and invoices.', status: 'coming-soon' },
-  { id: 'integrations', label: 'Integrations', description: 'Email and ATS connections.', status: 'coming-soon' },
+  { id: 'account', label: 'Account', description: 'Profile, email, and session.', group: 'Account' },
+  { id: 'security', label: 'Security', description: 'Password and sign-in.', group: 'Account' },
+  { id: 'appearance', label: 'Appearance', description: 'Theme and display.', group: 'Workspace' },
+  { id: 'notifications', label: 'Notifications', description: 'Alerts for applicants and messages.', status: 'coming-soon', group: 'Workspace' },
+  { id: 'team', label: 'Team Members', description: 'Recruiter access and roles.', status: 'coming-soon', group: 'Workspace' },
+  { id: 'company', label: 'Company', description: 'Employer brand and open roles.', group: 'Workspace' },
+  { id: 'integrations', label: 'Integrations', description: 'Email, calendar, and ATS connections.', status: 'coming-soon', group: 'Workspace' },
+  { id: 'billing', label: 'Billing', description: 'Plans, invoices, and payment methods.', status: 'coming-soon', group: 'Workspace' },
 ];
+
+const GROUP_ORDER: SettingsSectionDef['group'][] = ['Workspace', 'Account'];
 
 function PlaceholderSection({ description }: { description: string }) {
   return (
@@ -43,6 +52,8 @@ function renderSectionContent(id: SettingsSectionId) {
   switch (id) {
     case 'account':
       return <SettingsAccountSection />;
+    case 'appearance':
+      return <SettingsAppearanceSection />;
     case 'security':
       return <SettingsSecuritySection />;
     case 'notifications':
@@ -73,16 +84,21 @@ export function SettingsPage() {
     <PageFrame meta="Workspace preferences and account controls">
       <div className={ws.settingsWorkspace}>
         <nav className={ws.settingsNav} aria-label="Settings sections">
-          {SECTIONS.map((section) => (
-            <button
-              key={section.id}
-              type="button"
-              className={[ws.settingsNavItem, active === section.id ? ws.settingsNavItemActive : ''].filter(Boolean).join(' ')}
-              onClick={() => setActive(section.id)}
-            >
-              <span className={ws.settingsNavLabel}>{section.label}</span>
-              {section.status === 'coming-soon' && <span className={ws.settingsNavHint}>Soon</span>}
-            </button>
+          {GROUP_ORDER.map((group) => (
+            <div key={group} className={ws.settingsNavGroup}>
+              <p className={ws.settingsNavGroupLabel}>{group}</p>
+              {SECTIONS.filter((s) => s.group === group).map((section) => (
+                <button
+                  key={section.id}
+                  type="button"
+                  className={[ws.settingsNavItem, active === section.id ? ws.settingsNavItemActive : ''].filter(Boolean).join(' ')}
+                  onClick={() => setActive(section.id)}
+                >
+                  <span className={ws.settingsNavLabel}>{section.label}</span>
+                  {section.status === 'coming-soon' && <span className={ws.settingsNavHint}>Soon</span>}
+                </button>
+              ))}
+            </div>
           ))}
         </nav>
 

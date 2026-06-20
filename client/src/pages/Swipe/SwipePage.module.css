@@ -26,7 +26,8 @@
   min-height: 0;
   width: 100%;
   max-width: 100%;
-  overflow: hidden;
+  /* visible so the active swipe card is not clipped before the viewport edge */
+  overflow: visible;
   padding:
     max(0.5rem, env(safe-area-inset-top))
     var(--swipe-side-pad)
@@ -42,7 +43,8 @@
   max-width: 100%;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  /* visible so the active swipe card stays on screen across the full viewport while dragging */
+  overflow: visible;
   overscroll-behavior: none;
 }
 

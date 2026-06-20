@@ -260,9 +260,7 @@ export const PipelineColumn = memo(function PipelineColumn({
 
       <div className={styles.columnBody}>
         {applications.length === 0 ? (
-          <div className={styles.columnEmpty}>
-            <span>{emptyMessage}</span>
-          </div>
+          <PipelineColumnEmpty stage={stage} message={emptyMessage} />
         ) : (
           applications.map((application) => (
             <PipelineCard
@@ -293,11 +291,72 @@ export const STAGE_STYLE_CLASS: Record<PipelineStage, string> = {
 };
 
 export const EMPTY_COLUMN_MESSAGES: Record<PipelineStage, string> = {
-  [PipelineStage.Applied]: 'Waiting for applicants',
-  [PipelineStage.Reviewing]: 'No one in review',
+  [PipelineStage.Applied]: 'No applications yet',
+  [PipelineStage.Reviewing]: 'Nothing in review',
   [PipelineStage.Shortlisted]: 'No shortlisted candidates',
   [PipelineStage.Interview]: 'No interviews in progress',
   [PipelineStage.Offer]: 'No offers out',
   [PipelineStage.Hired]: 'No hires yet',
   [PipelineStage.Rejected]: 'No rejected candidates',
 };
+
+interface EmptyAction {
+  label: string;
+  to: string;
+  primary?: boolean;
+}
+
+export const EMPTY_COLUMN_ACTIONS: Record<PipelineStage, EmptyAction[]> = {
+  [PipelineStage.Applied]: [
+    { label: 'Publish a role', to: '/portal/jobs', primary: true },
+    { label: 'Share open roles', to: '/portal/jobs' },
+  ],
+  [PipelineStage.Reviewing]: [
+    { label: 'Review applicants', to: '/portal/applications', primary: true },
+    { label: 'Open command center', to: '/portal' },
+  ],
+  [PipelineStage.Shortlisted]: [
+    { label: 'Review candidates', to: '/portal/applications', primary: true },
+    { label: 'Move from review', to: '/portal/pipeline' },
+  ],
+  [PipelineStage.Interview]: [
+    { label: 'Invite to interview', to: '/portal/applications', primary: true },
+    { label: 'Open inbox', to: '/portal/messages' },
+  ],
+  [PipelineStage.Offer]: [
+    { label: 'Advance candidates', to: '/portal/pipeline', primary: true },
+    { label: 'View pipeline', to: '/portal/pipeline' },
+  ],
+  [PipelineStage.Hired]: [
+    { label: 'Review hired candidates', to: '/portal/applications', primary: true },
+  ],
+  [PipelineStage.Rejected]: [
+    { label: 'Review active pipeline', to: '/portal/pipeline', primary: true },
+  ],
+};
+
+function PipelineColumnEmpty({ stage, message }: { stage: PipelineStage; message: string }) {
+  const actions = EMPTY_COLUMN_ACTIONS[stage];
+
+  return (
+    <div className={styles.columnEmpty}>
+      <p className={styles.columnEmptyTitle}>{message}</p>
+      <p className={styles.columnEmptyHint}>
+        {stage === PipelineStage.Applied
+          ? 'Publish and share roles to start receiving candidates.'
+          : 'Drag candidates here or use quick actions to move them forward.'}
+      </p>
+      <div className={styles.columnEmptyActions}>
+        {actions.map((action) => (
+          <Link
+            key={action.label}
+            to={action.to}
+            className={action.primary ? styles.columnEmptyBtnPrimary : styles.columnEmptyBtn}
+          >
+            {action.label}
+          </Link>
+        ))}
+      </div>
+    </div>
+  );
+}

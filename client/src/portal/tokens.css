@@ -5,15 +5,17 @@
 
 .employer-portal {
   --ws-ink: #0a0a0a;
-  --ws-muted: #6b7280;
-  --ws-canvas: #f0f0f2;
+  --ws-muted: #5c5c5c;
+  --ws-canvas: #f5f5f5;
   --ws-panel: #ffffff;
-  --ws-panel-muted: #f7f7f9;
-  --ws-border: rgba(10, 10, 10, 0.08);
-  --ws-brand: var(--color-accent, #ffd100);
-  --ws-brand-soft: color-mix(in srgb, var(--ws-brand) 14%, #fff);
-  --ws-radius: 0.875rem;
-  --ws-radius-lg: 1.125rem;
+  --ws-panel-muted: #f0f0f0;
+  --ws-border: rgba(10, 10, 10, 0.1);
+  --ws-brand: #ffcc00;
+  --ws-brand-soft: #fff7cc;
+  --ws-nav-hover: rgba(10, 10, 10, 0.06);
+  --ws-nav-active: rgba(10, 10, 10, 0.1);
+  --ws-radius: 0.625rem;
+  --ws-radius-lg: 0.875rem;
   --ws-gap: 1.25rem;
   --ws-gap-lg: 1.75rem;
   --ws-nav-width: 15.5rem;
@@ -32,16 +34,19 @@
   --employer-border: var(--ws-border);
   --employer-brand: var(--ws-brand);
   --employer-brand-soft: var(--ws-brand-soft);
+  --employer-brand-glow: color-mix(in srgb, var(--ws-brand) 22%, transparent);
   --employer-radius-md: var(--ws-radius);
   --employer-header-height: var(--ws-header-height);
 }
 
 [data-theme='dark'] .employer-portal {
-  --ws-ink: #f5f5f5;
-  --ws-muted: #a1a1aa;
-  --ws-canvas: #0c0c0e;
-  --ws-panel: #141416;
-  --ws-panel-muted: #1a1a1e;
-  --ws-border: rgba(255, 255, 255, 0.08);
-  --ws-brand-soft: color-mix(in srgb, var(--ws-brand) 12%, #141416);
+  --ws-ink: #ffffff;
+  --ws-muted: #a3a3a3;
+  --ws-canvas: #0a0a0a;
+  --ws-panel: #141414;
+  --ws-panel-muted: #1a1a1a;
+  --ws-border: rgba(255, 255, 255, 0.1);
+  --ws-brand-soft: rgba(255, 204, 0, 0.14);
+  --ws-nav-hover: rgba(255, 255, 255, 0.08);
+  --ws-nav-active: rgba(255, 255, 255, 0.14);
 }

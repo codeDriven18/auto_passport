@@ -33,22 +33,24 @@
   align-items: center;
   gap: 0.625rem;
   padding: 0.625rem 0.75rem;
-  border-radius: var(--ws-radius);
+  border-radius: 0.625rem;
   font-size: 0.875rem;
   font-weight: 600;
   color: var(--ws-muted);
   text-decoration: none;
+  border: none;
+  background: transparent;
 }
 
 .link:hover {
   color: var(--ws-ink);
-  background: var(--ws-panel-muted);
+  background: var(--ws-nav-hover);
 }
 
 .linkActive {
   color: var(--ws-ink);
-  background: var(--ws-brand-soft);
-  box-shadow: inset 3px 0 0 var(--ws-brand);
+  font-weight: 700;
+  background: var(--ws-nav-active);
 }
 
 .linkIcon {

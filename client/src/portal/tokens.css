@@ -37,7 +37,16 @@
   --employer-brand: var(--ws-brand);
   --employer-brand-soft: var(--ws-brand-soft);
   --employer-brand-glow: color-mix(in srgb, var(--ws-brand) 22%, transparent);
+  --employer-radius-sm: 0.5rem;
   --employer-radius-md: var(--ws-radius);
+  --employer-radius-lg: var(--ws-radius-lg);
+  --employer-radius-xl: 1.125rem;
+  --employer-border-strong: color-mix(in srgb, var(--ws-ink) 16%, var(--ws-border));
+  --employer-surface-raised: var(--ws-panel);
+  --employer-shadow-xs: 0 1px 2px rgba(10, 10, 10, 0.06);
+  --employer-shadow-sm: 0 2px 8px rgba(10, 10, 10, 0.08);
+  --employer-shadow-md: 0 12px 28px rgba(10, 10, 10, 0.12);
+  --employer-shadow-lg: 0 20px 48px rgba(10, 10, 10, 0.18);
   --employer-header-height: var(--ws-header-height);
 }
 

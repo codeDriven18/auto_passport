@@ -14,14 +14,8 @@ interface EmployerWorkspaceState {
 
 const EmployerWorkspaceContext = createContext<EmployerWorkspaceState | null>(null);
 
-function hashBrandColor(seed: string): string {
-  let hash = 0;
-  for (let i = 0; i < seed.length; i += 1) {
-    hash = seed.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  const hue = Math.abs(hash) % 360;
-  return `hsl(${hue} 68% 52%)`;
-}
+/** SwipeJobs brand accent — consistent yellow across user, admin, and employer apps. */
+const SWIPEJOBS_BRAND = '#ffd600';
 
 export function EmployerWorkspaceProvider({ children }: { children: ReactNode }) {
   const [company, setCompany] = useState<Company | null>(null);
@@ -68,10 +62,7 @@ export function EmployerWorkspaceProvider({ children }: { children: ReactNode })
     };
   }, []);
 
-  const brandColor = useMemo(
-    () => hashBrandColor(company?.name ?? 'SwipeJobs'),
-    [company?.name],
-  );
+  const brandColor = SWIPEJOBS_BRAND;
 
   const value = useMemo(
     () => ({

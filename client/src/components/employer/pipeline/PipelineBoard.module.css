@@ -473,11 +473,11 @@
   }
 }
 
-/* Stage accent colors — black / white / yellow palette */
-.stageApplied { background: #737373; }
-.stageReviewing { background: #525252; }
-.stageShortlisted { background: #404040; }
-.stageInterview { background: #262626; }
+/* Stage accent colors — black / white / yellow palette, theme-aware */
+.stageApplied { background: color-mix(in srgb, var(--employer-ink) 30%, transparent); }
+.stageReviewing { background: color-mix(in srgb, var(--employer-ink) 50%, transparent); }
+.stageShortlisted { background: color-mix(in srgb, var(--employer-ink) 70%, transparent); }
+.stageInterview { background: var(--employer-ink); }
 .stageOffer { background: var(--employer-brand); }
-.stageHired { background: #0a0a0a; }
-.stageRejected { background: #a3a3a3; }
+.stageHired { background: color-mix(in srgb, var(--employer-brand) 65%, var(--employer-ink)); }
+.stageRejected { background: color-mix(in srgb, var(--employer-ink) 20%, transparent); }

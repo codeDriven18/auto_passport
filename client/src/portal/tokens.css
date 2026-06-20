@@ -1,17 +1,19 @@
 /**
  * SwipeJobs Employer Portal — workspace tokens only.
  * Scoped to .employer-portal root.
+ * Derived from the global app palette (black / white / yellow #ffd600)
+ * so the portal matches the user and admin experiences.
  */
 
 .employer-portal {
-  --ws-ink: #0a0a0a;
-  --ws-muted: #5c5c5c;
-  --ws-canvas: #f5f5f5;
-  --ws-panel: #ffffff;
-  --ws-panel-muted: #f0f0f0;
-  --ws-border: rgba(10, 10, 10, 0.1);
-  --ws-brand: #ffcc00;
-  --ws-brand-soft: #fff7cc;
+  --ws-ink: var(--color-text);
+  --ws-muted: var(--color-text-muted);
+  --ws-canvas: #f4f4f5;
+  --ws-panel: var(--color-surface);
+  --ws-panel-muted: #f4f4f5;
+  --ws-border: var(--color-border);
+  --ws-brand: var(--color-accent);
+  --ws-brand-soft: color-mix(in srgb, var(--color-accent) 16%, #ffffff);
   --ws-nav-hover: rgba(10, 10, 10, 0.06);
   --ws-nav-active: rgba(10, 10, 10, 0.1);
   --ws-radius: 0.625rem;
@@ -40,13 +42,9 @@
 }
 
 [data-theme='dark'] .employer-portal {
-  --ws-ink: #ffffff;
-  --ws-muted: #a3a3a3;
-  --ws-canvas: #0a0a0a;
-  --ws-panel: #141414;
-  --ws-panel-muted: #1a1a1a;
-  --ws-border: rgba(255, 255, 255, 0.1);
-  --ws-brand-soft: rgba(255, 204, 0, 0.14);
+  --ws-canvas: var(--color-bg);
+  --ws-panel-muted: var(--color-surface-raised);
+  --ws-brand-soft: color-mix(in srgb, var(--color-accent) 16%, var(--color-surface));
   --ws-nav-hover: rgba(255, 255, 255, 0.08);
   --ws-nav-active: rgba(255, 255, 255, 0.14);
 }

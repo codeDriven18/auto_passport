@@ -108,6 +108,7 @@ public record PortalApplicantDetailDto(
     string? Location,
     string JobSeekingStatus,
     string? ProfileImageUrl,
+    string? BannerUrl,
     string? LinkedInUrl,
     string? GitHubUrl,
     string? WebsiteUrl,
@@ -144,6 +145,14 @@ public record PortalSetRecruiterRatingDto(byte? Rating);
 public record PortalSetFavoriteDto(bool IsFavorite);
 
 public record PortalSetApplicationTagsDto(IReadOnlyList<Guid> TagIds);
+
+public record PortalWorkspaceActivityDto(
+    RecruiterActivityType Type,
+    DateTime OccurredAt,
+    string Message,
+    Guid? ApplicationId,
+    Guid? JobId,
+    Guid? ConversationId);
 
 public record PortalCreateRecruiterTagDto(string Name);
 

@@ -18,7 +18,8 @@ public record ConversationSummaryDto(
     string? LatestMessageText,
     DateTime? LatestMessageAt,
     int UnreadCount,
-    bool CanSendMessages);
+    bool CanSendMessages,
+    string? CandidateProfileImageUrl);
 
 public record ConversationDetailDto(
     Guid Id,
@@ -33,7 +34,8 @@ public record ConversationDetailDto(
     Guid JobId,
     string JobTitle,
     bool CanSendMessages,
-    bool IsReadOnly);
+    bool IsReadOnly,
+    string? CandidateProfileImageUrl);
 
 public record MessageDto(
     Guid Id,

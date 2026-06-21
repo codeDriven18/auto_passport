@@ -1,3 +1,5 @@
+import { useEffect, useState } from 'react';
+import { resolveMediaUrl } from '@/lib/mediaUrl';
 import { getProfileDisplayName, getProfileInitials, type UserProfile } from '@/models/userProfile';
 import styles from './UserAvatar.module.css';
 
@@ -18,13 +20,20 @@ const sizeClass = {
 export function UserAvatar({ profile, size = 'md', className = '' }: UserAvatarProps) {
   const initials = getProfileInitials(profile);
   const alt = getProfileDisplayName(profile) || 'User avatar';
+  const imageSrc = resolveMediaUrl(profile?.profileImageUrl);
+  const [imageError, setImageError] = useState(false);
 
-  if (profile?.profileImageUrl) {
+  useEffect(() => {
+    setImageError(false);
+  }, [profile?.profileImageUrl]);
+
+  if (imageSrc && !imageError) {
     return (
       <img
-        src={profile.profileImageUrl}
+        src={imageSrc}
         alt={alt}
         className={`${styles.avatar} ${sizeClass[size]} ${className}`.trim()}
+        onError={() => setImageError(true)}
       />
     );
   }

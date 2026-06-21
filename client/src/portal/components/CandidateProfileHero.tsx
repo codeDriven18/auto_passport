@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { IconChevronRight, IconMapPin } from '@/components/icons/Icons';
 import { CandidateTrustBadge } from '@/components/portal/CandidateTrustBadge';
 import { UserAvatar } from '@/components/profile/UserAvatar';
@@ -8,9 +9,9 @@ import {
   getApplicantProofLinks,
 } from '@/lib/candidateProfileMeta';
 import { formatJobSeekingStatus } from '@/lib/jobSeekingStatus';
+import { resolveMediaUrl } from '@/lib/mediaUrl';
 import { ApplicationStatusLabels } from '@/models/enums';
 import type { PortalApplicantDetail } from '@/models/portalApplicant';
-import { resolveMediaUrl } from '@/lib/mediaUrl';
 import ws from '@/portal/workspace.module.css';
 
 interface CandidateProfileHeroProps {
@@ -33,17 +34,34 @@ export function CandidateProfileHero({
   const completeness = getApplicantCompleteness(applicant);
   const proofLinks = getApplicantProofLinks(applicant);
   const isFavorite = applicant.isFavorite ?? false;
+  const bannerUrl = resolveMediaUrl(applicant.bannerUrl);
+  const [bannerError, setBannerError] = useState(false);
+
+  useEffect(() => {
+    setBannerError(false);
+  }, [bannerUrl]);
 
   return (
     <header className={[ws.candidateHero, compact ? ws.candidateHeroCompact : ''].filter(Boolean).join(' ')}>
-      {!compact && <div className={ws.candidateHeroBanner} aria-hidden />}
+      {!compact && (
+        <div className={ws.candidateHeroBanner} aria-hidden>
+          {bannerUrl && !bannerError && (
+            <img
+              src={bannerUrl}
+              alt=""
+              className={ws.candidateHeroBannerImg}
+              onError={() => setBannerError(true)}
+            />
+          )}
+        </div>
+      )}
       <div className={ws.candidateHeroBody}>
         <UserAvatar
           profile={{
             firstName: applicant.firstName,
             lastName: applicant.lastName,
             email: applicant.email,
-            profileImageUrl: resolveMediaUrl(applicant.profileImageUrl),
+            profileImageUrl: applicant.profileImageUrl,
           }}
           size="lg"
           className={ws.candidateHeroAvatar}

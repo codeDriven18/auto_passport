@@ -46,6 +46,7 @@ export function ConversationRow({ conversation, onOpenSplit, isSplitActive }: Co
             firstName: parts[0] ?? '',
             lastName: parts.slice(1).join(' '),
             email: '',
+            profileImageUrl: conversation.candidateProfileImageUrl,
           }}
           size="sm"
         />

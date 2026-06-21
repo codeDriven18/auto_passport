@@ -16,6 +16,11 @@ import { apiClient, apiClientBlob } from './client';
 export const portalApi = {
   getStats: () => apiClient<PortalStats>('/portal/stats'),
 
+  getWorkspaceActivity: (limit = 30) =>
+    apiClient<import('@/models/workspaceActivity').PortalWorkspaceActivity[]>(
+      `/portal/activity?limit=${limit}`,
+    ),
+
   getJobs: () => apiClient<PortalJob[]>('/portal/jobs'),
 
   createJob: (data: PortalCreateJobRequest) =>

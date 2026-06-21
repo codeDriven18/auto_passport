@@ -11,8 +11,26 @@ import {
   formatDateSeparator,
   isSameMessageDay,
 } from '@/lib/messagingHelpers';
+import { resolveMediaUrl } from '@/lib/mediaUrl';
+import {
+  createPendingAttachmentMessage,
+  isAttachmentPlaceholderText,
+  markPendingFailed,
+  normalizeLoadedMessage,
+  replacePendingMessage,
+  upsertMessage,
+  dedupeMessages,
+  reconcileIncomingMessage,
+} from '@/lib/messaging/chatMessages';
 import type { ChatMessage, ConversationDetail } from '@/models/messaging';
 import { MessageAttachment } from '@/components/messaging/MessageAttachment';
+import {
+  AttachmentComposer,
+  createPendingAttachment,
+  revokeAllPending,
+  revokePendingAttachment,
+  type PendingAttachment,
+} from '@/components/messaging/AttachmentComposer';
 import styles from './ChatView.module.css';
 
 interface ChatApi {
@@ -30,29 +48,15 @@ interface ChatViewProps {
   subtitle?: string;
   title?: string;
   logoUrl?: string;
+  headerHint?: string;
+  showStatusBadge?: boolean;
+  onHeaderIdentityClick?: () => void;
+  headerIdentityExpanded?: boolean;
   api: ChatApi;
   onMessagesRead?: () => void;
   layout?: 'seeker' | 'portal';
   fullscreen?: boolean;
   embedded?: boolean;
-}
-
-function normalizeLoadedMessage(message: ChatMessage): ChatMessage {
-  const isSystem = message.isSystem ?? message.type === 'System';
-  return {
-    ...message,
-    type: isSystem ? 'System' : 'User',
-    isSystem,
-  };
-}
-
-function isAttachmentPlaceholderText(text: string, fileName?: string | null): boolean {
-  const trimmed = text.trim();
-  if (!trimmed) return true;
-  if (!fileName) return trimmed.startsWith('Shared ');
-  return trimmed === fileName
-    || trimmed === `Shared ${fileName}`
-    || trimmed.startsWith('Shared ');
 }
 
 function MessageReceipt({ readAt }: { readAt?: string }) {
@@ -83,6 +87,10 @@ export function ChatView({
   subtitle,
   title,
   logoUrl,
+  headerHint,
+  showStatusBadge = true,
+  onHeaderIdentityClick,
+  headerIdentityExpanded,
   api,
   onMessagesRead,
   layout = 'seeker',
@@ -97,18 +105,27 @@ export function ChatView({
   const [error, setError] = useState<string | null>(null);
   const [typingUserId, setTypingUserId] = useState<string | null>(null);
   const [expandedImage, setExpandedImage] = useState<string | null>(null);
+  const [composerOpen, setComposerOpen] = useState(false);
+  const [pendingAttachments, setPendingAttachments] = useState<PendingAttachment[]>([]);
+  const [attachmentCaption, setAttachmentCaption] = useState('');
   const listRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   const displayName = title ?? conversation.companyName;
   const displaySubtitle = subtitle ?? conversation.jobTitle;
+  const avatarSrc = resolveMediaUrl(logoUrl ?? conversation.candidateProfileImageUrl ?? conversation.companyLogoUrl);
+  const [avatarError, setAvatarError] = useState(false);
+
+  useEffect(() => {
+    setAvatarError(false);
+  }, [avatarSrc]);
 
   const loadMessages = useCallback(async () => {
     setLoading(true);
     try {
       const items = await api.getMessages(conversation.id);
-      setMessages(items.map(normalizeLoadedMessage));
+      setMessages(dedupeMessages(items.map(normalizeLoadedMessage)));
       await api.markRead(conversation.id);
       onMessagesRead?.();
     } catch {
@@ -127,10 +144,7 @@ export function ChatView({
   }, [messages, typingUserId]);
 
   const handleIncoming = useCallback((message: ChatMessage) => {
-    setMessages((current) => {
-      if (current.some((m) => m.id === message.id)) return current;
-      return [...current, message];
-    });
+    setMessages((current) => reconcileIncomingMessage(current, message));
     void api.markRead(conversation.id).then(() => onMessagesRead?.());
   }, [api, conversation.id, onMessagesRead]);
 
@@ -181,6 +195,13 @@ export function ChatView({
     return items;
   }, [messages]);
 
+  const closeAttachmentComposer = useCallback(() => {
+    revokeAllPending(pendingAttachments);
+    setPendingAttachments([]);
+    setAttachmentCaption('');
+    setComposerOpen(false);
+  }, [pendingAttachments]);
+
   const handleSend = async () => {
     const text = draft.trim();
     if (!text || !conversation.canSendMessages) return;
@@ -189,7 +210,7 @@ export function ChatView({
     setError(null);
     try {
       const message = normalizeLoadedMessage(await api.sendMessage(conversation.id, text));
-      setMessages((current) => [...current, message]);
+      setMessages((current) => upsertMessage(current, message));
       setDraft('');
     } catch (sendError) {
       setError(getApiErrorMessage(sendError, 'Message could not be sent.'));
@@ -198,13 +219,52 @@ export function ChatView({
     }
   };
 
-  const handleAttach = async (file: File) => {
-    if (!conversation.canSendMessages) return;
+  const handleFilesSelected = (files: FileList | null) => {
+    if (!files?.length || !conversation.canSendMessages) return;
+    const added = Array.from(files).map(createPendingAttachment);
+    setPendingAttachments((current) => [...current, ...added]);
+    setComposerOpen(true);
+  };
+
+  const handleRemovePending = (id: string) => {
+    setPendingAttachments((current) => {
+      const item = current.find((entry) => entry.id === id);
+      if (item) revokePendingAttachment(item);
+      const next = current.filter((entry) => entry.id !== id);
+      if (next.length === 0) setComposerOpen(false);
+      return next;
+    });
+  };
+
+  const handleConfirmAttachments = async () => {
+    if (!pendingAttachments.length || !conversation.canSendMessages) return;
+
     setSending(true);
     setError(null);
+    const caption = attachmentCaption.trim();
+    const queue = [...pendingAttachments];
+    revokeAllPending(pendingAttachments);
+    setPendingAttachments([]);
+    setAttachmentCaption('');
+    setComposerOpen(false);
+
     try {
-      const message = normalizeLoadedMessage(await api.sendAttachment(conversation.id, file));
-      setMessages((current) => [...current, message]);
+      for (let index = 0; index < queue.length; index += 1) {
+        const item = queue[index];
+        const fileCaption = index === 0 ? caption : undefined;
+        const pending = createPendingAttachmentMessage(item.file, conversation.id, fileCaption);
+        setMessages((current) => upsertMessage(current, pending));
+
+        try {
+          const saved = normalizeLoadedMessage(
+            await api.sendAttachment(conversation.id, item.file, fileCaption),
+          );
+          setMessages((current) => replacePendingMessage(current, pending.id, saved));
+        } catch (attachError) {
+          setMessages((current) => markPendingFailed(current, pending.id));
+          throw attachError;
+        }
+      }
     } catch (attachError) {
       setError(getApiErrorMessage(attachError, 'Attachment could not be sent.'));
     } finally {
@@ -249,18 +309,54 @@ export function ChatView({
             <IconChevronLeft size={22} />
           </Link>
           <div className={styles.headerIdentity}>
-            {logoUrl ? (
-              <img src={logoUrl} alt="" className={styles.avatar} />
+            {onHeaderIdentityClick ? (
+              <button
+                type="button"
+                className={[styles.headerIdentityBtn, headerIdentityExpanded ? styles.headerIdentityBtnActive : ''].filter(Boolean).join(' ')}
+                onClick={onHeaderIdentityClick}
+                aria-expanded={headerIdentityExpanded}
+                aria-label={`${displayName} — toggle candidate profile`}
+              >
+                {avatarSrc && !avatarError ? (
+                  <img
+                    src={avatarSrc}
+                    alt=""
+                    className={styles.avatar}
+                    onError={() => setAvatarError(true)}
+                  />
+                ) : (
+                  <span className={styles.avatarFallback}>{displayName.slice(0, 1)}</span>
+                )}
+                <div className={styles.headerText}>
+                  <h1 className={styles.title}>{displayName}</h1>
+                  {(headerHint || displaySubtitle) && (
+                    <p className={styles.headerMeta}>
+                      <span className={styles.subtitle}>{headerHint ?? displaySubtitle}</span>
+                    </p>
+                  )}
+                </div>
+              </button>
             ) : (
-              <span className={styles.avatarFallback}>{displayName.slice(0, 1)}</span>
+              <>
+                {avatarSrc && !avatarError ? (
+                  <img
+                    src={avatarSrc}
+                    alt=""
+                    className={styles.avatar}
+                    onError={() => setAvatarError(true)}
+                  />
+                ) : (
+                  <span className={styles.avatarFallback}>{displayName.slice(0, 1)}</span>
+                )}
+                <div className={styles.headerText}>
+                  <h1 className={styles.title}>{displayName}</h1>
+                  <p className={styles.headerMeta}>
+                    <span className={styles.subtitle}>{displaySubtitle}</span>
+                    {showStatusBadge && <StatusBadge status={conversation.applicationStatus} compact />}
+                  </p>
+                </div>
+              </>
             )}
-            <div className={styles.headerText}>
-              <h1 className={styles.title}>{displayName}</h1>
-              <p className={styles.headerMeta}>
-                <span className={styles.subtitle}>{displaySubtitle}</span>
-                <StatusBadge status={conversation.applicationStatus} compact />
-              </p>
-            </div>
           </div>
         </div>
       </header>
@@ -312,7 +408,7 @@ export function ChatView({
                   {!isAttachmentPlaceholderText(message.messageText, message.attachmentFileName) && (
                     <p className={styles.messageText}>{message.messageText}</p>
                   )}
-                  {message.attachmentUrl && (
+                  {message.attachmentUrl || message.localPreviewUrl || message.uploadStatus ? (
                     <MessageAttachment
                       message={message}
                       conversationId={conversation.id}
@@ -320,7 +416,7 @@ export function ChatView({
                       onExpandImage={setExpandedImage}
                       onDownload={handleDownload}
                     />
-                  )}
+                  ) : null}
                   <footer className={styles.meta}>
                     <time dateTime={message.sentAt}>{formatBubbleTime(message.sentAt)}</time>
                     {message.isMine && <MessageReceipt readAt={message.readAt} />}
@@ -346,11 +442,11 @@ export function ChatView({
         <input
           ref={fileInputRef}
           type="file"
+          multiple
           accept=".pdf,.doc,.docx,image/*,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
           className={styles.fileInput}
           onChange={(event) => {
-            const file = event.target.files?.[0];
-            if (file) void handleAttach(file);
+            handleFilesSelected(event.target.files);
             event.target.value = '';
           }}
         />
@@ -405,6 +501,17 @@ export function ChatView({
           <img src={expandedImage} alt="" className={styles.imageLightboxImg} onClick={(e) => e.stopPropagation()} />
         </div>
       )}
+
+      <AttachmentComposer
+        open={composerOpen}
+        items={pendingAttachments}
+        caption={attachmentCaption}
+        sending={sending}
+        onCaptionChange={setAttachmentCaption}
+        onRemove={handleRemovePending}
+        onCancel={closeAttachmentComposer}
+        onSend={() => void handleConfirmAttachments()}
+      />
     </section>
   );
 }

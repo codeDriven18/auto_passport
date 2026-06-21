@@ -1,6 +1,13 @@
 import { API_CONFIG } from '@/api/config';
 
-/** Resolve image URLs from uploads, data URLs, absolute paths, or external hosts. */
+function apiOrigin(): string {
+  return API_CONFIG.baseUrl.replace(/\/api\/?$/, '');
+}
+
+/**
+ * Resolve media URLs from data URLs, absolute URLs, API-relative paths, or upload paths.
+ * Use for avatars, banners, logos, and attachment previews across the app.
+ */
 export function resolveMediaUrl(url?: string | null): string | undefined {
   const trimmed = url?.trim();
   if (!trimmed) return undefined;
@@ -14,12 +21,8 @@ export function resolveMediaUrl(url?: string | null): string | undefined {
     return trimmed;
   }
 
-  if (trimmed.startsWith('/')) {
-    const origin = API_CONFIG.baseUrl.replace(/\/api\/?$/, '');
-    return `${origin}${trimmed}`;
-  }
-
-  return trimmed;
+  const path = trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
+  return `${apiOrigin()}${path}`;
 }
 
 export function isImageMimeType(contentType?: string | null, fileName?: string | null): boolean {

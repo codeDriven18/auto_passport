@@ -54,8 +54,19 @@ interface ConversationWorkRowProps {
 }
 
 export function ConversationWorkRow({ conversation, actionLabel = 'Reply' }: ConversationWorkRowProps) {
+  const parts = conversation.candidateName.trim().split(/\s+/);
+
   return (
     <Link to={`/portal/messages/${conversation.id}`} className={ws.workRow}>
+      <UserAvatar
+        profile={{
+          firstName: parts[0] ?? '',
+          lastName: parts.slice(1).join(' '),
+          email: '',
+          profileImageUrl: conversation.candidateProfileImageUrl,
+        }}
+        size="sm"
+      />
       <div className={ws.workRowBody}>
         <span className={ws.workRowTitle}>{conversation.candidateName}</span>
         <span className={ws.workRowMeta}>{conversation.jobTitle}</span>

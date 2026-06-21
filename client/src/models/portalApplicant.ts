@@ -30,6 +30,7 @@ export interface PortalApplicantDetail {
   location?: string;
   jobSeekingStatus?: string;
   profileImageUrl?: string;
+  bannerUrl?: string;
   linkedInUrl?: string;
   gitHubUrl?: string;
   websiteUrl?: string;

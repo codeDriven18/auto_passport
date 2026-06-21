@@ -1,4 +1,6 @@
 import { Link } from 'react-router-dom';
+import { CompanyAvatar } from '@/components/profile/CompanyAvatar';
+import { UserAvatar } from '@/components/profile/UserAvatar';
 import { formatMessageTime } from '@/lib/messagingHelpers';
 import type { ConversationSummary } from '@/models/messaging';
 import styles from './ConversationList.module.css';
@@ -21,6 +23,7 @@ export function ConversationList({
         const hasUnread = conversation.unreadCount > 0;
         const preview = conversation.latestMessageText?.trim()
           || (showCandidate ? conversation.jobTitle : `Re: ${conversation.jobTitle}`);
+        const nameParts = conversation.candidateName.trim().split(/\s+/);
 
         return (
           <li key={conversation.id}>
@@ -29,10 +32,23 @@ export function ConversationList({
               className={`${styles.item} ${hasUnread ? styles.itemUnread : ''}`}
             >
               <div className={styles.avatarWrap}>
-                {conversation.companyLogoUrl && !showCandidate ? (
-                  <img src={conversation.companyLogoUrl} alt="" className={styles.avatar} />
+                {showCandidate ? (
+                  <UserAvatar
+                    profile={{
+                      firstName: nameParts[0] ?? '',
+                      lastName: nameParts.slice(1).join(' '),
+                      email: '',
+                      profileImageUrl: conversation.candidateProfileImageUrl,
+                    }}
+                    size="sm"
+                    className={styles.avatar}
+                  />
                 ) : (
-                  <span className={styles.avatarFallback}>{title.slice(0, 1)}</span>
+                  <CompanyAvatar
+                    company={{ name: conversation.companyName, logoUrl: conversation.companyLogoUrl }}
+                    size="sm"
+                    className={styles.avatar}
+                  />
                 )}
                 {conversation.canSendMessages && (
                   <span className={styles.onlineDot} aria-hidden title="Active" />

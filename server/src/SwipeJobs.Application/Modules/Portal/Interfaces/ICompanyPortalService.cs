@@ -31,4 +31,5 @@ public interface ICompanyPortalService
     Task<CompanyDto?> UpdateCompanyAsync(Guid companyId, PortalUpdateCompanyDto dto, CancellationToken cancellationToken = default);
     Task<CompanyDto?> UploadCompanyLogoAsync(Guid companyId, Stream content, string contentType, long contentLength, CancellationToken cancellationToken = default);
     Task<CompanyDto?> UploadCompanyBannerAsync(Guid companyId, Stream content, string contentType, long contentLength, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<PortalWorkspaceActivityDto>> GetWorkspaceActivityAsync(Guid companyId, int limit = 30, CancellationToken cancellationToken = default);
 }

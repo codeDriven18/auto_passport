@@ -290,6 +290,7 @@ public partial class CompanyPortalService : ICompanyPortalService
             profile.Location,
             profile.JobSeekingStatus.ToString(),
             profile.ProfileImageUrl,
+            profile.BannerUrl,
             profile.LinkedInUrl,
             profile.GitHubUrl,
             profile.WebsiteUrl,

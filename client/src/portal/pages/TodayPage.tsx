@@ -5,21 +5,35 @@ import { useEmployerWorkspaceData } from '@/hooks/useEmployerWorkspaceData';
 import { useUnreadMessages } from '@/hooks/useUnreadMessages';
 import {
   getApplicantsNeedingReview,
-  getInterviewQueue,
-  getPipelineMomentum,
   getRecentApplicants,
-  getRecentlyScheduledInterviews,
-  getRecentConversations,
 } from '@/lib/employer/employerWorkspaceData';
-import { ApplicantWorkRow, ConversationWorkRow } from '@/portal/components/WorkQueueRow';
+import {
+  buildConversationByApplication,
+  getHiringSnapshot,
+  getUpcomingInterviewsGrouped,
+} from '@/lib/employer/todayWorkspace';
 import { PageFrame } from '@/portal/components/PageFrame';
+import { ApplicantWorkRow, ConversationWorkRow } from '@/portal/components/WorkQueueRow';
+import { TodayActivityFeed } from '@/portal/components/today/TodayActivityFeed';
+import { TodayHiringSnapshot } from '@/portal/components/today/TodayHiringSnapshot';
+import { TodayQuickActions } from '@/portal/components/today/TodayQuickActions';
+import { TodayRecentApplicants } from '@/portal/components/today/TodayRecentApplicants';
+import { TodaySection } from '@/portal/components/today/TodaySection';
+import { TodayUpcomingInterviews } from '@/portal/components/today/TodayUpcomingInterviews';
 import ws from '@/portal/workspace.module.css';
 import { CompanyStatus, CompanyStatusLabels } from '@/models/operations';
 
 export function TodayPage() {
   const { stats, loading: statsLoading, refreshStats } = useEmployerWorkspace();
   const { count: unreadMessages } = useUnreadMessages();
-  const { applications, conversations, loading: dataLoading, failed, refresh } = useEmployerWorkspaceData();
+  const {
+    applications,
+    conversations,
+    activity,
+    loading: dataLoading,
+    failed,
+    refresh,
+  } = useEmployerWorkspaceData();
 
   const loading = statsLoading || dataLoading;
 
@@ -42,36 +56,25 @@ export function TodayPage() {
 
   const isApproved = stats.companyStatus === CompanyStatus.Approved;
   const reviewQueue = getApplicantsNeedingReview(applications, 8);
-  const interviewQueue = getInterviewQueue(applications, 6);
   const unreadConversations = conversations.filter((c) => c.unreadCount > 0).slice(0, 6);
-  const reviewIds = new Set(reviewQueue.map((a) => a.id));
-  const interviewIds = new Set(interviewQueue.map((a) => a.id));
-  const recentlyScheduled = getRecentlyScheduledInterviews(applications, 5)
-    .filter((a) => !interviewIds.has(a.id));
-  const recentConversations = getRecentConversations(conversations, 6)
-    .filter((c) => c.unreadCount === 0);
-  const pipelineMomentum = getPipelineMomentum(applications, 5)
-    .filter((a) => !reviewIds.has(a.id) && !interviewIds.has(a.id));
+  const interviewGroups = getUpcomingInterviewsGrouped(applications);
+  const recentApplicants = getRecentApplicants(applications, 5);
+  const conversationByApplication = buildConversationByApplication(conversations);
+  const snapshot = getHiringSnapshot(stats, applications);
 
-  const headline = reviewQueue.length > 0
+  const hasUrgentWork = reviewQueue.length > 0
+    || unreadConversations.length > 0
+    || interviewGroups.some((g) => g.items.length > 0);
+
+  const todayInterviewCount = interviewGroups.find((g) => g.label === 'Today')?.items.length ?? 0;
+
+  const statusLine = reviewQueue.length > 0
     ? `${reviewQueue.length} candidate${reviewQueue.length === 1 ? '' : 's'} need review`
     : unreadMessages > 0
-      ? `${unreadMessages} conversation${unreadMessages === 1 ? '' : 's'} need a reply`
-      : interviewQueue.length > 0
-        ? `${interviewQueue.length} upcoming interview${interviewQueue.length === 1 ? '' : 's'}`
+      ? `${unreadMessages} conversation${unreadMessages === 1 ? '' : 's'} waiting for a reply`
+      : todayInterviewCount > 0
+        ? `${todayInterviewCount} interview${todayInterviewCount === 1 ? '' : 's'} today`
         : 'You\'re caught up';
-
-  const subline = reviewQueue.length > 0
-    ? 'Start with the newest applications in your queue.'
-    : unreadMessages > 0
-      ? 'Candidates are waiting to hear back from you.'
-      : interviewQueue.length > 0
-        ? 'Prepare for your next conversations.'
-        : 'Open the pipeline when you\'re ready for your next hire.';
-
-  const allClear = reviewQueue.length === 0
-    && unreadConversations.length === 0
-    && interviewQueue.length === 0;
 
   return (
     <PageFrame fill>
@@ -85,125 +88,69 @@ export function TodayPage() {
         </div>
       )}
 
-      <div className={ws.todayShell}>
-        <header className={ws.todayHeader}>
-          <h2 className={ws.todayHeadline}>{headline}</h2>
-          <p className={ws.todaySubline}>{subline}</p>
+      <div className={ws.todayWorkspace}>
+        <header className={ws.todayStatusBar}>
+          <p className={ws.todayStatusLine}>{statusLine}</p>
         </header>
 
-        {allClear && (
-          <div className={ws.todayClear}>
-            <p>No urgent hiring actions right now.</p>
-            <Link to="/portal/pipeline" className={ws.btnPrimary}>Open pipeline</Link>
+        {!hasUrgentWork && applications.length === 0 && (
+          <div className={ws.todayCaughtUp}>
+            <p className={ws.todayCaughtUpTitle}>You&apos;re caught up.</p>
+            <p className={ws.todayCaughtUpSub}>Start building your hiring pipeline.</p>
+            <div className={ws.todayCaughtUpActions}>
+              <Link to="/portal/jobs" className={ws.btnPrimary}>Create your first role</Link>
+              <Link to="/portal/pipeline" className={ws.btnGhost}>Open pipeline</Link>
+              <Link to="/portal/company" className={ws.btnGhost}>Complete company profile</Link>
+            </div>
           </div>
         )}
 
-        {reviewQueue.length > 0 && (
-          <section className={ws.todaySection} aria-label="Candidates awaiting review">
-            <div className={ws.todaySectionHead}>
-              <h3 className={ws.todaySectionTitle}>Awaiting review</h3>
-              <Link to="/portal/pipeline" className={ws.workSectionLink}>Open pipeline</Link>
-            </div>
-            <div className={ws.todayQueue}>
-              {reviewQueue.map((app) => (
-                <ApplicantWorkRow key={app.id} application={app} from="today" actionLabel="Review candidate" />
-              ))}
-            </div>
-          </section>
-        )}
+        <div className={ws.todayLayout}>
+          <div className={ws.todayMain}>
+            <TodaySection
+              title="Review queue"
+              action={{ label: 'Pipeline', to: '/portal/pipeline' }}
+            >
+              {reviewQueue.length === 0 ? (
+                <p className={ws.todayInlineEmpty}>No candidates waiting for review.</p>
+              ) : (
+                <div className={ws.todayQueue}>
+                  {reviewQueue.map((app) => (
+                    <ApplicantWorkRow key={app.id} application={app} from="today" actionLabel="Review" />
+                  ))}
+                </div>
+              )}
+            </TodaySection>
 
-        {unreadConversations.length > 0 && (
-          <section className={ws.todaySection} aria-label="Unread conversations">
-            <div className={ws.todaySectionHead}>
-              <h3 className={ws.todaySectionTitle}>Unread conversations</h3>
-              <Link to="/portal/messages" className={ws.workSectionLink}>Open inbox</Link>
-            </div>
-            <div className={ws.todayQueue}>
-              {unreadConversations.map((c) => (
-                <ConversationWorkRow key={c.id} conversation={c} actionLabel="Open conversation" />
-              ))}
-            </div>
-          </section>
-        )}
+            <TodaySection
+              title="Unread conversations"
+              action={{ label: 'Inbox', to: '/portal/messages' }}
+            >
+              {unreadConversations.length === 0 ? (
+                <p className={ws.todayInlineEmpty}>No unread messages.</p>
+              ) : (
+                <div className={ws.todayQueue}>
+                  {unreadConversations.map((c) => (
+                    <ConversationWorkRow key={c.id} conversation={c} actionLabel="Reply" />
+                  ))}
+                </div>
+              )}
+            </TodaySection>
 
-        {interviewQueue.length > 0 && (
-          <section className={ws.todaySection} aria-label="Upcoming interviews">
-            <div className={ws.todaySectionHead}>
-              <h3 className={ws.todaySectionTitle}>Upcoming interviews</h3>
-              <Link to="/portal/pipeline?column=interview" className={ws.workSectionLink}>View in pipeline</Link>
-            </div>
-            <div className={ws.todayQueue}>
-              {interviewQueue.map((app) => (
-                <ApplicantWorkRow
-                  key={app.id}
-                  application={app}
-                  from="today"
-                  actionLabel="Prepare for interview"
-                />
-              ))}
-            </div>
-          </section>
-        )}
+            <TodayUpcomingInterviews groups={interviewGroups} />
 
-        {recentlyScheduled.length > 0 && (
-          <section className={ws.todaySection} aria-label="Recently scheduled interviews">
-            <div className={ws.todaySectionHead}>
-              <h3 className={ws.todaySectionTitle}>Recently scheduled</h3>
-              <Link to="/portal/pipeline?column=interview" className={ws.workSectionLink}>View pipeline</Link>
-            </div>
-            <div className={ws.todayQueue}>
-              {recentlyScheduled.map((app) => (
-                <ApplicantWorkRow key={app.id} application={app} from="today" actionLabel="View interview" />
-              ))}
-            </div>
-          </section>
-        )}
+            <TodayRecentApplicants
+              applicants={recentApplicants}
+              conversationByApplication={conversationByApplication}
+            />
+          </div>
 
-        {recentConversations.length > 0 && unreadConversations.length === 0 && (
-          <section className={ws.todaySection} aria-label="Recent conversations">
-            <div className={ws.todaySectionHead}>
-              <h3 className={ws.todaySectionTitle}>Recent conversations</h3>
-              <Link to="/portal/messages" className={ws.workSectionLink}>Open inbox</Link>
-            </div>
-            <div className={ws.todayQueue}>
-              {recentConversations.map((c) => (
-                <ConversationWorkRow key={c.id} conversation={c} actionLabel="Continue conversation" />
-              ))}
-            </div>
-          </section>
-        )}
-
-        {pipelineMomentum.length > 0 && (
-          <section className={ws.todaySection} aria-label="Hiring momentum">
-            <div className={ws.todaySectionHead}>
-              <h3 className={ws.todaySectionTitle}>Hiring momentum</h3>
-              <Link to="/portal/pipeline?view=list" className={ws.workSectionLink}>View pipeline</Link>
-            </div>
-            <div className={ws.todayQueue}>
-              {pipelineMomentum.map((app) => (
-                <ApplicantWorkRow key={app.id} application={app} from="today" actionLabel="Continue process" />
-              ))}
-            </div>
-          </section>
-        )}
-
-        {getRecentApplicants(applications, 12)
-          .filter((a) => !reviewIds.has(a.id) && !interviewIds.has(a.id))
-          .slice(0, 5).length > 0 && (
-          <section className={ws.todaySection} aria-label="Recently active candidates">
-            <div className={ws.todaySectionHead}>
-              <h3 className={ws.todaySectionTitle}>Recently active</h3>
-              <Link to="/portal/pipeline?view=list" className={ws.workSectionLink}>View all</Link>
-            </div>
-            <div className={ws.todayQueue}>
-              {getRecentApplicants(applications, 12)
-                .filter((a) => !reviewIds.has(a.id) && !interviewIds.has(a.id))
-                .slice(0, 5).map((app) => (
-                <ApplicantWorkRow key={app.id} application={app} from="today" actionLabel="Continue hiring" />
-              ))}
-            </div>
-          </section>
-        )}
+          <aside className={ws.todayRail}>
+            <TodayActivityFeed activities={activity} />
+            <TodayQuickActions />
+            <TodayHiringSnapshot snapshot={snapshot} />
+          </aside>
+        </div>
       </div>
     </PageFrame>
   );

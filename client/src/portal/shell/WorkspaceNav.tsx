@@ -70,21 +70,25 @@ export function WorkspaceNav({ unreadMessages, onNavigate, className }: Workspac
         </div>
       </div>
 
-      <nav className={navStyles.links} aria-label="Hiring workflow">
-        {WORKSPACE_NAV_PRIMARY.map((item) => (
-          <NavLinkItem key={item.to} item={item} unreadMessages={unreadMessages} onNavigate={onNavigate} />
-        ))}
-      </nav>
+      <div className={navStyles.navScroll}>
+        <nav className={navStyles.links} aria-label="Hiring workflow">
+          {WORKSPACE_NAV_PRIMARY.map((item) => (
+            <NavLinkItem key={item.to} item={item} unreadMessages={unreadMessages} onNavigate={onNavigate} />
+          ))}
+        </nav>
+      </div>
 
-      <nav className={navStyles.linksSecondary} aria-label="Workspace settings">
-        <p className={navStyles.groupLabel}>Workspace</p>
-        {WORKSPACE_NAV_SECONDARY.map((item) => (
-          <NavLinkItem key={item.to} item={item} unreadMessages={unreadMessages} onNavigate={onNavigate} />
-        ))}
-      </nav>
+      <div className={navStyles.navBottom}>
+        <nav className={navStyles.linksSecondary} aria-label="Workspace settings">
+          <p className={navStyles.groupLabel}>Workspace</p>
+          {WORKSPACE_NAV_SECONDARY.map((item) => (
+            <NavLinkItem key={item.to} item={item} unreadMessages={unreadMessages} onNavigate={onNavigate} />
+          ))}
+        </nav>
 
-      <div className={navStyles.footer}>
-        <span className={navStyles.poweredBy}>Powered by SwipeJobs</span>
+        <div className={navStyles.footer}>
+          <span className={navStyles.poweredBy}>Powered by SwipeJobs</span>
+        </div>
       </div>
     </aside>
   );

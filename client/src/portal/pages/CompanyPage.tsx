@@ -73,6 +73,7 @@ export function CompanyPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [editing, setEditing] = useState(false);
+  const [bannerError, setBannerError] = useState(false);
 
   useEffect(() => {
     portalApi.getCompany()
@@ -191,14 +192,11 @@ export function CompanyPage() {
 
   const display = editing ? previewCompany : company;
   const bannerUrl = resolveMediaUrl(display.bannerUrl);
-  const bannerStyle = bannerUrl
-    ? {
-        backgroundImage: `url("${bannerUrl}")`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundRepeat: 'no-repeat',
-      }
-    : brandedBannerStyle();
+  const showBannerImage = Boolean(bannerUrl && !bannerError);
+
+  useEffect(() => {
+    setBannerError(false);
+  }, [bannerUrl]);
 
   return (
     <PageFrame
@@ -221,36 +219,56 @@ export function CompanyPage() {
     >
       <div className={ws.companyPageLayout}>
         <article className={ws.companyHero}>
-          <div className={ws.companyBannerWrap}>
-            <div className={ws.companyBanner} style={bannerStyle} aria-hidden />
-            <div className={ws.companyBannerScrim} aria-hidden />
-            {!display.bannerUrl && (
+          <div className={ws.companyHeroMedia}>
+            <div className={ws.companyBanner} aria-hidden>
+              {!showBannerImage && (
+                <div className={ws.companyBannerFallback} style={brandedBannerStyle()} />
+              )}
+              {showBannerImage && bannerUrl && (
+                <img
+                  src={bannerUrl}
+                  alt=""
+                  className={ws.companyBannerImg}
+                  onError={() => setBannerError(true)}
+                />
+              )}
+            </div>
+            <div className={ws.companyBannerScrimTop} aria-hidden />
+            <div className={ws.companyBannerScrimSide} aria-hidden />
+            <div className={ws.companyBannerScrimBottom} aria-hidden />
+            {!showBannerImage && (
               <div className={ws.companyBannerLabel} aria-hidden>Branded cover</div>
             )}
           </div>
-          <div className={ws.companyHeroBody}>
-            <CompanyAvatar company={display} size="lg" circular className={ws.companyHeroLogo} />
-            <div className={ws.companyHeroInfo}>
-              {display.industry && <p className={ws.companyHeroEyebrow}>{display.industry}</p>}
-              <h2 className={ws.profileName}>{display.name}</h2>
-              <p className={ws.profileHeadline}>
-                {display.location ? (
-                  <>
-                    <IconMapPin size={16} /> {display.location}
-                  </>
-                ) : (
-                  'Add your headquarters or primary location'
+
+          <div className={ws.companyHeroOverlay}>
+            <div className={ws.companyHeroIdentity}>
+              <CompanyAvatar company={display} size="lg" circular className={ws.companyHeroLogo} />
+              <div className={ws.companyHeroCopy}>
+                {display.industry && (
+                  <span className={ws.companyHeroEyebrow}>{display.industry}</span>
                 )}
-              </p>
-              <div className={ws.companyHeroTags}>
-                {display.companySize && <span className={ws.badgeMuted}>{display.companySize}</span>}
-                <span className={ws.badgeOk}>
-                  {display.openJobsCount} open {display.openJobsCount === 1 ? 'role' : 'roles'}
-                </span>
+                <h2 className={ws.companyHeroName}>{display.name}</h2>
+                <p className={ws.companyHeroTagline}>
+                  {display.description?.trim()
+                    || 'Add a short description of your company — candidates see this on your public page.'}
+                </p>
+                <ul className={ws.companyHeroMeta}>
+                  <li>
+                    <IconMapPin size={14} />
+                    {display.location || 'Add location'}
+                  </li>
+                  {display.companySize && (
+                    <li>{display.companySize}</li>
+                  )}
+                  <li className={ws.companyHeroMetaAccent}>
+                    {display.openJobsCount} open {display.openJobsCount === 1 ? 'role' : 'roles'}
+                  </li>
+                </ul>
               </div>
             </div>
-          </div>
-          <div className={ws.companyStatStrip}>
+
+            <div className={ws.companyStatStrip}>
             <div className={ws.companyStat}>
               <span className={ws.companyStatLabel}>Location</span>
               <span className={ws.companyStatValue}>{display.location || '—'}</span>
@@ -264,6 +282,7 @@ export function CompanyPage() {
               <span className={`${ws.companyStatValue} ${ws.companyStatValueAccent}`}>
                 {display.openJobsCount}
               </span>
+            </div>
             </div>
           </div>
         </article>

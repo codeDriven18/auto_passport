@@ -651,7 +651,8 @@ public class MessagingService : IMessagingService
             latest?.MessageText,
             latest?.SentAt,
             unread,
-            CanSend(conversation, appStatus));
+            CanSend(conversation, appStatus),
+            candidate?.ProfileImageUrl);
     }
 
     private static ConversationDetailDto ToDetail(Conversation conversation)
@@ -675,7 +676,8 @@ public class MessagingService : IMessagingService
             job?.Id ?? Guid.Empty,
             job?.Title ?? "Job",
             CanSend(conversation, appStatus) && conversation.Status == ConversationStatus.Active,
-            ApplicationWorkflow.IsConversationReadOnly(appStatus) || conversation.Status != ConversationStatus.Active);
+            ApplicationWorkflow.IsConversationReadOnly(appStatus) || conversation.Status != ConversationStatus.Active,
+            candidate?.ProfileImageUrl);
     }
 
     private static MessageDto ToMessageDto(Message message, Guid currentUserId) =>

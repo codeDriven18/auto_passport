@@ -27,7 +27,7 @@ interface RecruiterChatActionsProps {
   applicationId: string;
   status: ApplicationStatus;
   onChanged: () => void;
-  variant?: 'default' | 'toolbar' | 'compact';
+  variant?: 'default' | 'toolbar' | 'compact' | 'panel';
 }
 
 function resolveActionError(err: unknown): string {
@@ -72,15 +72,18 @@ export function RecruiterChatActions({ applicationId, status, onChanged, variant
     ws.recruiterActions,
     variant === 'toolbar' ? ws.recruiterActionsToolbar : '',
     variant === 'compact' ? ws.recruiterActionsCompact : '',
+    variant === 'panel' ? ws.recruiterActionsPanel : '',
   ].filter(Boolean).join(' ');
 
   return (
     <div className={rootClass}>
-      <div className={ws.recruiterActionsRow}>
-        <span className={ws.recruiterActionsStatus}>
-          <span className={ws.recruiterActionsDot} aria-hidden />
-          {ApplicationStatusLabels[status]}
-        </span>
+      <div className={variant === 'panel' ? ws.recruiterActionsPanelInner : ws.recruiterActionsRow}>
+        {variant !== 'panel' && (
+          <span className={ws.recruiterActionsStatus}>
+            <span className={ws.recruiterActionsDot} aria-hidden />
+            {ApplicationStatusLabels[status]}
+          </span>
+        )}
 
         {!isClosed && (
           <div className={ws.recruiterActionsButtons}>
@@ -111,7 +114,7 @@ export function RecruiterChatActions({ applicationId, status, onChanged, variant
                 disabled={busy}
                 onClick={() => void run(() => portalApi.updateApplicationStatus(applicationId, { status: next }))}
               >
-                Move to {ApplicationStatusLabels[next]}
+                {variant === 'panel' ? 'Advance stage' : `Move to ${ApplicationStatusLabels[next]}`}
               </button>
             )}
 
@@ -121,14 +124,16 @@ export function RecruiterChatActions({ applicationId, status, onChanged, variant
               disabled={busy}
               onClick={() => setRejectOpen(true)}
             >
-              Reject
+              {variant === 'panel' ? 'Reject candidate' : 'Reject'}
             </button>
           </div>
         )}
 
-        <Link to={candidateProfilePath(applicationId, { from: 'inbox' })} className={ws.recruiterActionsLink}>
-          View full profile
-        </Link>
+        {variant !== 'panel' && (
+          <Link to={candidateProfilePath(applicationId, { from: 'inbox' })} className={ws.recruiterActionsLink}>
+            View full profile
+          </Link>
+        )}
       </div>
 
       {error && <p className={ws.recruiterActionsError} role="alert">{error}</p>}

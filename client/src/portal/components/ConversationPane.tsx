@@ -102,28 +102,25 @@ export function ConversationPane({
         </div>
       )}
 
-      <div className={[
-        ws.msgPaneBody,
-        !contextVisible && showContext && !isSplit ? ws.msgPaneBodyExpanded : '',
-      ].filter(Boolean).join(' ')}>
+      <div className={ws.msgPaneBody}>
         <div className={ws.msgPaneChat}>
-          {showContext && !isSplit && (
-            <button type="button" className={ws.msgContextToggle} onClick={toggleContext}>
-              {contextOpen ? 'Hide candidate profile' : 'Show candidate profile'}
-            </button>
+          {isSplit && (
+            <RecruiterChatActions
+              applicationId={conversation.applicationId}
+              status={conversation.applicationStatus}
+              variant="compact"
+              onChanged={() => loadConversation(false)}
+            />
           )}
-          <RecruiterChatActions
-            applicationId={conversation.applicationId}
-            status={conversation.applicationStatus}
-            variant={isSplit ? 'compact' : 'toolbar'}
-            onChanged={() => loadConversation(false)}
-          />
           <ChatView
             conversation={conversation}
             backTo="/portal/messages"
             backLabel="Back to inbox"
             title={conversation.candidateName}
-            subtitle={conversation.jobTitle}
+            headerHint={conversation.jobTitle}
+            showStatusBadge={false}
+            onHeaderIdentityClick={showContext && !isSplit ? toggleContext : undefined}
+            headerIdentityExpanded={contextVisible}
             layout="portal"
             fullscreen={false}
             embedded

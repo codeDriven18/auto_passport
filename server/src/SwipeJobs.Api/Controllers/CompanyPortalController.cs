@@ -43,6 +43,14 @@ public class CompanyPortalController : ControllerBase
         return Ok(await _portalService.GetStatsAsync(companyId, cancellationToken));
     }
 
+    [HttpGet("activity")]
+    public async Task<IActionResult> Activity([FromQuery] int limit = 30, CancellationToken cancellationToken = default)
+    {
+        _currentUser.RequireRole(UserRole.Company, UserRole.Admin);
+        var companyId = _currentUser.GetRequiredCompanyId();
+        return Ok(await _portalService.GetWorkspaceActivityAsync(companyId, limit, cancellationToken));
+    }
+
     [HttpGet("jobs")]
     public async Task<IActionResult> Jobs(CancellationToken cancellationToken)
     {

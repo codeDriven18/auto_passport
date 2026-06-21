@@ -7,6 +7,7 @@ export interface ConversationSummary {
   conversationStatus: ConversationStatus;
   candidateProfileId: string;
   candidateName: string;
+  candidateProfileImageUrl?: string;
   companyId: string;
   companyName: string;
   companyLogoUrl?: string;
@@ -25,6 +26,7 @@ export interface ConversationDetail {
   conversationStatus: ConversationStatus;
   candidateProfileId: string;
   candidateName: string;
+  candidateProfileImageUrl?: string;
   companyId: string;
   companyName: string;
   companyLogoUrl?: string;
@@ -47,6 +49,10 @@ export interface ChatMessage {
   attachmentUrl?: string;
   attachmentFileName?: string;
   attachmentContentType?: string;
+  attachmentFileSize?: number;
+  /** Client-only optimistic upload state */
+  uploadStatus?: 'uploading' | 'failed';
+  localPreviewUrl?: string;
   sentAt: string;
   readAt?: string;
 }

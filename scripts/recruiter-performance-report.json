@@ -1,0 +1,72 @@
+{
+  "generatedAt": "2026-06-21T12:45:48.066Z",
+  "scenarios": [
+    {
+      "action": "Login",
+      "frontendMs": 473,
+      "apiMs": 128,
+      "dbMs": 25,
+      "storageMs": 0,
+      "appMs": 103,
+      "count": 1,
+      "slowestLayer": "Frontend render"
+    },
+    {
+      "action": "Dashboard load",
+      "frontendMs": 63,
+      "apiMs": 32,
+      "dbMs": 3,
+      "storageMs": 0,
+      "appMs": 32,
+      "slowestLayer": "Frontend render"
+    },
+    {
+      "action": "Candidate profile load",
+      "frontendMs": 27,
+      "apiMs": 18,
+      "dbMs": 1,
+      "storageMs": 0,
+      "appMs": 17,
+      "slowestLayer": "Frontend render"
+    },
+    {
+      "action": "Pipeline load",
+      "frontendMs": 29,
+      "apiMs": 5,
+      "dbMs": 1,
+      "storageMs": 0,
+      "appMs": 4.5,
+      "count": 4,
+      "slowestLayer": "Frontend render"
+    },
+    {
+      "action": "Chat open",
+      "frontendMs": 44,
+      "apiMs": 5,
+      "dbMs": 2,
+      "storageMs": 0,
+      "appMs": 3,
+      "slowestLayer": "Frontend render"
+    },
+    {
+      "action": "File upload (company logo)",
+      "frontendMs": 0,
+      "apiMs": 2,
+      "dbMs": 0,
+      "storageMs": 0,
+      "appMs": 2,
+      "count": 3,
+      "slowestLayer": "App processing"
+    },
+    {
+      "action": "File download (resume)",
+      "frontendMs": 0,
+      "apiMs": 4,
+      "dbMs": 2,
+      "storageMs": 0,
+      "appMs": 3,
+      "count": 3,
+      "slowestLayer": "App processing"
+    }
+  ]
+}

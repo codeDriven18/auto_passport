@@ -188,6 +188,9 @@ try
     app.UseMiddleware<ExceptionHandlingMiddleware>();
     app.UseMiddleware<RegisterResponseCompletionMiddleware>();
 
+    if (string.Equals(Environment.GetEnvironmentVariable("SWIPEJOBS_PERF"), "1", StringComparison.Ordinal))
+        app.UseMiddleware<RequestPerformanceMiddleware>();
+
     if (app.Environment.IsDevelopment())
     {
         app.UseSwagger();

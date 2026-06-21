@@ -48,6 +48,15 @@ public static class DependencyInjection
         Console.Error.WriteLine(
             $"DbContext will use source={runtimeInfo.Source}; PasswordLength={runtimeInfo.PasswordLength}");
 
+        var perfEnabled = string.Equals(
+            Environment.GetEnvironmentVariable("SWIPEJOBS_PERF"),
+            "1",
+            StringComparison.Ordinal);
+
+        var efInterceptors = new List<IInterceptor> { new EfCommandFailureLoggingInterceptor() };
+        if (perfEnabled)
+            efInterceptors.Add(new EfQueryTimingInterceptor());
+
         services.AddDbContext<AppDbContext>(options =>
             options.UseNpgsql(connectionString, npgsql =>
             {
@@ -55,7 +64,7 @@ public static class DependencyInjection
                 npgsql.CommandTimeout(30);
                 npgsql.MigrationsAssembly(typeof(AppDbContext).Assembly.GetName().Name);
             })
-            .AddInterceptors(new EfCommandFailureLoggingInterceptor())
+            .AddInterceptors(efInterceptors.ToArray())
             .EnableDetailedErrors()
             .LogTo(
                 message => Console.Error.WriteLine($"[EF SQL] {message}"),
@@ -96,11 +105,39 @@ public static class DependencyInjection
         var resumeBlobConnection = configuration["ResumeStorage:AzureBlobConnectionString"]
             ?? configuration.GetConnectionString("ResumeBlobStorage");
         if (!string.IsNullOrWhiteSpace(resumeBlobConnection))
-            services.AddScoped<IResumeStorageService, Storage.BlobResumeStorageService>();
+        {
+            if (perfEnabled)
+            {
+                services.AddScoped<Storage.BlobResumeStorageService>();
+                services.AddScoped<IResumeStorageService>(sp =>
+                    new Storage.TimedResumeStorageService(sp.GetRequiredService<Storage.BlobResumeStorageService>()));
+            }
+            else
+            {
+                services.AddScoped<IResumeStorageService, Storage.BlobResumeStorageService>();
+            }
+        }
+        else if (perfEnabled)
+        {
+            services.AddScoped<Storage.LocalResumeStorageService>();
+            services.AddScoped<IResumeStorageService>(sp =>
+                new Storage.TimedResumeStorageService(sp.GetRequiredService<Storage.LocalResumeStorageService>()));
+        }
         else
+        {
             services.AddScoped<IResumeStorageService, Storage.LocalResumeStorageService>();
+        }
 
-        services.AddScoped<IMessageAttachmentStorage, LocalMessageAttachmentStorage>();
+        if (perfEnabled)
+        {
+            services.AddScoped<LocalMessageAttachmentStorage>();
+            services.AddScoped<IMessageAttachmentStorage>(sp =>
+                new Storage.TimedMessageAttachmentStorage(sp.GetRequiredService<LocalMessageAttachmentStorage>()));
+        }
+        else
+        {
+            services.AddScoped<IMessageAttachmentStorage, LocalMessageAttachmentStorage>();
+        }
         services.AddScoped<IDataSeeder, DataSeeder>();
         services.AddScoped<ShowcaseJobSeeder>();
         services.AddScoped<PipelineDemoSeeder>();

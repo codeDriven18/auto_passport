@@ -67,7 +67,6 @@ export function getInterviewQueue(applications: PortalApplication[], limit = 6):
       || app.status === ApplicationStatus.Interviewing
     ))
     .sort((a, b) => {
-      // Scheduled interviews first, soonest upcoming at the top; unscheduled fall back to recency.
       const aTime = a.interviewScheduledAtUtc ? new Date(a.interviewScheduledAtUtc).getTime() : null;
       const bTime = b.interviewScheduledAtUtc ? new Date(b.interviewScheduledAtUtc).getTime() : null;
       if (aTime !== null && bTime !== null) return aTime - bTime;
@@ -75,6 +74,32 @@ export function getInterviewQueue(applications: PortalApplication[], limit = 6):
       if (bTime !== null) return 1;
       return new Date(b.appliedAt).getTime() - new Date(a.appliedAt).getTime();
     })
+    .slice(0, limit);
+}
+
+/** Candidates with interviews scheduled in the last 48 hours or upcoming. */
+export function getRecentlyScheduledInterviews(applications: PortalApplication[], limit = 5): PortalApplication[] {
+  const now = Date.now();
+  const windowMs = 48 * 60 * 60 * 1000;
+  return applications
+    .filter((app) => !app.isWithdrawn && app.interviewScheduledAtUtc)
+    .filter((app) => {
+      const t = new Date(app.interviewScheduledAtUtc!).getTime();
+      return t >= now - windowMs;
+    })
+    .sort((a, b) => new Date(a.interviewScheduledAtUtc!).getTime() - new Date(b.interviewScheduledAtUtc!).getTime())
+    .slice(0, limit);
+}
+
+/** Active pipeline candidates beyond applied/review — proxy for recent hiring momentum. */
+export function getPipelineMomentum(applications: PortalApplication[], limit = 5): PortalApplication[] {
+  return applications
+    .filter((app) => !app.isWithdrawn)
+    .filter((app) => {
+      const stage = resolvePipelineStage(app.status);
+      return stage !== PipelineStage.Applied && stage !== PipelineStage.Reviewing;
+    })
+    .sort((a, b) => new Date(b.appliedAt).getTime() - new Date(a.appliedAt).getTime())
     .slice(0, limit);
 }
 

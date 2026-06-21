@@ -9,9 +9,9 @@ export const SWIPE_EXIT_Y = typeof window !== 'undefined' ? window.innerHeight *
 
 export const SWIPE_EXIT = {
   type: 'spring' as const,
-  stiffness: 340,
-  damping: 32,
-  mass: 0.85,
+  stiffness: 420,
+  damping: 34,
+  mass: 0.72,
 };
 
 export const SWIPE_SNAP_BACK = {

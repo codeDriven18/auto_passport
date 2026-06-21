@@ -9,6 +9,7 @@ import { PageFrame } from '@/portal/components/PageFrame';
 import ws from '@/portal/workspace.module.css';
 import { useToast } from '@/context/ToastContext';
 import { getApiErrorMessage } from '@/lib/apiErrors';
+import { resolveMediaUrl } from '@/lib/mediaUrl';
 import type { Company } from '@/models/company';
 import type { PortalUpdateCompanyRequest } from '@/models/portal';
 
@@ -76,6 +77,7 @@ export function CompanyPage() {
       .then((c) => {
         setCompany(c);
         setForm({
+          name: c.name ?? '',
           description: c.description ?? '',
           industry: c.industry ?? '',
           location: c.location ?? '',
@@ -99,6 +101,7 @@ export function CompanyPage() {
     if (!company || !form) return null;
     return {
       ...company,
+      name: form.name?.trim() || company.name,
       description: form.description,
       industry: form.industry,
       location: form.location,
@@ -114,6 +117,26 @@ export function CompanyPage() {
       hiringPhilosophy: form.hiringPhilosophy,
     };
   }, [company, form]);
+
+  const resetForm = useCallback(() => {
+    if (!company) return;
+    setForm({
+      name: company.name ?? '',
+      description: company.description ?? '',
+      industry: company.industry ?? '',
+      location: company.location ?? '',
+      companySize: company.companySize ?? '',
+      logoUrl: company.logoUrl ?? '',
+      bannerUrl: company.bannerUrl ?? '',
+      website: company.website ?? '',
+      linkedInUrl: company.linkedInUrl ?? '',
+      twitterUrl: company.twitterUrl ?? '',
+      instagramUrl: company.instagramUrl ?? '',
+      culture: company.culture ?? '',
+      benefits: company.benefits ?? '',
+      hiringPhilosophy: company.hiringPhilosophy ?? '',
+    });
+  }, [company]);
 
   const save = useCallback(async () => {
     if (!form) return;
@@ -140,15 +163,21 @@ export function CompanyPage() {
         <div className={ws.panel}>
           <h2 className={ws.panelTitle}>Company profile unavailable</h2>
           <p className={ws.candidateSub}>Your employer account is not linked to a company yet.</p>
-          <Link to="/portal" className={ws.btnPrimary}>Open command center</Link>
+          <Link to="/portal" className={ws.btnPrimary}>Open Today</Link>
         </div>
       </PageFrame>
     );
   }
 
   const display = editing ? previewCompany : company;
-  const bannerStyle = display.bannerUrl
-    ? { backgroundImage: `url(${display.bannerUrl})` }
+  const bannerUrl = resolveMediaUrl(display.bannerUrl);
+  const bannerStyle = bannerUrl
+    ? {
+        backgroundImage: `url("${bannerUrl}")`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
+      }
     : brandedBannerStyle();
 
   return (
@@ -156,10 +185,10 @@ export function CompanyPage() {
       meta="Build your employer brand — candidates see this before they apply."
       actions={(
         <>
-          <Link to={`/companies/${company.slug}`} className={ws.btnGhost} target="_blank" rel="noopener noreferrer">Preview public page</Link>
+          <a href={`/companies/${company.slug}`} className={ws.btnGhost} target="_blank" rel="noopener noreferrer">Preview public page</a>
           {editing ? (
             <>
-              <button type="button" className={ws.btnGhost} onClick={() => setEditing(false)}>Cancel</button>
+              <button type="button" className={ws.btnGhost} onClick={() => { resetForm(); setEditing(false); }}>Cancel</button>
               <button type="button" className={ws.btnPrimary} disabled={saving} onClick={() => void save()}>
                 {saving ? 'Saving…' : 'Save brand'}
               </button>
@@ -180,7 +209,7 @@ export function CompanyPage() {
             )}
           </div>
           <div className={ws.companyHeroBody}>
-            <CompanyAvatar company={display} size="lg" className={ws.companyHeroLogo} />
+            <CompanyAvatar company={display} size="lg" circular className={ws.companyHeroLogo} />
             <div className={ws.companyHeroInfo}>
               {display.industry && <p className={ws.companyHeroEyebrow}>{display.industry}</p>}
               <h2 className={ws.profileName}>{display.name}</h2>
@@ -250,6 +279,16 @@ export function CompanyPage() {
               <p className={ws.companyEditorHint}>
                 Tell candidates what you build, how you work, and why they should join.
               </p>
+              <div className={ws.field}>
+                <label htmlFor="companyName">Company name</label>
+                <input
+                  id="companyName"
+                  className={ws.input}
+                  value={form.name ?? ''}
+                  onChange={(e) => setForm({ ...form, name: e.target.value })}
+                  placeholder="Your company name"
+                />
+              </div>
               <div className={ws.field}>
                 <label htmlFor="description">About your company</label>
                 <textarea

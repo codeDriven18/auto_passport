@@ -1,10 +1,12 @@
 import type { Company } from '@/models/company';
+import { resolveMediaUrl } from '@/lib/mediaUrl';
 import styles from './CompanyAvatar.module.css';
 
 interface CompanyAvatarProps {
   company: Pick<Company, 'name' | 'logoUrl'>;
   size?: 'sm' | 'md' | 'lg';
   className?: string;
+  circular?: boolean;
 }
 
 const sizeClass = {
@@ -22,22 +24,29 @@ function getInitials(name: string): string {
     .toUpperCase() || '?';
 }
 
-export function CompanyAvatar({ company, size = 'md', className = '' }: CompanyAvatarProps) {
+export function CompanyAvatar({ company, size = 'md', className = '', circular = false }: CompanyAvatarProps) {
   const initials = getInitials(company.name);
+  const logoSrc = resolveMediaUrl(company.logoUrl);
+  const classes = [
+    styles.avatar,
+    sizeClass[size],
+    circular ? styles.circular : '',
+    className,
+  ].filter(Boolean).join(' ');
 
-  if (company.logoUrl) {
+  if (logoSrc) {
     return (
       <img
-        src={company.logoUrl}
+        src={logoSrc}
         alt={`${company.name} logo`}
-        className={`${styles.avatar} ${sizeClass[size]} ${className}`.trim()}
+        className={classes}
       />
     );
   }
 
   return (
     <span
-      className={`${styles.avatar} ${styles.fallback} ${sizeClass[size]} ${className}`.trim()}
+      className={`${classes} ${styles.fallback}`.trim()}
       aria-label={`${company.name} logo`}
       role="img"
     >

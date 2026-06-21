@@ -77,7 +77,7 @@ export const PasswordField = forwardRef<HTMLInputElement, PasswordFieldProps>(fu
         ref={ref}
         type={inputType}
         className={`${styles.input} ${inputClassName}`.trim()}
-        style={{ paddingRight: '5rem', ...style }}
+        style={style}
       />
       <button
         type="button"
@@ -87,7 +87,6 @@ export const PasswordField = forwardRef<HTMLInputElement, PasswordFieldProps>(fu
         aria-pressed={visible}
       >
         {visible ? <EyeOffIcon /> : <EyeIcon />}
-        <span className={styles.label}>{visible ? 'Hide' : 'Show'}</span>
       </button>
     </div>
   );

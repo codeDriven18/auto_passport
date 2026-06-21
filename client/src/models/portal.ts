@@ -43,6 +43,7 @@ export interface PortalApplication {
 }
 
 export interface PortalUpdateCompanyRequest {
+  name?: string;
   description: string;
   industry: string;
   location: string;

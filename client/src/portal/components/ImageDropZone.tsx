@@ -1,4 +1,5 @@
 import { useCallback, useId, useRef, useState, type DragEvent } from 'react';
+import { resolveMediaUrl } from '@/lib/mediaUrl';
 import ws from '@/portal/workspace.module.css';
 
 interface ImageDropZoneProps {
@@ -26,7 +27,7 @@ export function ImageDropZone({
   const [dragging, setDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
 
-  const preview = value.trim() || localPreview;
+  const preview = resolveMediaUrl(value.trim()) || localPreview;
 
   const processFile = useCallback(async (file: File) => {
     if (!file.type.startsWith('image/')) return;

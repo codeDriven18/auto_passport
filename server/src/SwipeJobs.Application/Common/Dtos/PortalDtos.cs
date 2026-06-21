@@ -150,6 +150,7 @@ public record PortalCreateRecruiterTagDto(string Name);
 public record PortalUpdateRecruiterTagDto(string Name);
 
 public record PortalUpdateCompanyDto(
+    string? Name,
     string Description,
     string Industry,
     string Location,

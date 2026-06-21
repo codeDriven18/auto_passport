@@ -1,5 +1,6 @@
 import { useMemo, type CSSProperties } from 'react';
 import { Outlet, useLocation, useSearchParams } from 'react-router-dom';
+import { AnimatePresence, motion } from 'framer-motion';
 import { EmployerWorkspaceProvider, useEmployerWorkspace } from '@/context/EmployerWorkspaceContext';
 import { useUnreadMessages } from '@/hooks/useUnreadMessages';
 import { resolveWorkspaceContext } from '@/portal/nav';
@@ -62,7 +63,18 @@ function WorkspaceShellInner() {
           isPipeline ? ws.mainPipeline : '',
           isInbox ? ws.mainInbox : '',
         ].filter(Boolean).join(' ')}>
-          <Outlet />
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={`${location.pathname}${location.search}`}
+              className={ws.pageTransition}
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -2 }}
+              transition={{ duration: 0.14, ease: 'easeOut' }}
+            >
+              <Outlet />
+            </motion.div>
+          </AnimatePresence>
         </main>
       </div>
 

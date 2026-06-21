@@ -10,6 +10,7 @@ import {
 import { formatJobSeekingStatus } from '@/lib/jobSeekingStatus';
 import { ApplicationStatusLabels } from '@/models/enums';
 import type { PortalApplicantDetail } from '@/models/portalApplicant';
+import { resolveMediaUrl } from '@/lib/mediaUrl';
 import ws from '@/portal/workspace.module.css';
 
 interface CandidateProfileHeroProps {
@@ -40,7 +41,7 @@ export function CandidateProfileHero({
             firstName: applicant.firstName,
             lastName: applicant.lastName,
             email: applicant.email,
-            profileImageUrl: applicant.profileImageUrl,
+            profileImageUrl: resolveMediaUrl(applicant.profileImageUrl),
           }}
           size="lg"
           className={ws.candidateHeroAvatar}

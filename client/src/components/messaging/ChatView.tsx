@@ -12,6 +12,7 @@ import {
   isSameMessageDay,
 } from '@/lib/messagingHelpers';
 import type { ChatMessage, ConversationDetail } from '@/models/messaging';
+import { isImageMimeType, resolveMediaUrl } from '@/lib/mediaUrl';
 import styles from './ChatView.module.css';
 
 interface ChatApi {
@@ -95,6 +96,7 @@ export function ChatView({
   const [draft, setDraft] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [typingUserId, setTypingUserId] = useState<string | null>(null);
+  const [expandedImage, setExpandedImage] = useState<string | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -211,18 +213,59 @@ export function ChatView({
   };
 
   const handleDownload = async (message: ChatMessage) => {
-    if (!api.downloadAttachment || !message.attachmentUrl) return;
-    try {
-      const blob = await api.downloadAttachment(conversation.id, message.id);
-      const url = URL.createObjectURL(blob);
-      const anchor = document.createElement('a');
-      anchor.href = url;
-      anchor.download = message.attachmentFileName ?? 'attachment';
-      anchor.click();
-      URL.revokeObjectURL(url);
-    } catch {
-      setError('Could not download attachment.');
+    if (!message.attachmentUrl) return;
+    if (api.downloadAttachment) {
+      try {
+        const blob = await api.downloadAttachment(conversation.id, message.id);
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement('a');
+        anchor.href = url;
+        anchor.download = message.attachmentFileName ?? 'attachment';
+        anchor.click();
+        URL.revokeObjectURL(url);
+        return;
+      } catch {
+        /* fall through to direct URL */
+      }
     }
+    const direct = resolveMediaUrl(message.attachmentUrl);
+    if (direct) window.open(direct, '_blank', 'noopener,noreferrer');
+  };
+
+  const renderAttachment = (message: ChatMessage) => {
+    if (!message.attachmentUrl) return null;
+    const isImage = isImageMimeType(message.attachmentContentType, message.attachmentFileName);
+    const src = resolveMediaUrl(message.attachmentUrl);
+
+    if (isImage && src) {
+      return (
+        <button
+          type="button"
+          className={styles.imageAttachment}
+          onClick={() => setExpandedImage(src)}
+          aria-label={`View image ${message.attachmentFileName ?? ''}`.trim()}
+        >
+          <img src={src} alt={message.attachmentFileName ?? 'Shared image'} className={styles.imagePreview} />
+        </button>
+      );
+    }
+
+    return (
+      <button
+        type="button"
+        className={styles.fileCard}
+        onClick={() => void handleDownload(message)}
+      >
+        <span className={styles.fileIcon} aria-hidden>
+          <IconFile size={22} />
+        </span>
+        <span className={styles.fileMeta}>
+          <span className={styles.fileName}>
+            {message.attachmentFileName ?? 'Download file'}
+          </span>
+        </span>
+      </button>
+    );
   };
 
   return (
@@ -303,22 +346,7 @@ export function ChatView({
                   {!isAttachmentPlaceholderText(message.messageText, message.attachmentFileName) && (
                     <p className={styles.messageText}>{message.messageText}</p>
                   )}
-                  {message.attachmentUrl && (
-                    <button
-                      type="button"
-                      className={styles.fileCard}
-                      onClick={() => void handleDownload(message)}
-                    >
-                      <span className={styles.fileIcon} aria-hidden>
-                        <IconFile size={22} />
-                      </span>
-                      <span className={styles.fileMeta}>
-                        <span className={styles.fileName}>
-                          {message.attachmentFileName ?? 'Download file'}
-                        </span>
-                      </span>
-                    </button>
-                  )}
+                  {message.attachmentUrl && renderAttachment(message)}
                   <footer className={styles.meta}>
                     <time dateTime={message.sentAt}>{formatBubbleTime(message.sentAt)}</time>
                     {message.isMine && <MessageReceipt readAt={message.readAt} />}
@@ -344,7 +372,7 @@ export function ChatView({
         <input
           ref={fileInputRef}
           type="file"
-          accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+          accept=".pdf,.doc,.docx,image/*,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
           className={styles.fileInput}
           onChange={(event) => {
             const file = event.target.files?.[0];
@@ -387,6 +415,22 @@ export function ChatView({
           Send
         </Button>
       </form>
+
+      {expandedImage && (
+        <div
+          className={styles.imageLightbox}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Image preview"
+          onClick={() => setExpandedImage(null)}
+          onKeyDown={(e) => { if (e.key === 'Escape') setExpandedImage(null); }}
+        >
+          <button type="button" className={styles.imageLightboxClose} onClick={() => setExpandedImage(null)} aria-label="Close">
+            ×
+          </button>
+          <img src={expandedImage} alt="" className={styles.imageLightboxImg} onClick={(e) => e.stopPropagation()} />
+        </div>
+      )}
     </section>
   );
 }

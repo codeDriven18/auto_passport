@@ -122,9 +122,9 @@ export function AppRouter() {
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/p/:id" element={<PublicProfilePage />} />
+          <Route path="/companies/:slug" element={<CompanyPage />} />
           <Route element={<UserAppGate><Outlet /></UserAppGate>}>
             <Route path="/" element={<DashboardPage />} />
-            <Route path="/companies/:slug" element={<CompanyPage />} />
             <Route path="/swipe" element={<SwipePage />} />
             <Route path="/jobs" element={<JobsPage />} />
             <Route path="/jobs/:id" element={<JobDetailPage />} />

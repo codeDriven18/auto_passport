@@ -6,7 +6,9 @@ import { useUnreadMessages } from '@/hooks/useUnreadMessages';
 import {
   getApplicantsNeedingReview,
   getInterviewQueue,
+  getPipelineMomentum,
   getRecentApplicants,
+  getRecentlyScheduledInterviews,
 } from '@/lib/employer/employerWorkspaceData';
 import { ApplicantWorkRow, ConversationWorkRow } from '@/portal/components/WorkQueueRow';
 import { PageFrame } from '@/portal/components/PageFrame';
@@ -43,9 +45,10 @@ export function TodayPage() {
   const unreadConversations = conversations.filter((c) => c.unreadCount > 0).slice(0, 6);
   const reviewIds = new Set(reviewQueue.map((a) => a.id));
   const interviewIds = new Set(interviewQueue.map((a) => a.id));
-  const recentlyActive = getRecentApplicants(applications, 12)
-    .filter((a) => !reviewIds.has(a.id) && !interviewIds.has(a.id))
-    .slice(0, 5);
+  const recentlyScheduled = getRecentlyScheduledInterviews(applications, 5)
+    .filter((a) => !interviewIds.has(a.id));
+  const pipelineMomentum = getPipelineMomentum(applications, 5)
+    .filter((a) => !reviewIds.has(a.id) && !interviewIds.has(a.id));
 
   const headline = reviewQueue.length > 0
     ? `${reviewQueue.length} candidate${reviewQueue.length === 1 ? '' : 's'} need review`
@@ -139,14 +142,46 @@ export function TodayPage() {
           </section>
         )}
 
-        {recentlyActive.length > 0 && (
+        {recentlyScheduled.length > 0 && (
+          <section className={ws.todaySection} aria-label="Recently scheduled interviews">
+            <div className={ws.todaySectionHead}>
+              <h3 className={ws.todaySectionTitle}>Recently scheduled</h3>
+              <Link to="/portal/pipeline?column=interview" className={ws.workSectionLink}>View pipeline</Link>
+            </div>
+            <div className={ws.todayQueue}>
+              {recentlyScheduled.map((app) => (
+                <ApplicantWorkRow key={app.id} application={app} from="today" actionLabel="View interview" />
+              ))}
+            </div>
+          </section>
+        )}
+
+        {pipelineMomentum.length > 0 && (
+          <section className={ws.todaySection} aria-label="Hiring momentum">
+            <div className={ws.todaySectionHead}>
+              <h3 className={ws.todaySectionTitle}>Hiring momentum</h3>
+              <Link to="/portal/pipeline?view=list" className={ws.workSectionLink}>View pipeline</Link>
+            </div>
+            <div className={ws.todayQueue}>
+              {pipelineMomentum.map((app) => (
+                <ApplicantWorkRow key={app.id} application={app} from="today" actionLabel="Continue process" />
+              ))}
+            </div>
+          </section>
+        )}
+
+        {getRecentApplicants(applications, 12)
+          .filter((a) => !reviewIds.has(a.id) && !interviewIds.has(a.id))
+          .slice(0, 5).length > 0 && (
           <section className={ws.todaySection} aria-label="Recently active candidates">
             <div className={ws.todaySectionHead}>
               <h3 className={ws.todaySectionTitle}>Recently active</h3>
               <Link to="/portal/pipeline?view=list" className={ws.workSectionLink}>View all</Link>
             </div>
             <div className={ws.todayQueue}>
-              {recentlyActive.map((app) => (
+              {getRecentApplicants(applications, 12)
+                .filter((a) => !reviewIds.has(a.id) && !interviewIds.has(a.id))
+                .slice(0, 5).map((app) => (
                 <ApplicantWorkRow key={app.id} application={app} from="today" actionLabel="Continue hiring" />
               ))}
             </div>

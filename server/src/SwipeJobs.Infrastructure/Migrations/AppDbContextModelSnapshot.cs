@@ -205,8 +205,7 @@ namespace SwipeJobs.Infrastructure.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<string>("BannerUrl")
-                        .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)");
+                        .HasColumnType("text");
 
                     b.Property<string>("Benefits")
                         .HasColumnType("text");
@@ -252,8 +251,7 @@ namespace SwipeJobs.Infrastructure.Migrations
                         .HasColumnType("character varying(200)");
 
                     b.Property<string>("LogoUrl")
-                        .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)");
+                        .HasColumnType("text");
 
                     b.Property<string>("Name")
                         .IsRequired()

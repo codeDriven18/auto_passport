@@ -10,6 +10,8 @@ import { RecruiterChatActions } from '@/portal/components/RecruiterChatActions';
 import ws from '@/portal/workspace.module.css';
 import type { ConversationDetail } from '@/models/messaging';
 
+const CONTEXT_STORAGE_KEY = 'swipejobs.portal.chatContextOpen';
+
 interface ConversationPaneProps {
   conversationId: string;
   mode?: 'primary' | 'split';
@@ -25,9 +27,26 @@ export function ConversationPane({
 }: ConversationPaneProps) {
   const [conversation, setConversation] = useState<ConversationDetail | null>(null);
   const [loading, setLoading] = useState(true);
+  const [contextOpen, setContextOpen] = useState(() => {
+    try {
+      return localStorage.getItem(CONTEXT_STORAGE_KEY) !== 'false';
+    } catch {
+      return true;
+    }
+  });
   const { refresh: refreshUnread } = useUnreadMessages();
   const navigate = useNavigate();
   const isSplit = mode === 'split';
+
+  const toggleContext = useCallback(() => {
+    setContextOpen((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem(CONTEXT_STORAGE_KEY, String(next));
+      } catch { /* ignore */ }
+      return next;
+    });
+  }, []);
 
   const loadConversation = useCallback(
     (showSkeleton: boolean) => {
@@ -70,6 +89,8 @@ export function ConversationPane({
     );
   }
 
+  const contextVisible = showContext && !isSplit && contextOpen;
+
   return (
     <div className={[ws.msgPane, isSplit ? ws.msgPaneSplit : ''].filter(Boolean).join(' ')}>
       {isSplit && (
@@ -81,8 +102,16 @@ export function ConversationPane({
         </div>
       )}
 
-      <div className={ws.msgPaneBody}>
+      <div className={[
+        ws.msgPaneBody,
+        !contextVisible && showContext && !isSplit ? ws.msgPaneBodyExpanded : '',
+      ].filter(Boolean).join(' ')}>
         <div className={ws.msgPaneChat}>
+          {showContext && !isSplit && (
+            <button type="button" className={ws.msgContextToggle} onClick={toggleContext}>
+              {contextOpen ? 'Hide candidate profile' : 'Show candidate profile'}
+            </button>
+          )}
           <RecruiterChatActions
             applicationId={conversation.applicationId}
             status={conversation.applicationStatus}
@@ -110,10 +139,15 @@ export function ConversationPane({
         </div>
 
         {showContext && !isSplit && (
-          <ConversationContextPanel
-            applicationId={conversation.applicationId}
-            onUpdated={() => loadConversation(false)}
-          />
+          <div className={[
+            ws.msgContextCollapsible,
+            contextOpen ? '' : ws.msgContextCollapsibleClosed,
+          ].filter(Boolean).join(' ')}>
+            <ConversationContextPanel
+              applicationId={conversation.applicationId}
+              onUpdated={() => loadConversation(false)}
+            />
+          </div>
         )}
       </div>
     </div>

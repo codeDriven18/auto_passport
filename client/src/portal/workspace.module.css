@@ -578,6 +578,10 @@
   .msgPaneBody {
     grid-template-columns: minmax(0, 1fr) 16.5rem;
   }
+
+  .msgPaneBodyExpanded {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 .msgPaneChat {
@@ -1772,7 +1776,7 @@
 
 .companyHero {
   position: relative;
-  overflow: visible;
+  overflow: hidden;
   border-radius: var(--ws-radius-lg);
   border: 1px solid var(--ws-border);
   background: var(--ws-panel);
@@ -1783,19 +1787,21 @@
   position: relative;
   overflow: hidden;
   border-radius: var(--ws-radius-lg) var(--ws-radius-lg) 0 0;
+  isolation: isolate;
 }
 
 .companyBanner {
-  height: clamp(8rem, 18vw, 11rem);
+  height: clamp(7rem, 16vw, 10rem);
   background: linear-gradient(135deg, #0a0a0a, #141414 50%, color-mix(in srgb, var(--ws-brand) 28%, #141414));
   background-size: cover;
   background-position: center;
+  background-repeat: no-repeat;
 }
 
 .companyBannerScrim {
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, rgba(0, 0, 0, 0.05) 0%, rgba(0, 0, 0, 0.5) 100%);
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.08) 0%, rgba(0, 0, 0, 0.55) 100%);
   pointer-events: none;
 }
 
@@ -1803,6 +1809,7 @@
   position: absolute;
   bottom: 1rem;
   right: 1rem;
+  z-index: 1;
   padding: 0.25rem 0.625rem;
   border-radius: 999px;
   background: rgba(0, 0, 0, 0.5);
@@ -1815,22 +1822,25 @@
 }
 
 .companyHeroBody {
+  position: relative;
+  z-index: 2;
   display: flex;
   align-items: flex-end;
   gap: 1rem;
   padding: 0 1.25rem 1.25rem;
-  margin-top: -2.75rem;
+  margin-top: -2.25rem;
 }
 
 .companyHeroLogo {
   flex-shrink: 0;
   width: 4.5rem !important;
   height: 4.5rem !important;
-  border-radius: var(--ws-radius-md) !important;
+  border-radius: 50% !important;
   border: 3px solid var(--ws-panel) !important;
   box-shadow:
     0 0 0 2px var(--ws-brand),
     0 4px 12px rgba(0, 0, 0, 0.12);
+  object-fit: cover;
 }
 
 .companyHeroInfo {
@@ -1901,7 +1911,11 @@
 
 @media (min-width: 960px) {
   .companyEditLayout {
-    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1.1fr) minmax(18rem, 1fr);
+  }
+
+  .companyEditLayout:not(:has(.companyEditor)) {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -3795,26 +3809,34 @@
 }
 
 .candidateHeroBanner {
-  height: clamp(5rem, 14vw, 7.5rem);
+  height: clamp(4.5rem, 12vw, 6.5rem);
   background: linear-gradient(
     135deg,
     #0a0a0a 0%,
     #141414 50%,
     color-mix(in srgb, var(--ws-brand) 22%, #141414) 100%
   );
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
 }
 
 .candidateHeroBody {
+  position: relative;
+  z-index: 1;
   display: flex;
   gap: 1rem;
   padding: 0 1.25rem 1.25rem;
-  margin-top: -2.75rem;
+  margin-top: -2.25rem;
   align-items: flex-end;
 }
 
 .candidateHeroAvatar {
   flex-shrink: 0;
+  position: relative;
+  z-index: 2;
   border: 3px solid var(--ws-panel) !important;
+  border-radius: 50% !important;
   box-shadow:
     0 0 0 2px var(--ws-brand),
     0 4px 14px rgba(0, 0, 0, 0.12);
@@ -4539,6 +4561,130 @@
   margin-top: 0.35rem;
   font-size: 0.8125rem;
   font-weight: 600;
+}
+
+/* Pipeline list view — aliases + card layout */
+.pipelineList,
+.pipelineListShell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+  min-width: 0;
+}
+
+.pipelineListControls,
+.pipelineListToolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.pipelineListMeta {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--ws-muted);
+}
+
+.pipelineListCardWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border-radius: var(--ws-radius-lg);
+  border: 1px solid var(--ws-border);
+  background: var(--ws-panel);
+  overflow: hidden;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.pipelineListCardWrap:hover {
+  border-color: color-mix(in srgb, var(--ws-brand) 35%, var(--ws-border));
+  box-shadow: var(--ws-shadow-sm);
+}
+
+.pipelineListCardWrap .candidateCard {
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  margin: 0;
+}
+
+.pipelineListCardFoot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.625rem 1rem 0.875rem;
+  border-top: 1px solid var(--ws-border);
+  background: var(--ws-panel-muted);
+}
+
+.pipelineListCardFoot .btnPrimary {
+  padding: 0.45rem 0.85rem;
+  font-size: 0.8125rem;
+}
+
+/* Collapsible chat context panel */
+.msgContextCollapsible {
+  display: none;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+@media (min-width: 1100px) {
+  .msgContextCollapsible {
+    display: flex;
+    width: 16.5rem;
+  }
+
+  .msgContextCollapsibleClosed {
+    display: none;
+  }
+}
+
+.msgContextToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.65rem;
+  border-radius: var(--ws-radius-sm);
+  border: 1px solid var(--ws-border);
+  background: var(--ws-panel);
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--ws-muted);
+  cursor: pointer;
+  margin-bottom: 0.5rem;
+}
+
+.msgContextToggle:hover {
+  color: var(--ws-ink);
+  border-color: color-mix(in srgb, var(--ws-brand) 30%, var(--ws-border));
+}
+
+.msgPaneBodyExpanded .msgPaneChat {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Page transition wrapper */
+.pageTransition {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.campaignPreviewCompact {
+  gap: 0.75rem;
+}
+
+.campaignPreviewCompact .campaignPreviewMeta,
+.campaignPreviewCompact .campaignReadiness {
+  display: none;
 }
 
 /* ── Loading shell ── */

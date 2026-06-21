@@ -112,10 +112,20 @@ export function SwipePage() {
   }, []);
 
   useEffect(() => {
-    if (queue.length <= STACK_BUFFER + 2 && hasMore && !loading) {
+    if (queue.length <= STACK_BUFFER + 5 && hasMore && !loading) {
       void loadMore(fetchPage + 1, true);
     }
   }, [queue.length, hasMore, loading, fetchPage, loadMore]);
+
+  useEffect(() => {
+    queue.slice(0, 4).forEach((job) => {
+      [job.jobImageUrl, job.aiGeneratedImageUrl, job.companyLogoUrl, job.companyBannerUrl].forEach((url) => {
+        if (!url) return;
+        const img = new Image();
+        img.src = url;
+      });
+    });
+  }, [queue]);
 
   const refreshFeed = useCallback(async () => {
     const topId = queueRef.current[0]?.id;

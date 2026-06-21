@@ -562,6 +562,9 @@ public partial class CompanyPortalService : ICompanyPortalService
         var company = await _companyRepository.GetByIdAsync(companyId, cancellationToken);
         if (company is null) return null;
 
+        if (!string.IsNullOrWhiteSpace(dto.Name))
+            company.Name = dto.Name.Trim();
+
         company.Description = dto.Description.Trim();
         company.Industry = dto.Industry.Trim();
         company.Location = dto.Location.Trim();

@@ -532,3 +532,58 @@
     max-height: calc(100dvh - 2rem - var(--chat-keyboard-offset));
   }
 }
+
+.imageAttachment {
+  display: block;
+  padding: 0;
+  margin: 0.25rem 0 0;
+  border: none;
+  background: transparent;
+  cursor: zoom-in;
+  border-radius: var(--radius-md, 0.75rem);
+  overflow: hidden;
+  max-width: min(18rem, 100%);
+}
+
+.imagePreview {
+  display: block;
+  width: 100%;
+  max-height: 14rem;
+  object-fit: cover;
+  border-radius: var(--radius-md, 0.75rem);
+}
+
+.imageLightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  background: rgba(0, 0, 0, 0.82);
+  backdrop-filter: blur(6px);
+}
+
+.imageLightboxImg {
+  max-width: min(92vw, 56rem);
+  max-height: 88vh;
+  object-fit: contain;
+  border-radius: var(--radius-md, 0.75rem);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.45);
+}
+
+.imageLightboxClose {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  width: 2.5rem;
+  height: 2.5rem;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+}

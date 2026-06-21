@@ -1,11 +1,11 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { UserAvatar } from '@/components/profile/UserAvatar';
 import { usePipelineBoard } from '@/hooks/usePipelineBoard';
 import { PIPELINE_COLUMNS } from '@/lib/employer/pipelineArchitecture';
 import { candidateProfilePath } from '@/lib/employer/hiringNavigation';
 import { pipelineStageLabel } from '@/lib/employer/employerWorkspaceData';
-import { CandidateCard } from '@/portal/components/CandidateCard';
 import { PipelineStage } from '@/models/enums';
 import ws from '@/portal/workspace.module.css';
 
@@ -117,21 +117,51 @@ export function PipelineListView({ jobId }: PipelineListViewProps) {
             : [{ label: 'Clear filters', onClick: () => { setSearch(''); setStageFilter(''); }, primary: true }]}
         />
       ) : (
-        <div className={[ws.cardGrid, ws.cardGridWide].join(' ')}>
-          {filtered.map((app) => (
-            <div key={app.id} className={ws.pipelineListCardWrap}>
-              <CandidateCard application={app} compact profileFrom="list" jobId={jobId} />
-              <div className={ws.pipelineListCardFoot}>
+        <div className={ws.pipelineListRows}>
+          <div className={ws.pipelineListHeader} aria-hidden>
+            <span>Candidate</span>
+            <span>Role</span>
+            <span>Stage</span>
+            <span>Applied</span>
+            <span />
+          </div>
+          {filtered.map((app) => {
+            const [firstName, ...rest] = app.applicantName.split(' ');
+            const lastName = rest.join(' ');
+            const applied = new Date(app.appliedAt).toLocaleDateString(undefined, {
+              month: 'short',
+              day: 'numeric',
+            });
+
+            return (
+              <article key={app.id} className={ws.pipelineListRow}>
+                <div className={ws.pipelineListCandidate}>
+                  <UserAvatar
+                    profile={{
+                      firstName,
+                      lastName,
+                      email: app.applicantEmail,
+                      profileImageUrl: app.applicantProfileImageUrl,
+                    }}
+                    size="sm"
+                  />
+                  <div className={ws.pipelineListIdentity}>
+                    <strong>{app.applicantName}</strong>
+                    <span>{app.applicantEmail}</span>
+                  </div>
+                </div>
+                <span className={ws.pipelineListRole}>{app.jobTitle}</span>
                 <span className={ws.badgeMuted}>{pipelineStageLabel(app)}</span>
+                <span className={ws.pipelineListDate}>{applied}</span>
                 <Link
                   to={candidateProfilePath(app.id, { from: 'list', jobId })}
-                  className={ws.btnPrimary}
+                  className={ws.pipelineListAction}
                 >
                   Open profile
                 </Link>
-              </div>
-            </div>
-          ))}
+              </article>
+            );
+          })}
         </div>
       )}
     </div>

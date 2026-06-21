@@ -1,10 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { portalApi } from '@/api/portalApi';
-import { UserAvatar } from '@/components/profile/UserAvatar';
-import { ApplicationStatusLabels } from '@/models/enums';
 import type { PortalApplicantDetail } from '@/models/portalApplicant';
-import { RecruiterStarRating } from '@/portal/components/RecruiterStarRating';
+import { CandidateProfileHero } from '@/portal/components/CandidateProfileHero';
 import { candidateProfilePath } from '@/lib/employer/hiringNavigation';
 import ws from '@/portal/workspace.module.css';
 
@@ -13,22 +11,11 @@ interface ConversationContextPanelProps {
   onUpdated?: () => void;
 }
 
-function formatInterview(when?: string, location?: string) {
-  if (!when) return null;
-  const date = new Date(when).toLocaleString(undefined, {
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-  });
-  return location ? `${date} · ${location}` : date;
-}
-
 export function ConversationContextPanel({ applicationId, onUpdated }: ConversationContextPanelProps) {
   const [applicant, setApplicant] = useState<PortalApplicantDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [downloading, setDownloading] = useState(false);
+  const [ratingBusy, setRatingBusy] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -47,9 +34,14 @@ export function ConversationContextPanel({ applicationId, onUpdated }: Conversat
   }, [load]);
 
   const handleRating = async (rating: number | null) => {
-    await portalApi.setRecruiterRating(applicationId, rating);
-    await load();
-    onUpdated?.();
+    setRatingBusy(true);
+    try {
+      await portalApi.setRecruiterRating(applicationId, rating);
+      await load();
+      onUpdated?.();
+    } finally {
+      setRatingBusy(false);
+    }
   };
 
   const handleResume = async () => {
@@ -89,55 +81,16 @@ export function ConversationContextPanel({ applicationId, onUpdated }: Conversat
     );
   }
 
-  const name = `${applicant.firstName} ${applicant.lastName}`.trim();
-  const interview = formatInterview(applicant.interviewScheduledAtUtc, applicant.interviewLocation);
   const tags = applicant.recruiterTags ?? [];
 
   return (
     <aside className={ws.msgContext} aria-label="Candidate context">
-      <div className={ws.msgContextProfile}>
-        <UserAvatar
-          profile={{
-            firstName: applicant.firstName,
-            lastName: applicant.lastName,
-            email: applicant.email,
-            profileImageUrl: applicant.profileImageUrl,
-          }}
-          size="md"
-        />
-        <div className={ws.msgContextIdentity}>
-          <strong>{name || 'Candidate'}</strong>
-          <span className={ws.msgContextSub}>{applicant.jobTitle}</span>
-          {applicant.headline && <span className={ws.msgContextMuted}>{applicant.headline}</span>}
-        </div>
-      </div>
-
-      <dl className={ws.msgContextFacts}>
-        <div>
-          <dt>Stage</dt>
-          <dd><span className={ws.msgContextStage}>{ApplicationStatusLabels[applicant.status]}</span></dd>
-        </div>
-        {interview && (
-          <div>
-            <dt>Interview</dt>
-            <dd>{interview}</dd>
-          </div>
-        )}
-        {applicant.location && (
-          <div>
-            <dt>Location</dt>
-            <dd>{applicant.location}</dd>
-          </div>
-        )}
-      </dl>
-
-      <div className={ws.msgContextBlock}>
-        <p className={ws.msgContextLabel}>Rating</p>
-        <RecruiterStarRating
-          value={applicant.recruiterRating}
-          onChange={(rating) => void handleRating(rating)}
-        />
-      </div>
+      <CandidateProfileHero
+        applicant={applicant}
+        compact
+        ratingBusy={ratingBusy}
+        onRatingChange={(rating) => void handleRating(rating)}
+      />
 
       {tags.length > 0 && (
         <div className={ws.msgContextBlock}>

@@ -553,6 +553,14 @@
   border-radius: var(--radius-md, 0.75rem);
 }
 
+.imageLoading {
+  display: inline-block;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.8125rem;
+  color: var(--color-text-muted, #737373);
+  font-style: italic;
+}
+
 .imageLightbox {
   position: fixed;
   inset: 0;

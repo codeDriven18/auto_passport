@@ -16,11 +16,11 @@
   --ws-brand-soft: color-mix(in srgb, var(--color-accent) 14%, #ffffff);
   --ws-nav-hover: color-mix(in srgb, var(--color-accent) 6%, transparent);
   --ws-nav-active: color-mix(in srgb, var(--color-accent) 12%, transparent);
-  --ws-radius: 0.75rem;
-  --ws-radius-md: 0.75rem;
-  --ws-radius-sm: 0.5rem;
-  --ws-radius-lg: 1rem;
-  --ws-radius-xl: 1.25rem;
+  --ws-radius: 0.875rem;
+  --ws-radius-md: 0.875rem;
+  --ws-radius-sm: 0.625rem;
+  --ws-radius-lg: 1.125rem;
+  --ws-radius-xl: 1.375rem;
   --ws-surface: var(--ws-panel);
   --ws-accent: var(--ws-brand);
   --ws-shadow-sm: 0 1px 3px rgba(10, 10, 10, 0.06);

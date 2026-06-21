@@ -42,6 +42,11 @@ interface PremiumSwipeDeckProps {
   onTap: (job: Job) => void;
 }
 
+interface ExitState {
+  job: Job;
+  direction: SwipeDirection;
+}
+
 /** Position-only threshold — speed does not affect commit. */
 function resolveDirection(offset: { x: number; y: number }): SwipeDirection | null {
   const absX = Math.abs(offset.x);
@@ -51,6 +56,12 @@ function resolveDirection(offset: { x: number; y: number }): SwipeDirection | nu
   if (offset.x <= -SWIPE_THRESHOLD_X && absX >= absY) return 'pass';
   if (offset.x >= SWIPE_THRESHOLD_X && absX >= absY) return 'apply';
   return null;
+}
+
+function exitTarget(direction: SwipeDirection) {
+  if (direction === 'pass') return { x: -SWIPE_EXIT_X, y: 0, rotate: -SWIPE_ROTATE_RANGE };
+  if (direction === 'apply') return { x: SWIPE_EXIT_X, y: 0, rotate: SWIPE_ROTATE_RANGE };
+  return { x: 0, y: -SWIPE_EXIT_Y, rotate: 0 };
 }
 
 export const PremiumSwipeDeck = forwardRef<PremiumSwipeDeckHandle, PremiumSwipeDeckProps>(
@@ -66,44 +77,36 @@ export const PremiumSwipeDeck = forwardRef<PremiumSwipeDeckHandle, PremiumSwipeD
     const applyOpacity = useTransform(x, [0, 24, SWIPE_THRESHOLD_X], [0, 0.35, 1]);
     const saveOpacity = useTransform(y, [0, -24, -SWIPE_THRESHOLD_Y], [0, 0.35, 1]);
 
-    const [isExiting, setIsExiting] = useState(false);
-    const exitingRef = useRef(false);
+    const [exitState, setExitState] = useState<ExitState | null>(null);
+    const exitLockedRef = useRef(false);
     const draggedRef = useRef(false);
     const topJobRef = useRef(topJob);
     topJobRef.current = topJob;
 
     useEffect(() => {
-      if (exitingRef.current) return;
+      if (exitLockedRef.current) return;
       x.set(0);
       y.set(0);
       draggedRef.current = false;
     }, [topJob?.id, x, y]);
 
-    const flyOut = useCallback((direction: SwipeDirection) => {
-      if (exitingRef.current || !topJobRef.current) return;
-      exitingRef.current = true;
-      setIsExiting(true);
+    const finishExit = useCallback(() => {
+      exitLockedRef.current = false;
+      setExitState(null);
+    }, []);
 
+    const flyOut = useCallback((direction: SwipeDirection) => {
+      if (exitLockedRef.current || !topJobRef.current) return;
+      const job = topJobRef.current;
+
+      exitLockedRef.current = true;
       x.stop();
       y.stop();
+      x.set(0);
+      y.set(0);
 
-      const job = topJobRef.current;
-      const finish = () => {
-        exitingRef.current = false;
-        setIsExiting(false);
-        x.set(0);
-        y.set(0);
-        draggedRef.current = false;
-        if (job) onDismiss(job, direction);
-      };
-
-      if (direction === 'pass') {
-        void animate(x, -SWIPE_EXIT_X, SWIPE_EXIT).then(finish);
-      } else if (direction === 'apply') {
-        void animate(x, SWIPE_EXIT_X, SWIPE_EXIT).then(finish);
-      } else {
-        void animate(y, -SWIPE_EXIT_Y, SWIPE_EXIT).then(finish);
-      }
+      onDismiss(job, direction);
+      setExitState({ job, direction });
     }, [onDismiss, x, y]);
 
     useImperativeHandle(ref, () => ({
@@ -121,7 +124,7 @@ export const PremiumSwipeDeck = forwardRef<PremiumSwipeDeckHandle, PremiumSwipeD
     };
 
     const handleDragEnd = (_: unknown, info: PanInfo) => {
-      if (exitingRef.current) return;
+      if (exitLockedRef.current) return;
 
       const direction = resolveDirection(info.offset);
       if (direction) {
@@ -159,12 +162,12 @@ export const PremiumSwipeDeck = forwardRef<PremiumSwipeDeckHandle, PremiumSwipeD
           );
         })}
 
-        {topJob && (
+        {topJob && !exitState && (
           <motion.div
             key={topJob.id}
             className={styles.topCard}
             style={{ x, y, rotate, zIndex: 20 }}
-            drag={!isExiting}
+            drag={!exitLockedRef.current}
             dragElastic={0}
             dragMomentum={false}
             dragPropagation={false}
@@ -172,41 +175,51 @@ export const PremiumSwipeDeck = forwardRef<PremiumSwipeDeckHandle, PremiumSwipeD
             onDrag={handleDrag}
             onDragEnd={handleDragEnd}
           >
-            {!isExiting && (
-              <>
-                <motion.div
-                  className={styles.passOverlay}
-                  style={{ opacity: passOpacity }}
-                  aria-hidden
-                />
-                <motion.div
-                  className={styles.applyOverlay}
-                  style={{ opacity: applyOpacity }}
-                  aria-hidden
-                />
-                <motion.div
-                  className={`${styles.stamp} ${styles.stampPass}`}
-                  style={{ opacity: passOpacity }}
-                >
-                  <IconX size={28} />
-                  <span>SKIP</span>
-                </motion.div>
-                <motion.div
-                  className={`${styles.stamp} ${styles.stampApply}`}
-                  style={{ opacity: applyOpacity }}
-                >
-                  <IconHeart size={28} />
-                  <span>APPLY</span>
-                </motion.div>
-                <motion.span
-                  className={`${styles.stamp} ${styles.stampSave}`}
-                  style={{ opacity: saveOpacity }}
-                >
-                  SAVE
-                </motion.span>
-              </>
-            )}
+            <motion.div
+              className={styles.passOverlay}
+              style={{ opacity: passOpacity }}
+              aria-hidden
+            />
+            <motion.div
+              className={styles.applyOverlay}
+              style={{ opacity: applyOpacity }}
+              aria-hidden
+            />
+            <motion.div
+              className={`${styles.stamp} ${styles.stampPass}`}
+              style={{ opacity: passOpacity }}
+            >
+              <IconX size={28} />
+              <span>SKIP</span>
+            </motion.div>
+            <motion.div
+              className={`${styles.stamp} ${styles.stampApply}`}
+              style={{ opacity: applyOpacity }}
+            >
+              <IconHeart size={28} />
+              <span>APPLY</span>
+            </motion.div>
+            <motion.span
+              className={`${styles.stamp} ${styles.stampSave}`}
+              style={{ opacity: saveOpacity }}
+            >
+              SAVE
+            </motion.span>
             <SwipeJobCard job={topJob} interactive dragX={x} dragY={y} />
+          </motion.div>
+        )}
+
+        {exitState && (
+          <motion.div
+            key={`exit-${exitState.job.id}`}
+            className={styles.topCard}
+            style={{ zIndex: 30, pointerEvents: 'none' }}
+            initial={{ x: 0, y: 0, rotate: 0 }}
+            animate={exitTarget(exitState.direction)}
+            transition={SWIPE_EXIT}
+            onAnimationComplete={finishExit}
+          >
+            <SwipeJobCard job={exitState.job} interactive={false} />
           </motion.div>
         )}
       </div>

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { IconChevronLeft, IconFile } from '@/components/icons/Icons';
+import { IconChevronLeft } from '@/components/icons/Icons';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { Button } from '@/components/ui/Button';
 import { useChatHub } from '@/hooks/useChatHub';
@@ -12,7 +12,7 @@ import {
   isSameMessageDay,
 } from '@/lib/messagingHelpers';
 import type { ChatMessage, ConversationDetail } from '@/models/messaging';
-import { isImageMimeType, resolveMediaUrl } from '@/lib/mediaUrl';
+import { MessageAttachment } from '@/components/messaging/MessageAttachment';
 import styles from './ChatView.module.css';
 
 interface ChatApi {
@@ -228,44 +228,10 @@ export function ChatView({
         /* fall through to direct URL */
       }
     }
-    const direct = resolveMediaUrl(message.attachmentUrl);
+    const direct = message.attachmentUrl?.startsWith('http') || message.attachmentUrl?.startsWith('/')
+      ? message.attachmentUrl
+      : undefined;
     if (direct) window.open(direct, '_blank', 'noopener,noreferrer');
-  };
-
-  const renderAttachment = (message: ChatMessage) => {
-    if (!message.attachmentUrl) return null;
-    const isImage = isImageMimeType(message.attachmentContentType, message.attachmentFileName);
-    const src = resolveMediaUrl(message.attachmentUrl);
-
-    if (isImage && src) {
-      return (
-        <button
-          type="button"
-          className={styles.imageAttachment}
-          onClick={() => setExpandedImage(src)}
-          aria-label={`View image ${message.attachmentFileName ?? ''}`.trim()}
-        >
-          <img src={src} alt={message.attachmentFileName ?? 'Shared image'} className={styles.imagePreview} />
-        </button>
-      );
-    }
-
-    return (
-      <button
-        type="button"
-        className={styles.fileCard}
-        onClick={() => void handleDownload(message)}
-      >
-        <span className={styles.fileIcon} aria-hidden>
-          <IconFile size={22} />
-        </span>
-        <span className={styles.fileMeta}>
-          <span className={styles.fileName}>
-            {message.attachmentFileName ?? 'Download file'}
-          </span>
-        </span>
-      </button>
-    );
   };
 
   return (
@@ -346,7 +312,15 @@ export function ChatView({
                   {!isAttachmentPlaceholderText(message.messageText, message.attachmentFileName) && (
                     <p className={styles.messageText}>{message.messageText}</p>
                   )}
-                  {message.attachmentUrl && renderAttachment(message)}
+                  {message.attachmentUrl && (
+                    <MessageAttachment
+                      message={message}
+                      conversationId={conversation.id}
+                      downloadAttachment={api.downloadAttachment}
+                      onExpandImage={setExpandedImage}
+                      onDownload={handleDownload}
+                    />
+                  )}
                   <footer className={styles.meta}>
                     <time dateTime={message.sentAt}>{formatBubbleTime(message.sentAt)}</time>
                     {message.isMine && <MessageReceipt readAt={message.readAt} />}

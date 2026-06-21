@@ -18,6 +18,7 @@ interface CandidateProfileHeroProps {
   onRatingChange?: (rating: number | null) => void;
   onFavoriteToggle?: () => void;
   ratingBusy?: boolean;
+  compact?: boolean;
 }
 
 export function CandidateProfileHero({
@@ -25,6 +26,7 @@ export function CandidateProfileHero({
   onRatingChange,
   onFavoriteToggle,
   ratingBusy = false,
+  compact = false,
 }: CandidateProfileHeroProps) {
   const fullName = `${applicant.firstName} ${applicant.lastName}`.trim() || 'Candidate';
   const yearsExp = estimateYearsExperience(applicant.experiences);
@@ -33,8 +35,8 @@ export function CandidateProfileHero({
   const isFavorite = applicant.isFavorite ?? false;
 
   return (
-    <header className={ws.candidateHero}>
-      <div className={ws.candidateHeroBanner} aria-hidden />
+    <header className={[ws.candidateHero, compact ? ws.candidateHeroCompact : ''].filter(Boolean).join(' ')}>
+      {!compact && <div className={ws.candidateHeroBanner} aria-hidden />}
       <div className={ws.candidateHeroBody}>
         <UserAvatar
           profile={{
@@ -93,6 +95,7 @@ export function CandidateProfileHero({
             </div>
           </div>
 
+          {!compact && (
           <div className={ws.candidateStatStrip}>
             <div className={ws.candidateStat}>
               <span className={ws.candidateStatLabel}>Experience</span>
@@ -113,8 +116,9 @@ export function CandidateProfileHero({
               <span className={ws.candidateStatValue}>{ApplicationStatusLabels[applicant.status]}</span>
             </div>
           </div>
+          )}
 
-          {proofLinks.length > 0 && (
+          {!compact && proofLinks.length > 0 && (
             <div className={ws.candidateProofRow}>
               {proofLinks.map((link) => (
                 <a

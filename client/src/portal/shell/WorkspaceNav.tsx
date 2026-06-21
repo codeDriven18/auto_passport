@@ -57,7 +57,7 @@ export function WorkspaceNav({ unreadMessages, onNavigate, className }: Workspac
     <aside className={[navStyles.nav, className].filter(Boolean).join(' ')}>
       <div className={navStyles.identity}>
         {company ? (
-          <CompanyAvatar company={company} size="sm" className={navStyles.identityLogo} />
+          <CompanyAvatar company={company} size="sm" circular className={navStyles.identityLogo} />
         ) : (
           <span className={navStyles.identityLogoFallback} aria-hidden />
         )}

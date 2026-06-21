@@ -8,6 +8,7 @@ import { ImageDropZone } from '@/portal/components/ImageDropZone';
 import { PageFrame } from '@/portal/components/PageFrame';
 import ws from '@/portal/workspace.module.css';
 import { useToast } from '@/context/ToastContext';
+import { useEmployerWorkspace } from '@/context/EmployerWorkspaceContext';
 import { getApiErrorMessage } from '@/lib/apiErrors';
 import { resolveMediaUrl } from '@/lib/mediaUrl';
 import type { Company } from '@/models/company';
@@ -66,6 +67,7 @@ function ShowcaseSection({
 
 export function CompanyPage() {
   const { showToast } = useToast();
+  const { refreshCompany } = useEmployerWorkspace();
   const [company, setCompany] = useState<Company | null>(null);
   const [form, setForm] = useState<PortalUpdateCompanyRequest | null>(null);
   const [loading, setLoading] = useState(true);
@@ -138,6 +140,23 @@ export function CompanyPage() {
     });
   }, [company]);
 
+  const syncMediaField = useCallback((field: 'logoUrl' | 'bannerUrl', value: string) => {
+    setForm((prev) => (prev ? { ...prev, [field]: value } : prev));
+    setCompany((prev) => (prev ? { ...prev, [field]: value } : prev));
+  }, []);
+
+  const handleLogoUpload = useCallback(async (file: File) => {
+    const url = await companyUploadApi.uploadLogo(file);
+    syncMediaField('logoUrl', url);
+    return url;
+  }, [syncMediaField]);
+
+  const handleBannerUpload = useCallback(async (file: File) => {
+    const url = await companyUploadApi.uploadBanner(file);
+    syncMediaField('bannerUrl', url);
+    return url;
+  }, [syncMediaField]);
+
   const save = useCallback(async () => {
     if (!form) return;
     setSaving(true);
@@ -146,12 +165,13 @@ export function CompanyPage() {
       setCompany(updated);
       showToast('Company profile saved', 'success');
       setEditing(false);
+      void refreshCompany();
     } catch (e) {
       showToast(getApiErrorMessage(e, 'Save failed'), 'error');
     } finally {
       setSaving(false);
     }
-  }, [form, showToast]);
+  }, [form, showToast, refreshCompany]);
 
   if (loading) {
     return <p className={ws.statusText}>Loading company profile…</p>;
@@ -199,7 +219,7 @@ export function CompanyPage() {
         </>
       )}
     >
-      <div className={editing ? ws.companyEditLayout : undefined}>
+      <div className={ws.companyPageLayout}>
         <article className={ws.companyHero}>
           <div className={ws.companyBannerWrap}>
             <div className={ws.companyBanner} style={bannerStyle} aria-hidden />
@@ -249,7 +269,19 @@ export function CompanyPage() {
         </article>
 
         {editing && (
-          <aside className={ws.companyEditor}>
+          <div className={ws.companyEditorOverlay} role="presentation">
+            <button
+              type="button"
+              className={ws.companyEditorBackdrop}
+              aria-label="Close editor"
+              onClick={() => { resetForm(); setEditing(false); }}
+            />
+            <aside className={ws.companyEditorDrawer} aria-label="Edit company brand">
+              <div className={ws.companyEditorDrawerHead}>
+                <h3 className={ws.panelTitle}>Edit brand</h3>
+                <button type="button" className={ws.btnGhost} onClick={() => { resetForm(); setEditing(false); }}>Close</button>
+              </div>
+              <div className={ws.companyEditorDrawerBody}>
             <section className={ws.panel}>
               <h3 className={ws.panelTitle}>Visual identity</h3>
               <p className={ws.companyEditorHint}>
@@ -259,8 +291,8 @@ export function CompanyPage() {
                 label="Cover image"
                 hint="Drag & drop to upload, or paste a URL. Without a cover, a branded placeholder is shown."
                 value={form.bannerUrl ?? ''}
-                onChange={(bannerUrl) => setForm({ ...form, bannerUrl })}
-                onUploadFile={(file) => companyUploadApi.uploadBanner(file)}
+                onChange={(bannerUrl) => syncMediaField('bannerUrl', bannerUrl)}
+                onUploadFile={handleBannerUpload}
                 aspect="banner"
                 placeholder={<span className={ws.dropZonePlaceholder}>Branded cover preview</span>}
               />
@@ -268,8 +300,8 @@ export function CompanyPage() {
                 label="Logo"
                 hint="Square logo works best. Drag & drop to upload or paste a URL."
                 value={form.logoUrl ?? ''}
-                onChange={(logoUrl) => setForm({ ...form, logoUrl })}
-                onUploadFile={(file) => companyUploadApi.uploadLogo(file)}
+                onChange={(logoUrl) => syncMediaField('logoUrl', logoUrl)}
+                onUploadFile={handleLogoUpload}
                 aspect="square"
               />
             </section>
@@ -370,7 +402,9 @@ export function CompanyPage() {
                 </div>
               </div>
             </section>
-          </aside>
+              </div>
+            </aside>
+          </div>
         )}
       </div>
 

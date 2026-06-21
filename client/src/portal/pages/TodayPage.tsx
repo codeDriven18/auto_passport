@@ -9,6 +9,7 @@ import {
   getPipelineMomentum,
   getRecentApplicants,
   getRecentlyScheduledInterviews,
+  getRecentConversations,
 } from '@/lib/employer/employerWorkspaceData';
 import { ApplicantWorkRow, ConversationWorkRow } from '@/portal/components/WorkQueueRow';
 import { PageFrame } from '@/portal/components/PageFrame';
@@ -47,6 +48,8 @@ export function TodayPage() {
   const interviewIds = new Set(interviewQueue.map((a) => a.id));
   const recentlyScheduled = getRecentlyScheduledInterviews(applications, 5)
     .filter((a) => !interviewIds.has(a.id));
+  const recentConversations = getRecentConversations(conversations, 6)
+    .filter((c) => c.unreadCount === 0);
   const pipelineMomentum = getPipelineMomentum(applications, 5)
     .filter((a) => !reviewIds.has(a.id) && !interviewIds.has(a.id));
 
@@ -151,6 +154,20 @@ export function TodayPage() {
             <div className={ws.todayQueue}>
               {recentlyScheduled.map((app) => (
                 <ApplicantWorkRow key={app.id} application={app} from="today" actionLabel="View interview" />
+              ))}
+            </div>
+          </section>
+        )}
+
+        {recentConversations.length > 0 && unreadConversations.length === 0 && (
+          <section className={ws.todaySection} aria-label="Recent conversations">
+            <div className={ws.todaySectionHead}>
+              <h3 className={ws.todaySectionTitle}>Recent conversations</h3>
+              <Link to="/portal/messages" className={ws.workSectionLink}>Open inbox</Link>
+            </div>
+            <div className={ws.todayQueue}>
+              {recentConversations.map((c) => (
+                <ConversationWorkRow key={c.id} conversation={c} actionLabel="Continue conversation" />
               ))}
             </div>
           </section>

@@ -24,7 +24,7 @@ function getInitials(name: string): string {
     .toUpperCase() || '?';
 }
 
-export function CompanyAvatar({ company, size = 'md', className = '', circular = false }: CompanyAvatarProps) {
+export function CompanyAvatar({ company, size = 'md', className = '', circular = true }: CompanyAvatarProps) {
   const initials = getInitials(company.name);
   const logoSrc = resolveMediaUrl(company.logoUrl);
   const classes = [

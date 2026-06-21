@@ -1,5 +1,6 @@
 import { ApplicationStatus, InterviewPhase, PipelineStage } from '@/models/enums';
 import type { PortalApplication } from '@/models/portal';
+import type { ConversationSummary } from '@/models/messaging';
 import { PIPELINE_COLUMNS, resolvePipelineStage } from './pipelineArchitecture';
 import { PIPELINE_STAGE_LABELS } from './pipelineMove';
 
@@ -105,4 +106,14 @@ export function getPipelineMomentum(applications: PortalApplication[], limit = 5
 
 export function pipelineStageLabel(app: PortalApplication): string {
   return PIPELINE_STAGE_LABELS[resolvePipelineStage(app.status)];
+}
+
+export function getRecentConversations(conversations: ConversationSummary[], limit = 6): ConversationSummary[] {
+  return [...conversations]
+    .sort((a, b) => {
+      const aTime = a.latestMessageAt ? new Date(a.latestMessageAt).getTime() : 0;
+      const bTime = b.latestMessageAt ? new Date(b.latestMessageAt).getTime() : 0;
+      return bTime - aTime;
+    })
+    .slice(0, limit);
 }

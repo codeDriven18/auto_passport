@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { isImageMimeType, resolveMediaUrl } from '@/lib/mediaUrl';
+import { isImageMimeType, isMediaStorageKey, resolveMediaUrl } from '@/lib/mediaUrl';
 
 interface UseMessageAttachmentUrlOptions {
   attachmentUrl?: string | null;
@@ -20,12 +20,13 @@ export function useMessageAttachmentUrl({
   downloadAttachment,
 }: UseMessageAttachmentUrlOptions): { src?: string; isImage: boolean; loading: boolean } {
   const isImage = isImageMimeType(attachmentContentType, attachmentFileName);
-  const direct = resolveMediaUrl(attachmentUrl);
+  const isPrivateKey = isMediaStorageKey(attachmentUrl);
+  const direct = isPrivateKey ? undefined : resolveMediaUrl(attachmentUrl);
   const needsAuth = Boolean(
     attachmentUrl
     && isImage
     && downloadAttachment
-    && !direct,
+    && (isPrivateKey || !direct),
   );
 
   const [blobSrc, setBlobSrc] = useState<string | undefined>();

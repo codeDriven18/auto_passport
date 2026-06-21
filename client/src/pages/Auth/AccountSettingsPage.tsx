@@ -22,6 +22,12 @@ export function AccountSettingsPage({ hideHeader = false }: { hideHeader?: boole
   const { user, logout } = useAuth();
   const { profile, loading: profileLoading } = useProfile();
   const navigate = useNavigate();
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [message, setMessage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
   const displayName = (() => {
     if (user?.role === UserRole.Company) {
@@ -32,13 +38,6 @@ export function AccountSettingsPage({ hideHeader = false }: { hideHeader?: boole
     const full = `${first} ${last}`.trim();
     return full || null;
   })();
-
-  const [currentPassword, setCurrentPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [message, setMessage] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
 
   const handleChangePassword = async (e: FormEvent) => {
     e.preventDefault();

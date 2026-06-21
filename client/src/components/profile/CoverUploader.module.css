@@ -1,47 +1,4 @@
-.cover {
-  position: relative;
-  height: 12.5rem;
-  min-height: 11.25rem;
-  max-height: 13.75rem;
-  border-radius: var(--radius-xl);
-  overflow: hidden;
-  background: linear-gradient(
-    135deg,
-    #0a0a0a 0%,
-    #141410 35%,
-    #1f1c12 65%,
-    color-mix(in srgb, var(--color-accent) 22%, #1a1810) 100%
-  );
-}
-
-.cover::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background:
-    radial-gradient(circle at 85% 20%, color-mix(in srgb, var(--color-accent) 18%, transparent) 0%, transparent 45%),
-    linear-gradient(to bottom, transparent 55%, rgba(0, 0, 0, 0.55) 100%);
-  pointer-events: none;
-}
-
-.coverImage {
-  position: absolute;
-  inset: 0;
-  background-size: cover;
-  background-position: center;
-  opacity: 0;
-  transition: opacity 0.45s var(--ease-out);
-}
-
-.coverImageVisible {
-  opacity: 1;
-}
-
 .changeBtn {
-  position: absolute;
-  top: 0.75rem;
-  right: 0.75rem;
-  z-index: 2;
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
@@ -71,9 +28,6 @@
 }
 
 .progress {
-  position: absolute;
-  inset: auto 0 0;
-  z-index: 2;
   height: 3px;
   background: rgba(255, 255, 255, 0.12);
 }

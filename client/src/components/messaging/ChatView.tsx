@@ -87,7 +87,6 @@ export function ChatView({
   subtitle,
   title,
   logoUrl,
-  headerHint,
   showStatusBadge = true,
   onHeaderIdentityClick,
   headerIdentityExpanded,
@@ -108,6 +107,7 @@ export function ChatView({
   const [composerOpen, setComposerOpen] = useState(false);
   const [pendingAttachments, setPendingAttachments] = useState<PendingAttachment[]>([]);
   const [attachmentCaption, setAttachmentCaption] = useState('');
+  const [avatarError, setAvatarError] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -115,7 +115,6 @@ export function ChatView({
   const displayName = title ?? conversation.companyName;
   const displaySubtitle = subtitle ?? conversation.jobTitle;
   const avatarSrc = resolveMediaUrl(logoUrl ?? conversation.candidateProfileImageUrl ?? conversation.companyLogoUrl);
-  const [avatarError, setAvatarError] = useState(false);
 
   useEffect(() => {
     setAvatarError(false);
@@ -294,6 +293,8 @@ export function ChatView({
     if (direct) window.open(direct, '_blank', 'noopener,noreferrer');
   };
 
+  const isPortalEmbedded = layout === 'portal' && embedded;
+
   return (
     <section
       className={[
@@ -329,11 +330,22 @@ export function ChatView({
                 )}
                 <div className={styles.headerText}>
                   <h1 className={styles.title}>{displayName}</h1>
-                  {(headerHint || displaySubtitle) && (
-                    <p className={styles.headerMeta}>
-                      <span className={styles.subtitle}>{headerHint ?? displaySubtitle}</span>
-                    </p>
-                  )}
+                  <p className={styles.headerMeta}>
+                    {isPortalEmbedded ? (
+                      <>
+                        <span className={styles.statusDot} aria-hidden />
+                        <span className={styles.subtitle}>Active now</span>
+                        <span className={styles.sidebarHint} aria-hidden>
+                          {headerIdentityExpanded ? '◂' : '▸'}
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <span className={styles.subtitle}>{displaySubtitle}</span>
+                        {showStatusBadge && <StatusBadge status={conversation.applicationStatus} compact />}
+                      </>
+                    )}
+                  </p>
                 </div>
               </button>
             ) : (
@@ -361,11 +373,12 @@ export function ChatView({
         </div>
       </header>
 
-      {conversation.isReadOnly && (
-        <p className={styles.readOnlyBanner}>This conversation is read-only.</p>
-      )}
+      <div className={styles.body}>
+        {conversation.isReadOnly && (
+          <p className={styles.readOnlyBanner}>This conversation is read-only.</p>
+        )}
 
-      <div ref={listRef} className={styles.messages} aria-live="polite">
+        <div ref={listRef} className={styles.messages} aria-live="polite">
         {loading ? (
           <div className={styles.loadingMessages} aria-busy="true" aria-label="Loading messages">
             <span className={styles.loader} aria-hidden />
@@ -395,6 +408,17 @@ export function ChatView({
               );
             }
 
+            const hasAttachment = Boolean(
+              message.attachmentUrl || message.localPreviewUrl || message.uploadStatus,
+            );
+            const hidePlaceholderText = isAttachmentPlaceholderText(message.messageText, message.attachmentFileName);
+            const isImageAttachment = Boolean(
+              message.localPreviewUrl
+              || (message.attachmentContentType?.startsWith('image/'))
+              || (message.attachmentFileName && /\.(jpe?g|png|gif|webp)$/i.test(message.attachmentFileName)),
+            );
+            const isImageOnly = hasAttachment && isImageAttachment && hidePlaceholderText;
+
             return (
               <article
                 key={item.key}
@@ -402,13 +426,14 @@ export function ChatView({
                   styles.message,
                   message.isMine ? styles.mine : styles.theirs,
                   sameSender ? styles.messageGrouped : styles.messageNewSender,
+                  isImageOnly ? styles.messageImageOnly : '',
                 ].join(' ')}
               >
                 <div className={styles.bubbleInner}>
-                  {!isAttachmentPlaceholderText(message.messageText, message.attachmentFileName) && (
+                  {!hidePlaceholderText && (
                     <p className={styles.messageText}>{message.messageText}</p>
                   )}
-                  {message.attachmentUrl || message.localPreviewUrl || message.uploadStatus ? (
+                  {hasAttachment ? (
                     <MessageAttachment
                       message={message}
                       conversationId={conversation.id}
@@ -428,11 +453,11 @@ export function ChatView({
         )}
         {typingUserId && <p className={styles.typing}>Typing…</p>}
         <div ref={bottomRef} className={styles.bottomAnchor} />
-      </div>
+        </div>
 
-      {error && <p className={styles.error}>{error}</p>}
+        {error && <p className={styles.error}>{error}</p>}
 
-      <form
+        <form
         className={styles.composer}
         onSubmit={(event) => {
           event.preventDefault();
@@ -485,6 +510,7 @@ export function ChatView({
           Send
         </Button>
       </form>
+      </div>
 
       {expandedImage && (
         <div

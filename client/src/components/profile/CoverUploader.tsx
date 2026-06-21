@@ -1,6 +1,8 @@
-import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
+import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { IconCamera } from '@/components/icons/Icons';
+import { ProfileCoverHero } from '@/components/profile/ProfileCoverHero';
+import { resolveMediaUrl } from '@/lib/mediaUrl';
 import styles from './CoverUploader.module.css';
 
 const MAX_BYTES = 512 * 1024;
@@ -16,6 +18,7 @@ interface CoverUploaderProps {
   uploadProgress?: number;
   onUpload: (file: File) => Promise<void>;
   disabled?: boolean;
+  children?: ReactNode;
 }
 
 interface CropState {
@@ -101,6 +104,7 @@ export function CoverUploader({
   uploadProgress = 0,
   onUpload,
   disabled = false,
+  children,
 }: CoverUploaderProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const dragStart = useRef<{ x: number; y: number; ox: number; oy: number } | null>(null);
@@ -183,19 +187,13 @@ export function CoverUploader({
     }
   };
 
+  const resolvedBanner = resolveMediaUrl(bannerUrl);
+
   return (
     <>
-      <div className={styles.cover}>
-        <motion.div
-          className={`${styles.coverImage} ${bannerUrl ? styles.coverImageVisible : ''}`}
-          style={bannerUrl ? { backgroundImage: `url(${bannerUrl})` } : undefined}
-          initial={false}
-          animate={{ opacity: bannerUrl ? 1 : 0 }}
-          transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-          aria-hidden
-        />
-
-        {!disabled && (
+      <ProfileCoverHero
+        bannerUrl={resolvedBanner}
+        coverActions={!disabled ? (
           <button
             type="button"
             className={styles.changeBtn}
@@ -205,14 +203,14 @@ export function CoverUploader({
             <IconCamera size={15} />
             Change Cover
           </button>
-        )}
-
-        {uploading && (
+        ) : undefined}
+        coverFooter={uploading ? (
           <div className={styles.progress} aria-hidden>
             <div className={styles.progressBar} style={{ width: `${uploadProgress}%` }} />
           </div>
-        )}
-
+        ) : undefined}
+      >
+        {children}
         <input
           ref={inputRef}
           type="file"
@@ -224,7 +222,7 @@ export function CoverUploader({
             e.target.value = '';
           }}
         />
-      </div>
+      </ProfileCoverHero>
 
       <AnimatePresence>
         {crop && (

@@ -33,14 +33,12 @@ export function ProfileHeader({
   const seekingStatus = formatJobSeekingStatus(profile.jobSeekingStatus);
 
   return (
-    <header className={styles.header}>
-      <CoverUploader
-        bannerUrl={profile.bannerUrl}
-        uploading={uploading}
-        uploadProgress={uploadProgress}
-        onUpload={onBannerUpload}
-      />
-
+    <CoverUploader
+      bannerUrl={profile.bannerUrl}
+      uploading={uploading}
+      uploadProgress={uploadProgress}
+      onUpload={onBannerUpload}
+    >
       <div className={styles.identity}>
         <div className={styles.avatarWrap}>
           <motion.div
@@ -85,6 +83,6 @@ export function ProfileHeader({
           </div>
         </div>
       </div>
-    </header>
+    </CoverUploader>
   );
 }

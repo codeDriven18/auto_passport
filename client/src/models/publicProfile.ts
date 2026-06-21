@@ -5,6 +5,7 @@ export interface PublicProfile {
   headline?: string;
   location?: string;
   profileImageUrl?: string;
+  bannerUrl?: string;
   skills: string[];
   hasLinkedIn: boolean;
   hasGitHub: boolean;

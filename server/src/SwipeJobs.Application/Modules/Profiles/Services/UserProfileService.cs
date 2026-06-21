@@ -93,6 +93,7 @@ public class UserProfileService : IUserProfileService
             profile.Location,
             profile.JobSeekingStatus.ToString(),
             profile.ProfileImageUrl,
+            profile.BannerUrl,
             profile.Skills.Select(s => s.Name).Take(8).ToList(),
             !string.IsNullOrWhiteSpace(profile.LinkedInUrl),
             !string.IsNullOrWhiteSpace(profile.GitHubUrl),

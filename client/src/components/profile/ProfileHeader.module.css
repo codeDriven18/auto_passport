@@ -5,7 +5,6 @@
 
 .identity {
   position: relative;
-  margin-top: -2.75rem;
   padding: 0 0.25rem 0.75rem;
 }
 
@@ -56,6 +55,7 @@
   font-weight: 700;
   letter-spacing: -0.02em;
   line-height: 1.2;
+  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.28);
 }
 
 .verified {

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { IconMapPin } from '@/components/icons/Icons';
 import { profilesApi } from '@/api/profilesApi';
+import { ProfileCoverHero } from '@/components/profile/ProfileCoverHero';
 import { UserAvatar } from '@/components/profile/UserAvatar';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { usePageMeta } from '@/hooks/usePageMeta';
@@ -81,8 +82,7 @@ export function PublicProfilePage() {
 
   return (
     <section className={styles.page}>
-      <header className={styles.showcase}>
-        <div className={styles.banner} aria-hidden />
+      <ProfileCoverHero bannerUrl={profile.bannerUrl} className={styles.showcase}>
         <div className={styles.identityCard}>
           <UserAvatar
             profile={{
@@ -104,7 +104,7 @@ export function PublicProfilePage() {
             )}
           </div>
         </div>
-      </header>
+      </ProfileCoverHero>
 
       {proofSignals.length > 0 && (
         <div className={styles.proofRow}>

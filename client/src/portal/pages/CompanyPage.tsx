@@ -174,6 +174,14 @@ export function CompanyPage() {
     }
   }, [form, showToast, refreshCompany]);
 
+  const displayBannerUrl = resolveMediaUrl(
+    editing && form?.bannerUrl ? form.bannerUrl : company?.bannerUrl,
+  );
+
+  useEffect(() => {
+    setBannerError(false);
+  }, [displayBannerUrl, editing, company?.bannerUrl, form?.bannerUrl]);
+
   if (loading) {
     return <p className={ws.statusText}>Loading company profile…</p>;
   }
@@ -191,12 +199,8 @@ export function CompanyPage() {
   }
 
   const display = editing ? previewCompany : company;
-  const bannerUrl = resolveMediaUrl(display.bannerUrl);
+  const bannerUrl = displayBannerUrl;
   const showBannerImage = Boolean(bannerUrl && !bannerError);
-
-  useEffect(() => {
-    setBannerError(false);
-  }, [bannerUrl]);
 
   return (
     <PageFrame

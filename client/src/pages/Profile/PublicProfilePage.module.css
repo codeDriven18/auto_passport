@@ -21,45 +21,28 @@
 }
 
 .showcase {
-  position: relative;
-}
-
-.banner {
-  height: clamp(6rem, 18vw, 9rem);
-  border-radius: var(--radius-xl);
-  background: linear-gradient(
-    135deg,
-    #0a0a0a 0%,
-    #141414 50%,
-    color-mix(in srgb, var(--color-accent) 25%, #141414) 100%
-  );
-  border: 1px solid var(--color-border);
+  margin-bottom: 0.25rem;
 }
 
 .identityCard {
   display: flex;
   align-items: flex-end;
   gap: 1rem;
-  margin: -3rem 1rem 0;
-  padding: 1.25rem;
-  background: var(--color-surface-raised);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-md);
+  padding: 0 0.25rem;
 }
 
 .avatar {
   flex-shrink: 0;
-  border: 3px solid var(--color-surface-raised) !important;
+  border: 3px solid var(--color-bg) !important;
   box-shadow:
     0 0 0 2px var(--color-accent),
-    var(--shadow-sm);
+    var(--shadow-md);
 }
 
 .identityText {
   flex: 1;
   min-width: 0;
-  padding-bottom: 0.25rem;
+  padding-bottom: 0.35rem;
 }
 
 .name {
@@ -68,6 +51,7 @@
   font-weight: 900;
   letter-spacing: -0.04em;
   line-height: 1.1;
+  text-shadow: 0 1px 12px rgba(0, 0, 0, 0.32);
 }
 
 .headline {

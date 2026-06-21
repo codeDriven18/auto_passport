@@ -4,7 +4,8 @@ import { portalApi } from '@/api/portalApi';
 import type { PortalApplicantDetail } from '@/models/portalApplicant';
 import { ApplicationStatusLabels, InterviewPhase } from '@/models/enums';
 import { RecruiterActivityTypeLabels } from '@/models/recruiter';
-import { CandidateProfileHero } from '@/portal/components/CandidateProfileHero';
+import { UserAvatar } from '@/components/profile/UserAvatar';
+import { RecruiterStarRating } from '@/portal/components/RecruiterStarRating';
 import { RecruiterChatActions } from '@/portal/components/RecruiterChatActions';
 import { candidateProfilePath } from '@/lib/employer/hiringNavigation';
 import ws from '@/portal/workspace.module.css';
@@ -54,6 +55,18 @@ export function ConversationContextPanel({ applicationId, onUpdated }: Conversat
     }
   };
 
+  const handleFavorite = async () => {
+    if (!applicant) return;
+    setRatingBusy(true);
+    try {
+      await portalApi.setFavorite(applicationId, !applicant.isFavorite);
+      await load();
+      onUpdated?.();
+    } finally {
+      setRatingBusy(false);
+    }
+  };
+
   const handleResume = async () => {
     if (!applicant?.hasResume) return;
     setDownloading(true);
@@ -95,75 +108,96 @@ export function ConversationContextPanel({ applicationId, onUpdated }: Conversat
     );
   }
 
+  const fullName = `${applicant.firstName} ${applicant.lastName}`.trim() || 'Candidate';
   const tags = applicant.recruiterTags ?? [];
   const notes = applicant.recruiterNotes ?? [];
-  const timeline = (applicant.activityTimeline ?? []).slice(0, 4);
+  const timeline = (applicant.activityTimeline ?? []).slice(0, 6);
   const showInterview = applicant.interviewPhase !== InterviewPhase.None
     || Boolean(applicant.interviewScheduledAtUtc);
 
   return (
     <aside className={ws.msgContext} aria-label="Candidate context">
       <div className={ws.msgContextScroll}>
-        <CandidateProfileHero
-          applicant={applicant}
-          compact
-          ratingBusy={ratingBusy}
-          onRatingChange={(rating) => void handleRating(rating)}
-        />
-
-        <div className={ws.msgContextBlock}>
-          <p className={ws.msgContextLabel}>Current stage</p>
-          <span className={ws.msgContextStage}>{ApplicationStatusLabels[applicant.status]}</span>
-          <p className={ws.msgContextMuted}>{applicant.jobTitle}</p>
-        </div>
-
-        {showInterview && (
-          <div className={ws.msgContextBlock}>
-            <p className={ws.msgContextLabel}>Interview</p>
-            <p className={ws.msgContextSub}>{INTERVIEW_PHASE_LABELS[applicant.interviewPhase]}</p>
-            {applicant.interviewScheduledAtUtc && (
-              <p className={ws.msgContextMuted}>
-                {new Date(applicant.interviewScheduledAtUtc).toLocaleString(undefined, {
-                  dateStyle: 'medium',
-                  timeStyle: 'short',
-                })}
-              </p>
-            )}
-            {applicant.interviewLocation && (
-              <p className={ws.msgContextMuted}>{applicant.interviewLocation}</p>
-            )}
-          </div>
-        )}
-
-        {tags.length > 0 && (
-          <div className={ws.msgContextBlock}>
-            <p className={ws.msgContextLabel}>Tags</p>
-            <div className={ws.msgContextTags}>
-              {tags.map((tag) => (
-                <span key={tag.id} className={ws.recruiterTagPill}>{tag.name}</span>
-              ))}
+        <section className={ws.msgContextCard}>
+          <div className={ws.msgContextHeader}>
+            <UserAvatar
+              profile={{
+                firstName: applicant.firstName,
+                lastName: applicant.lastName,
+                email: applicant.email,
+                profileImageUrl: applicant.profileImageUrl,
+              }}
+              size="lg"
+            />
+            <div className={ws.msgContextHeaderText}>
+              <strong className={ws.msgContextHeaderName}>{fullName}</strong>
+              {applicant.headline && (
+                <p className={ws.msgContextSub}>{applicant.headline}</p>
+              )}
+              <span className={ws.msgContextStage}>{ApplicationStatusLabels[applicant.status]}</span>
             </div>
           </div>
-        )}
+        </section>
 
-        {notes.length > 0 && (
-          <div className={ws.msgContextBlock}>
-            <p className={ws.msgContextLabel}>Notes</p>
-            <ul className={ws.msgContextNotes}>
-              {notes.slice(0, 3).map((note) => (
-                <li key={note.id} className={ws.msgContextNoteItem}>
-                  <p className={ws.msgContextNoteText}>{note.text}</p>
-                  <time className={ws.msgContextMuted} dateTime={note.createdAt}>
-                    {new Date(note.createdAt).toLocaleDateString()}
-                  </time>
-                </li>
-              ))}
-            </ul>
+        <section className={ws.msgContextCard}>
+          <p className={ws.msgContextLabel}>Status</p>
+          <dl className={ws.msgContextFacts}>
+            <div>
+              <dt>Stage</dt>
+              <dd>{ApplicationStatusLabels[applicant.status]}</dd>
+            </div>
+            <div>
+              <dt>Role</dt>
+              <dd>{applicant.jobTitle}</dd>
+            </div>
+            {showInterview && (
+              <div>
+                <dt>Interview</dt>
+                <dd>
+                  {INTERVIEW_PHASE_LABELS[applicant.interviewPhase]}
+                  {applicant.interviewScheduledAtUtc && (
+                    <> · {new Date(applicant.interviewScheduledAtUtc).toLocaleString(undefined, {
+                      dateStyle: 'medium',
+                      timeStyle: 'short',
+                    })}
+                    </>
+                  )}
+                </dd>
+              </div>
+            )}
+          </dl>
+          <div className={ws.msgContextEvalRow}>
+            <RecruiterStarRating
+              value={applicant.recruiterRating}
+              disabled={ratingBusy}
+              onChange={(rating) => void handleRating(rating)}
+            />
+            <button
+              type="button"
+              className={[ws.favoriteToggle, applicant.isFavorite ? ws.favoriteToggleActive : ''].filter(Boolean).join(' ')}
+              disabled={ratingBusy}
+              onClick={() => void handleFavorite()}
+            >
+              {applicant.isFavorite ? '★ Favorited' : '☆ Favorite'}
+            </button>
           </div>
-        )}
+        </section>
+
+        <section className={ws.msgContextCard}>
+          <p className={ws.msgContextLabel}>Actions</p>
+          <RecruiterChatActions
+            applicationId={applicationId}
+            status={applicant.status}
+            variant="panel"
+            onChanged={() => {
+              void load();
+              onUpdated?.();
+            }}
+          />
+        </section>
 
         {timeline.length > 0 && (
-          <div className={ws.msgContextBlock}>
+          <section className={ws.msgContextCard}>
             <p className={ws.msgContextLabel}>Timeline</p>
             <div className={ws.msgContextTimeline}>
               {timeline.map((entry, index) => (
@@ -179,19 +213,34 @@ export function ConversationContextPanel({ applicationId, onUpdated }: Conversat
                 </div>
               ))}
             </div>
-          </div>
+          </section>
+        )}
+
+        {(notes.length > 0 || tags.length > 0) && (
+          <section className={ws.msgContextCard}>
+            <p className={ws.msgContextLabel}>Notes</p>
+            {tags.length > 0 && (
+              <div className={ws.msgContextTags}>
+                {tags.map((tag) => (
+                  <span key={tag.id} className={ws.recruiterTagPill}>{tag.name}</span>
+                ))}
+              </div>
+            )}
+            {notes.length > 0 && (
+              <ul className={ws.msgContextNotes}>
+                {notes.slice(0, 4).map((note) => (
+                  <li key={note.id} className={ws.msgContextNoteItem}>
+                    <p className={ws.msgContextNoteText}>{note.text}</p>
+                    <time className={ws.msgContextMuted} dateTime={note.createdAt}>
+                      {new Date(note.createdAt).toLocaleDateString()}
+                    </time>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
         )}
       </div>
-
-      <RecruiterChatActions
-        applicationId={applicationId}
-        status={applicant.status}
-        variant="panel"
-        onChanged={() => {
-          void load();
-          onUpdated?.();
-        }}
-      />
 
       <div className={ws.msgContextActions}>
         <Link to={candidateProfilePath(applicationId, { from: 'inbox' })} className={ws.btnPrimary}>

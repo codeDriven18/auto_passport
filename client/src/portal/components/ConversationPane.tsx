@@ -6,7 +6,6 @@ import { ChatView } from '@/components/messaging/ChatView';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { useUnreadMessages } from '@/hooks/useUnreadMessages';
 import { ConversationContextPanel } from '@/portal/components/ConversationContextPanel';
-import { RecruiterChatActions } from '@/portal/components/RecruiterChatActions';
 import ws from '@/portal/workspace.module.css';
 import type { ConversationDetail } from '@/models/messaging';
 
@@ -104,14 +103,6 @@ export function ConversationPane({
 
       <div className={ws.msgPaneBody}>
         <div className={ws.msgPaneChat}>
-          {isSplit && (
-            <RecruiterChatActions
-              applicationId={conversation.applicationId}
-              status={conversation.applicationStatus}
-              variant="compact"
-              onChanged={() => loadConversation(false)}
-            />
-          )}
           <ChatView
             conversation={conversation}
             backTo="/portal/messages"

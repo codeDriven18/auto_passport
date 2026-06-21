@@ -1,0 +1,101 @@
+.hero {
+  position: relative;
+  margin-bottom: 0.5rem;
+}
+
+.cover {
+  position: relative;
+  height: clamp(8.5rem, 22vw, 11.5rem);
+  min-height: 8rem;
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  background: linear-gradient(
+    135deg,
+    #0a0a0a 0%,
+    #141410 35%,
+    #1f1c12 65%,
+    color-mix(in srgb, var(--color-accent) 22%, #1a1810) 100%
+  );
+}
+
+.coverImg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  display: block;
+}
+
+.coverShade {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 85% 18%, color-mix(in srgb, var(--color-accent) 16%, transparent) 0%, transparent 42%),
+    linear-gradient(to bottom, rgba(0, 0, 0, 0.08) 0%, rgba(0, 0, 0, 0.42) 58%, rgba(0, 0, 0, 0.72) 100%);
+}
+
+.coverFade {
+  position: absolute;
+  inset: auto 0 0;
+  height: 55%;
+  pointer-events: none;
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    color-mix(in srgb, var(--color-bg) 35%, transparent) 45%,
+    var(--color-bg) 100%
+  );
+}
+
+.coverActions {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  z-index: 2;
+}
+
+.coverFooter {
+  position: absolute;
+  inset: auto 0 0;
+  z-index: 2;
+}
+
+.content {
+  position: relative;
+  z-index: 1;
+  margin-top: -3.25rem;
+  padding: 0 0.25rem 0.75rem;
+}
+
+/* Portal / employer variant */
+.heroPortal .cover {
+  border-radius: var(--ws-radius-lg, var(--radius-xl)) var(--ws-radius-lg, var(--radius-xl)) 0 0;
+}
+
+.heroPortal .coverFade {
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    color-mix(in srgb, var(--ws-panel, var(--color-bg)) 40%, transparent) 50%,
+    var(--ws-panel, var(--color-bg)) 100%
+  );
+}
+
+.heroPortal .content {
+  margin-top: -3rem;
+  padding: 0 1.25rem 1.25rem;
+}
+
+.heroCompact .cover {
+  height: clamp(4.5rem, 14vw, 6rem);
+  min-height: 4rem;
+  border-radius: var(--ws-radius-md, var(--radius-lg)) var(--ws-radius-md, var(--radius-lg)) 0 0;
+}
+
+.heroCompact .content {
+  margin-top: -1.75rem;
+  padding: 0 1rem 0.75rem;
+}

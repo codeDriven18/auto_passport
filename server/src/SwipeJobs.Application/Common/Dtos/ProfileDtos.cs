@@ -145,6 +145,7 @@ public record PublicProfileDto(
     string? Location,
     string JobSeekingStatus,
     string? ProfileImageUrl,
+    string? BannerUrl,
     IReadOnlyList<string> Skills,
     bool HasLinkedIn,
     bool HasGitHub,
